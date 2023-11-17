@@ -1,8 +1,12 @@
 import functools
+import pickle
+import time
 from functools import wraps
-from time import time
 
-from core.settings import logger
+from core.settings import logger, BASE_DIR
+from utils.resources import moment
+
+login_pkl = BASE_DIR / 'login.pickle'
 
 
 def ignore_unhashable(func):
@@ -23,10 +27,47 @@ def logtime(tag):
     def decorator(func):
         @wraps(func)
         def wrapper(*fargs, **fkwargs):
-            start = time()
+            start = time.time()
             value = func(*fargs, **fkwargs)
             title = ''
-            logger.info(f"{title or tag} {func.__name__!r} tardó {format(time() - start, '.4f')}s.")
+            logger.info(f"{title or tag} {func.__name__!r} tardó {format(time.time() - start, '.4f')}s.")
             return value
         return wrapper
     return decorator
+
+
+def retry_until_true(max_attempts=3, retry_interval=3):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            for _ in range(max_attempts):
+                result = func(*args, **kwargs)
+                logger.info(f'Tentativa # max_attempts {max_attempts}')
+                if result:
+                    return result
+                time.sleep(retry_interval)
+            return None  # Return None if max_attempts are exhausted without success
+        return wrapper
+    return decorator
+
+def login_required(func):
+        @wraps(func)
+        def wrapper(*fargs, **fkwargs):
+            self = fargs[0]  # Instancia de SAPData
+            login_succeed = False
+            if not login_pkl.exists():
+                login_succeed = self.login()
+            else:
+                with open(login_pkl, 'rb') as f:
+                    sess_id, sess_timeout = pickle.load(f)
+                    now = moment()
+                    if now > sess_timeout:
+                        # log.info('Login vencido ...')
+                        login_succeed = self.login()
+                    else:
+                        # log.info(f"Login válido. {datetime_str(now)} es menor que {datetime_str(sess_timeout)}")
+                        self.sess_id = sess_id
+                        login_succeed = True
+            if login_succeed:
+                func(*fargs, **fkwargs)
+
+        return wrapper

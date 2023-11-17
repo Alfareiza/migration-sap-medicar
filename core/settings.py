@@ -18,8 +18,7 @@ from decouple import config
 from dj_database_url import parse
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
-
+BASE_DIR: Path = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -32,7 +31,6 @@ DEBUG = config("DEBUG", cast=bool)
 
 ALLOWED_HOSTS = ['*']
 
-
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -41,7 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
+    'django.contrib.humanize',
+
     'base'
 ]
 
@@ -75,7 +74,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 default_db_url = 'sqlite:///' + join(BASE_DIR, 'db.sqlite3')
@@ -84,7 +82,6 @@ DATABASES = {
     'default': config('DATABASE_URL', default=default_db_url,
                       cast=parse_database)
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -104,7 +101,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
@@ -120,11 +116,11 @@ USE_TZ = False
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
+MEDIA_ROOT = BASE_DIR / 'tmp'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
 
 # Admins | Error Reporting https://docs.djangoproject.com/en/4.1/howto/error-reporting/
 ADMINS = [('Alfonso AG', 'alfareiza@gmail.com')]
@@ -138,7 +134,6 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 EMAIL_USE_SSL = config('EMAIL_USE_SSL')
 
-
 # create logger
 logger = logging.getLogger("logging_tryout2")
 logger.setLevel(logging.DEBUG)
@@ -148,10 +143,65 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 
 # create formatter
-formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s",
+formatter = logging.Formatter("%(asctime)s %(funcName)s %(levelname)s %(message)s",
                               "[%d/%b/%Y %H:%M:%S]")
 # add formatter to ch
 ch.setFormatter(formatter)
 
 # add ch to logger
 logger.addHandler(ch)
+
+# HEADERS CSV
+
+DISPENSACION_HEADER = {
+    'FechaDispensacion', 'SubPlan', 'NIT', 'Plan', 'NroDocumento',
+    'Beneficiario', 'NroSSC', 'Categoria', 'NroAutorizacion',
+    'Mipres', 'UsuarioDispensa', 'Plu', 'CECO', 'Lote', 'CantidadDispensada',
+    # 'Vlr.Unitario Margen'
+    'Precio'
+}
+
+FACTURACION_HEADER = {
+    'FechaFactura', 'NIT', 'Plan', 'SubPlan', 'Factura', 'NroDocumento',
+    'Beneficiario', 'NroSSC', 'Categoria', 'NroAutorizacion',
+    'Mipres', 'Plu', 'CECO', 'CantidadDispensada', 'Precio'
+}
+
+NOTAS_CREDITO_HEADER = {
+    'FechaFactura', 'NIT', 'Plan', 'NroSSC',
+    'Beneficiario', 'CategoriaActual', 'NroAutorizacion',
+    'MiPres', 'Plu', 'CECO', 'CantidadDispensada',
+    'Precio', 'Lote', 'UsuarioDispensa'
+}
+
+AJUSTES_SALIDA_HEADER = {
+    'FechaAjuste', 'Plu', 'TipoAjuste', 'CECO',
+    'NroDocumento', 'Lote', 'Cantidad', 'TipoAjuste'
+}
+
+AJUSTES_ENTRADA_HEADER = AJUSTES_SALIDA_HEADER.union({'Precio', 'FechaVencimiento'})
+
+TRASLADOS_HEADER = {
+    'FechaTraslado', 'CentroOrigen', 'CentroDestino', 'Cantidad',
+    'Lote', 'Plu', 'NroDocumento'
+}
+
+DISPENSACIONES_ANULADAS_HEADER = {
+    'NroSSC', 'FechaAnulacion', 'NIT', 'CECO', 'NroDocumento', 'Plan', 'SubPlan',
+    'TipodeIdentidad', 'NroDocumentoAfiliado', 'Beneficiario', 'CategoriaActual',
+    'NroAutorizacion', 'Mipres', 'Plu', 'Articulo', 'Cantidad', 'Lote', 'Precio',
+    'UsuarioDispensa', 'TipodeConcepto', 'FechaVencimiento'
+}
+
+COMPRAS_HEADER = {
+    'FechaCompra', 'NroDocumento', 'NIT', 'CECO', 'Factura', 'Plu', 'Lote', 'Precio',
+    'FechaVencimiento'
+}
+
+AJUSTE_LOTE_HEADER = {
+    'FechaVencimiento', 'Plu', 'Lote'
+}
+
+PAGOS_RECIBIDOS_HEADER = {
+    'FechaPago', 'NIT', 'Valor'
+}

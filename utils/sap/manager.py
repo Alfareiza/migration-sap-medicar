@@ -5,10 +5,13 @@ import pickle
 import requests
 from requests import HTTPError, Timeout
 
-from core.settings import BASE_DIR, logger as log
+from core.settings import BASE_DIR
+from core.settings import logger as log
+from utils.decorators import login_required
 from utils.resources import clean_text, datetime_str, moment
 
 login_pkl = BASE_DIR / 'login.pickle'
+
 
 class SAP:
     def __init__(self, module):
@@ -26,17 +29,28 @@ class SAP:
             response.raise_for_status()
         except Timeout:
             log.error(txt := "No hubo respuesta de la API en 20 segundos.")
+            # TODO ENVIAR CORREO NOTIFICANDO PROBLEMA
             res = {"ERROR": txt}
         except HTTPError as e:
-            err = e.response.json()
+            if 'application/json' in e.response.headers['Content-Type']:
+                err = e.response.json()
+            else:
+                err = e.response.content
             extra_txt = payload['U_LF_Formula'] if 'U_LF_Formula' in payload else ''
-            log.error(f"[{self.module.name}], {err['error']['message']} [{extra_txt}]")
+            if self.module:
+                tag = f'[{self.module.name}], '
+            else:
+                tag = ''
+            log.error(f"{tag}{err['error']['message']} [{extra_txt}]")
             res = {"ERROR": clean_text(err['error']['message'])}
         except Exception as e:
             log.error(txt := f"{str(e)}")
             res = {"ERROR": txt}
         else:
-            res = response.json()
+            if response.text:
+                res = response.json()
+            else:
+                res = {'DocEntry': 'Sin DocEntry'}
         finally:
             return res
 
@@ -45,6 +59,7 @@ class SAP:
         Realiza el login ante la API de SAP, asignándole el atributo
         self.sess_id y self.sess_timeout a partir de la respuesta de la
         API de SAP.
+        Es llamado en su mayoría desde el decorator @login_required
         La respuesta exitosa luce así:
             {
                 '@odata.context': 'https://vm-hbt-hm34.heinsohncloud.com.
@@ -79,27 +94,6 @@ class SAP:
         else:
             return False
 
-    def login_if_necessary(self):
-        """
-        Verifica que archivo de login exista, en caso de que no
-        hace login y lo crea.
-        :return:
-        """
-        log.info('Verificando si se debe hacer login o no ...')
-        if not login_pkl.exists():
-            return self.login()
-        else:
-            with open(login_pkl, 'rb') as f:
-                sess_id, sess_timeout = pickle.load(f)
-                now = moment()
-                if now > sess_timeout:
-                    log.info('Login vencido ...')
-                    return self.login()
-                else:
-                    log.info(f"Login válido. {datetime_str(now)} es menor que {datetime_str(sess_timeout)}")
-                    self.sess_id = sess_id
-                    return True
-
     def set_header(self):
         return {
             'Content-Type': 'application/json',
@@ -117,39 +111,51 @@ class SAP:
         headers = self.set_header()
         return self.request_api('GET', url, headers=headers)
 
-class SAPData(SAP):
+    def patch(self, item: dict, url: str) -> dict:
+        headers = self.set_header()
+        return self.request_api('PATCH', url,
+                                headers=headers, payload=item)
 
+
+class SAPData(SAP):
     BASE_URL = 'https://vm-hbt-hm34.heinsohncloud.com.co:50000/b1s/v2'
     SUCURSAL = '/sml.svc/SucursalQuery'
+    ABSENTRY = '/sml.svc/InfoUbicacionQuery'
 
     def __init__(self, module=None):
         super().__init__(module)
         self.sucursales = {}
+        self.sucursales_loaded = False
         self.entregas = {}
+        self.entregas_loaded = False
+
+    # Se podria agregar un post_init que de manera asíncrona
+    # ejecute load_sucursales y load_abs_entries
 
     def get_all(self, end_url) -> list:
         """
-        Carga recursivamente todos los registros de BASE_URL + end_url
+        Carga todos los registros de BASE_URL + end_url
         :param end_url: Final de url que será llamada.
                     Ej.: '/sml.svc/SucursalQuery'
         :return: Lista con todos los registros capturados.
         """
-        all = []
+        all_records = []
         flag = True
         res = self.get(self.BASE_URL + end_url)
         while flag:
             if not res.get('ERROR'):
                 if res.get('value'):
-                    all.extend(res['value'])
+                    all_records.extend(res['value'])
                 if '@odata.nextLink' in res and res.get('@odata.nextLink'):
                     _, to_skip = res['@odata.nextLink'].rsplit('skip=')
-                    res = self.get(self.BASE_URL + self.SUCURSAL + f'?$skip={to_skip}')
+                    res = self.get(self.BASE_URL + end_url + f'?$skip={to_skip}')
                 else:
                     break
             else:
                 flag = False
-        return all
+        return all_records
 
+    @login_required
     def load_sucursales(self):
         """
         Carga en el atributo self.sucursales todas las sucursales en SAP.
@@ -167,51 +173,90 @@ class SAPData(SAP):
         }
         :return:
         """
-        if self.login_if_necessary():
-            log.info('Cargando todas las sucursales.')
-            sucursales = self.get_all(self.SUCURSAL)
-            for s in sucursales:
-                self.sucursales[s['WhsCode']] = s
-            else:
-                log.info('No se encontraron sucursales.')
-            # log.info('Proceso de cargar sucursales finalizado.')
+        log.info('Cargando todas las sucursales.')
+        sucursales = self.get_all(self.SUCURSAL)
+        if sucursales:
+            for sucursal in sucursales:
+                if sucursal['WhsCode'] not in self.sucursales:
+                    self.sucursales[sucursal['WhsCode']] = {}
+                self.sucursales[sucursal['WhsCode']].update(**sucursal)
         else:
-            log.error("No fue posible hacer login para cargar las sucursales.")
+            log.warning(f'No se encontraron sucursales en {self.SUCURSAL}.')
+        # log.info('Proceso de cargar sucursales finalizado.')
+        self.sucursales_loaded = True
 
+    @login_required
+    def load_abs_entries(self):
+        """
+        Carga en el atributo self.sucursales todas las AbsEntry de SAP.
+        con el siguiente formato:
+        # New ?
+        {
+            '100': { '100-SYSTEM-BIN-LOCATION': 91 },
+            '101': {'101-SYSTEM-BIN-LOCATION': 92},
+            '102': {'102-SYSTEM-BIN-LOCATION': 93}
+        }
+        # Old ?
+        {
+            '100': {
+                    ...
+                    '100-SYSTEM-BIN-LOCATION': 91,
+                    '100-TR': 361,
+                    '100-AL': 451
+                    ...
+            },
+            {...},
+            {...},
 
-    def get_costing_code_from_surcusal(self, ceco: str) -> str:
+        }
+        :return:
+        """
+        log.info('Cargando todas las AbsEntry y BinCode de las bodegas.')
+        bodegas = self.get_all(self.ABSENTRY)
+        if bodegas:
+            for bod in bodegas:
+                # bod = {'AbsEntry': 91, 'BinCode': '100-SYSTEM-BIN-LOCATION', 'WhsCode': '100', 'id__': 1}
+                if bod['WhsCode'] not in self.sucursales:
+                    self.sucursales[bod['WhsCode']] = {}
+                self.sucursales[bod['WhsCode']][bod['BinCode']] = bod['AbsEntry']
+        else:
+            log.warning(f'No se encontraron ABSENTRIES en {self.ABSENTRY}.')
+        # log.info('Proceso de cargar sucursales finalizado.')
+
+    def get_costing_code_from_sucursal(self, ceco: str) -> str:
         """
         Retorna el costing code (U_HBT_Dimension1) a partir del
         CECO (WhsCode).
         :param ceco: "304"
         :return: "BOL", "RIO", o "" en caso de no encontrar el CECO.
-
         """
         if sucursal := self.sucursales.get(ceco):
             return sucursal['U_HBT_Dimension1']
-        elif not self.sucursales:
+        elif not self.sucursales and not self.sucursales_loaded:
             self.load_sucursales()
-            if sucursal := self.sucursales.get(ceco):
-                return sucursal['U_HBT_Dimension1']
-            else:
-                return ''
+            return self.get_costing_code_from_sucursal(ceco)
         else:
             return ''
 
-    def load_docentries_ssc(self, ssc):
-        if self.login_if_necessary():
-            log.info(f'Cargando todas las entregas de {ssc}.')
-            qry = f"/sml.svc/InfoEntregaQuery?$filter=U_LF_Formula eq '{ssc}'"
-            res = self.get(self.BASE_URL + qry)
-            if not res.get('ERROR'):
-                if entregas := res.get('value'):
-                    self.entregas[ssc] = entregas
-                else:
-                    log.info(f'No se encontraron entregas en {ssc}.')
-            # log.info('Proceso de cargar entregas finalizado.')
-        else:
-            log.error("No fue posible hacer login para cargar las sucursales.")
-    def get_docentry_entrega(self, value) -> list:
+    @login_required
+    def load_info_ssc(self, ssc: str):
+        """
+        Carga en la variable self.entregas, las entregas
+        correspondientes a un ssc según información obtenida
+        en SAP.
+        """
+        # log.info(f'Cargando todas las entregas de {ssc}.')
+        qry = f"/sml.svc/InfoFacturaQuery?$filter=U_LF_Formula eq '{ssc}'"
+        res = self.get(self.BASE_URL + qry)
+        if not res.get('ERROR'):
+            if entregas := res.get('value'):
+                self.entregas[ssc] = entregas
+            else:
+                log.warning(f'No se encontraron entregas en {ssc}.')
+        # log.info('Proceso de cargar entregas finalizado.')
+        self.entregas_loaded = True
+
+    def get_info_ssc(self, value: str) -> list:
         """
         Busca en la vista de SAP las entregas que tuvo un SSC
         :param value: SSC.
@@ -219,21 +264,79 @@ class SAPData(SAP):
         """
         if value in self.entregas:
             return self.entregas.get(value)
-        elif not self.entregas:
-            self.load_docentries_ssc(value)
-            if value in self.entregas:
-                return self.entregas.get(value)
-            else:
-                return []
+        elif not self.entregas and not self.entregas_loaded:
+            self.load_info_ssc(value)
+            return self.get_info_ssc(value)
         else:
-            self.load_docentries_ssc(value)
-            if value in self.entregas:
-                return self.entregas.get(value)
-            else:
-                return []
+            return []
 
+    def get_bin_abs_entry_from_ceco(self, ceco: str) -> int:
+        """
+        Usado desde el modulo de traslados busca el AbsEntry
+        de determinada ubicación.
+        :param ceco: Suele ser bodega destino o bodega origen.
+                Ex: '304, '101', etc.
+        :return: Caso encontrar el AbsEntry del value, retorna
+                 el valor encontrado en self.sucursales, sino un cero.
+        """
+        if ceco in self.sucursales and self.sucursales[ceco].get(f"{ceco}-AL"):
+            return self.sucursales[ceco].get(f"{ceco}-AL")
+        elif not self.sucursales and not self.sucursales_loaded:
+            self.load_abs_entries()
+            return self.get_bin_abs_entry_from_ceco(ceco)
+        else:
+            return 0
+
+    @login_required
+    def get_embalaje_info_from_plu(self, plu: str) -> list:
+        """
+        Usado desde Compras, consulta la API de SAP para obtener
+        informacioón de embalaje de determinado Plu.
+        :param plu: Identificación de um articulo.
+        :return: Lista de dicts donde cada dicts puede ser así:
+                 [
+                    {
+                        "ItemCode": "7703763279029",
+                        "PurPackMsr": "CAJ",
+                        "PurPackUn": 1.0,
+                        "id__": 1
+                    }
+                ]
+        """
+        if embalaje_info := self.get_all(f"/sml.svc/InfoEmbalajeQuery?$filter=ItemCode eq '{plu}'"):
+            return embalaje_info
+        else:
+            log.warning(f'No se encontró info de embalaje para el plu {plu!r}.')
+            return []
+
+    @login_required
+    def get_bin_abs_entry_from_lote(self, lote: str) -> int:
+        """
+        Usado desde el modulo de ajuste lote busca el AbsEntry
+        de determinada lote, llamando la vista InfoLoteQuery y
+        filtrando por el lote ?$filter=DistNumber eq 'A346669G'.
+        Al llamar la API, retorna un json así:
+            {
+                "AbsEntry": 143,
+                "ItemCode": "17708926054472",
+                "DistNumber": "A346669G",
+                "id__": 1
+            }
+        Del cual será tomado el AbsEntry.
+        :param lote: .
+                Ex: 'A346669G, '106', 'ME3029', etc.
+        :return: Caso encontrar el AbsEntry del value, retorna
+                 el valor encontrado.
+        """
+        if lote_info := self.get_all(f"/sml.svc/InfoLoteQuery?$filter=DistNumber eq '{lote}'"):
+            return lote_info[0]['AbsEntry']
+        else:
+            log.warning(f'No se encontró info del lote {lote!r} en SAP.')
+            return 0
 
 
 if __name__ == '__main__':
     client = SAPData()
-    client.get_costing_code_from_surcusal('1001')
+    # client.get_costing_code_from_sucursal('1001')
+    # client.load_abs_entries()
+    client.load_sucursales()

@@ -1,11 +1,13 @@
 from __future__ import print_function
 
 import csv
+from datetime import datetime
 import io
 import os.path
 import tempfile
 from dataclasses import dataclass
 from functools import lru_cache
+from time import sleep
 
 import chardet as chardet
 from decouple import config
@@ -17,7 +19,8 @@ from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBaseUpload
 
 from core.settings import logger as log
-from utils.decorators import ignore_unhashable, logtime
+from utils.decorators import ignore_unhashable, logtime, retry_until_true
+
 
 @dataclass
 class GDriveHandler:
@@ -32,6 +35,7 @@ class GDriveHandler:
                     scopes=['https://www.googleapis.com/auth/drive'])
         self.creds = Credentials.from_authorized_user_info(info)
         self.service = build('drive', 'v3', credentials=self.creds)
+        self.files = []  # Se le agregan los archivos al ser ejecutada la función discover_files()
 
     @ignore_unhashable
     @lru_cache()
@@ -74,7 +78,7 @@ class GDriveHandler:
             query += "and mimeType != 'application/vnd.google-apps.folder'"
         if ext:
             query += f" and fileExtension='{ext}'"
-        fields = 'files(id, name, modifiedTime, createdTime)'
+        fields = 'files(id, name, modifiedTime, createdTime, parents)'
         response = self.service.files().list(q=query, fields=fields).execute()
         files = response.get('files', [])
         return self.order_files_asc(files)
@@ -151,17 +155,22 @@ class GDriveHandler:
         csv_data = StringIO(file_content_str)
         return csv.DictReader(csv_data, delimiter=';')
 
-    def move_file(self, file_id: str, to_folder_name: str) -> None:
+    def move_file(self, file: dict, to_folder_name: str) -> None:
         """
         Move a file to another folder.
         When it happens, might return a dict like this:
         {'kind': 'drive#file', 'id': '123kjkafF', 'name': 'file_name.csv',
-        'mimeType': 'text/plain'}
-        :param file_id: Unique identification of the file in Google Drive.
-        :param to_folder: Name of the folder where it will be moved.
+        'mimeType': 'text/plain', 'parents': ['1LodKp...bBf'],
+        'createdTime': '2023-07-05T22:15:43.580Z',
+        'modifiedTime': '2023-07-05T21:59:16.994Z'}
+        :param file: Dict with unique identification of the file in Google Drive.
+        :param to_folder_name: Name of the folder where it will be moved.
         """
         new_parent_id = self.get_folder_id_by_name(to_folder_name)
-        self.service.files().update(fileId=file_id, addParents=new_parent_id).execute()
+        previous_parents = ",".join(file.get('parents'))
+        self.service.files().update(
+            fileId=file['id'], addParents=new_parent_id, removeParents=previous_parents, fields='id, parents'
+        ).execute()
 
     def create_csv_in_drive(self, csv_to_dict, filename, folder_name, filter='') -> None:
         """
@@ -197,7 +206,7 @@ class GDriveHandler:
                                                    fields='id').execute()
                 log.info(f"CSV {filename!r} creado en carpeta {folder_name!r} con ID: {file['id']}")
 
-    def send_csv(self, path_csv, filename, folder_name) -> None:
+    def prepare_and_send_csv(self, path_csv, filename, folder_name) -> None:
         """
         From a filepath, it sends the file to Google Drive.
         :param path_csv: '/Users/alfonso/Projects/SAPIntegration/dispensacion_processed.csv'
@@ -205,13 +214,20 @@ class GDriveHandler:
         :param folder_name: Name of the folder where the file will be placed.
         :return:
         """
-        log.info("Preparando envio de csv para GDrive.")
+        log.info(f"Preparando envio de csv para GDrive de {filename}")
         folder_id = self.get_folder_id_by_name(folder_name)
         file_metadata = {'name': filename, 'parents': [folder_id]}
         media = MediaFileUpload(path_csv, mimetype='text/plain')
-        file = self.service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-        log.info(f"CSV {filename!r} creado en carpeta {folder_name!r} con ID: {file['id']}")
+        try:
+            file = self.send_csv(file_metadata, media)
+        except TimeoutError:
+            log.warning('Timeout al intentar cargar csv en drive.... intentando nuevamente')
+            sleep(10)
+            file = self.send_csv(file_metadata, media)
+        log.info(f"CSV {filename!r} creado en carpeta {folder_name!r}")
 
+    def send_csv(self, file_metadata, media):
+        return self.service.files().create(body=file_metadata, media_body=media, fields='id').execute()
 
     def detect_csv_encoding(self, file_id):
         request = self.service.files().get_media(fileId=file_id)
@@ -254,8 +270,7 @@ class GDriveHandler:
                         ]
         :return:
         """
-        # TODO
-        return lst_files
+        return sorted(lst_files, key=lambda x: datetime.strptime(x['createdTime'], '%Y-%m-%dT%H:%M:%S.%fZ'))
 
 def main():
     """Shows basic usage of the Drive v3 API.

@@ -1,0 +1,54 @@
+{% load humanize %}
+{% load filter_extras %}
+<tr>
+   <td align="left" bgcolor="#efefef" style="padding:10px;Margin:0;background-color:#{{background}}">
+      <!--[if mso]>
+      <table style="width:580px" cellpadding="0" cellspacing="0">
+         <tr>
+            <td style="width:115px" valign="top">
+               <![endif]-->
+               <table cellpadding="0" cellspacing="0" class="es-left" align="left" role="none" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;border-spacing:0px;float:left">
+                  <tr>
+                     <td class="es-m-p0r es-m-p20b" valign="top" align="center" style="padding:0;Margin:0;width:115px">
+                        <table cellpadding="0" cellspacing="0" width="100%" role="presentation" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;border-spacing:0px">
+                           <tr>
+                              <td align="center" style="padding:10px;Margin:0">
+                                 <p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:arial, 'helvetica neue', helvetica, sans-serif;line-height:21px;color:#333333;font-size:14px">{{ title }} <br>({{ data|len_lists_in_dict|intcomma }})</p>
+                              </td>
+                           </tr>
+                        </table>
+                     </td>
+                  </tr>
+               </table>
+               <!--[if mso]>
+            </td>
+            <td style="width:20px"></td>
+            <td style="width:445px" valign="top">
+               <![endif]-->
+               <table class="es-right" cellpadding="0" cellspacing="0" align="right" role="none" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;border-spacing:0px;float:right">
+                  <tr>
+                     <td align="left" style="padding:0;Margin:0;width:445px">
+                        <table cellpadding="0" cellspacing="0" width="100%" role="presentation" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;border-spacing:0px">
+                           <tr>
+                              <td align="left" style="padding:10px;Margin:0">
+                                 <p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:arial, 'helvetica neue', helvetica, sans-serif;line-height:21px;color:#333333;font-size:14px">
+                                    Estos son los tipos de errores presentados:
+                                 </p>
+                                    <ul>
+                                       {% for err in data|wrap_errors %}
+                                          <li style="font-size: small;margin-bottom: .6rem;">{{ err }}</li>
+                                       {% endfor %}
+                                    </ul>
+                              </td>
+                           </tr>
+                        </table>
+                     </td>
+                  </tr>
+               </table>
+               <!--[if mso]>
+            </td>
+         </tr>
+      </table>
+      <![endif]-->
+   </td>
+</tr>
