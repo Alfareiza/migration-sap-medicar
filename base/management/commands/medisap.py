@@ -62,7 +62,6 @@ class Command(BaseCommand):
         """
         client = GDriveHandler()
         manager_sap = SAPData()
-        breakpoint()
         for module in args:
             log.info(f'\t===== {module.upper()} ====')
             if dir := kwargs.get('filepath'):
