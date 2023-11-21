@@ -32,7 +32,7 @@ class Command(BaseCommand):
          'force_color': False, 'skip_checks': False, 'modulos': ['foo']}
         """
         log.info(f"{' INICIANDO MIGRACIÓN ':▼^70}")
-        if options.get('todos'):
+        if options['modulos'] == ['todos']:
             self.main(
                 'compras',
                 'traslados',
@@ -62,6 +62,7 @@ class Command(BaseCommand):
         """
         client = GDriveHandler()
         manager_sap = SAPData()
+        breakpoint()
         for module in args:
             log.info(f'\t===== {module.upper()} ====')
             if dir := kwargs.get('filepath'):

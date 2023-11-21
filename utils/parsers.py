@@ -152,7 +152,7 @@ class Parser:
         self.discover_files(name_folder)
         sap = SAPConnect(self.module)
         for file in self.input.files:
-            # log.info(f"[CSV] Leyendo {file['name']!r}")
+            log.info(f"[CSV] Leyendo {file['name']!r}")
             csv_reader = self.input.read_csv_file_by_id(file['id'])
             for proc in self.pipeline:
                 proc().run(csv_to_dict=csv_to_dict, reader=csv_reader,
