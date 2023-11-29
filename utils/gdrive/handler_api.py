@@ -247,7 +247,8 @@ class GDriveHandler:
     def order_files_asc(self, lst_files):
         """
         Given a list of files, return the same list
-        with the items ordered by createdTime.
+        with the items ordered by createdTime. The first
+        will be the older.
         :param lst_files:
                     Ex.:
                         [
