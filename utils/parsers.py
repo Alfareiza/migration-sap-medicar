@@ -151,16 +151,24 @@ class Parser:
         name_folder = self.folder_to_check()
         self.discover_files(name_folder)
         sap = SAPConnect(self.module)
-        for file in self.input.files:
-            log.info(f"[CSV] Leyendo {file['name']!r}")
+        for i, file in enumerate(self.input.files, 1):
+        # for file in self.input.files[:2]:
+            log.info(f"[CSV] Leyendo {i} de {len(self.input.files)} {file['name']!r}")
             csv_reader = self.input.read_csv_file_by_id(file['id'])
             for proc in self.pipeline:
                 proc().run(csv_to_dict=csv_to_dict, reader=csv_reader,
                            parser=self, sap=sap, file=file,
                            name_folder=name_folder)
 
-    def discover_files(self, name_folder: str) -> list:
-        """Busca los archivos en la carpeta {Modulo}Medicar"""
+            csv_to_dict.data.clear()
+            csv_to_dict.errs.clear()
+            csv_to_dict.succss.clear()
+
+    def discover_files(self, name_folder: str) -> None:
+        """Busca los archivos en la carpeta {Modulo}Medicar y los carga
+        en la variable self.input.files. Siendo esta una lista de diccionarios
+        donde cada diccionario representa un archivo. El primero de la lista
+        es el archivo más viejo"""
         files = self.input.get_files_in_folder_by_name(name_folder, ext='csv')
         if not files:
             log.warning(f'No se encontraron archivos en carpeta {name_folder!r}')
