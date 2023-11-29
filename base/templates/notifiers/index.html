@@ -119,12 +119,20 @@ a[x-apple-data-detectors] {
                      </tr>
                      <tr>
                       <td align="left" style="padding:0;Margin:0;padding-top:10px;padding-bottom:10px"><p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:arial, 'helvetica neue', helvetica, sans-serif;line-height:24px;color:#333333;font-size:16px">
-                          De {{ data.csv_lines|intcomma }} líneas leídas del csv, fueron migrados {{ data.succss|length|intcomma }} registros y
-                          {% if data.errs %}
-                            fueron detectados {{ data.errs|length|intcomma }} errores en otros registros ({{data.pk}}).
-                          {% else %}
-                            no hubo errores en la migración.
-                          {% endif %}
+                          De {{ data.csv_lines|intcomma }} línea{{ data.csv_lines|pluralize }} leída{{ data.csv_lines|pluralize }} del csv,
+                          se cre{{ data.data|pluralize:"ó,aron" }} {{ data.data|length|intcomma }} documento{{ data.data|pluralize}} ({{data.pk}}).
+                          <ul>
+                             <li style="margin-bottom:1rem;">
+                               {{ data.succss|length|intcomma }} documento{{ data.succss|pluralize }} migrado{{ data.succss|pluralize }}.
+                            </li>
+                            <li>
+                                  {% if data.errs %}
+                                  {{ data.errs|length|intcomma }} error{{ data.errs|pluralize:"es" }} detectado{{ data.errs|pluralize }}.
+                                  {% else %}
+                                    0 errores en la migración.
+                                  {% endif %}
+                                </li>
+                          </ul>
                       </p>
                       </td>
                      </tr>
@@ -217,7 +225,7 @@ a[x-apple-data-detectors] {
                  {% include "notifiers/index_errs.html" with pk=data.pk data=data.csv_errs title="Errores en CSV" background="efefef" %}
               {% endif %}
               {% if data.sap_errs %}
-                 {% include "notifiers/index_errs.html" with pk=data.pk data=data.sap_errs title="Errores en SAP" background="c8c7c7" %}
+                 {% include "notifiers/index_errs.html" with pk=data.pk data=data.sap_errs title="Errores en SAP" background="e8f2ff" %}
               {% endif %}
               {% if data.succss %}
                  <tr>
@@ -228,7 +236,7 @@ a[x-apple-data-detectors] {
                        <table cellpadding="0" cellspacing="0" width="100%" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:separate;border-spacing:0px;border-radius:5px" role="presentation">
                          <tr>
                           <td align="left" style="padding:0;Margin:0;padding-bottom:3rem;padding-top:20px">
-                              <h3 style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:arial, 'helvetica neue', helvetica, sans-serif;line-height:21px;color:#333333;font-size:1rem">{{ data.succss|length|intcomma }} registros migrados con éxito.</h3></td>
+                              <h3 style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:arial, 'helvetica neue', helvetica, sans-serif;line-height:21px;color:#333333;font-size:1rem">{{ data.succss|length|intcomma }} documento{{ data.succss|pluralize }} migrado{{ data.succss|pluralize }} con éxito.</h3></td>
                          </tr>
                        </table>
                       </td>
