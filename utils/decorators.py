@@ -3,8 +3,8 @@ import pickle
 import time
 from functools import wraps
 
-from core.settings import logger, BASE_DIR
-from utils.resources import moment
+from core.settings import logger as log, BASE_DIR
+from utils.resources import moment, datetime_str
 
 login_pkl = BASE_DIR / 'login.pickle'
 
@@ -30,7 +30,7 @@ def logtime(tag):
             start = time.time()
             value = func(*fargs, **fkwargs)
             title = ''
-            logger.info(f"{title or tag} {func.__name__!r} tardó {format(time.time() - start, '.4f')}s.")
+            log.info(f"{title or tag} {func.__name__!r} tardó {format(time.time() - start, '.4f')}s.")
             return value
         return wrapper
     return decorator
@@ -41,7 +41,7 @@ def retry_until_true(max_attempts=3, retry_interval=3):
         def wrapper(*args, **kwargs):
             for _ in range(max_attempts):
                 result = func(*args, **kwargs)
-                logger.info(f'Tentativa # max_attempts {max_attempts}')
+                log.info(f'Tentativa # max_attempts {max_attempts}')
                 if result:
                     return result
                 time.sleep(retry_interval)
@@ -55,13 +55,14 @@ def login_required(func):
             self = fargs[0]  # Instancia de SAPData
             login_succeed = False
             if not login_pkl.exists():
+                log.info('Login vencido ...')
                 login_succeed = self.login()
             else:
                 with open(login_pkl, 'rb') as f:
                     sess_id, sess_timeout = pickle.load(f)
                     now = moment()
                     if now > sess_timeout:
-                        # log.info('Login vencido ...')
+                        log.info('Login vencido ...')
                         login_succeed = self.login()
                     else:
                         # log.info(f"Login válido. {datetime_str(now)} es menor que {datetime_str(sess_timeout)}")
