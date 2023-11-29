@@ -91,24 +91,26 @@ def clean(txt: str) -> str:
     return txt
 
 
-def purge_txt(txt: str) -> str:
+def sum_up_errs(txt: str) -> str:
     """
     Elimina cierto mensajes "importantes" de un determinado texto.
+    Logrando resumir los errores cuando hay muchos de un mismo
+    tipo.
     :param txt: Ej.:
                     "CECO no reconocido 112"
     :return: Ej:
                 "CECO no reconocido"
-    >>> purge_txt("CECO no reconocido 112")
+    >>> sum_up_errs("CECO no reconocido 112")
     'CECO no reconocido.'
-    >>> purge_txt("480000112 - El número de serie/lote 23089 seleccionado en la fila 1 no existe; especifique un número de serie/lote válido.")
+    >>> sum_up_errs("480000112 - El número de serie/lote 23089 seleccionado en la fila 1 no existe; especifique un número de serie/lote válido.")
     'Lote inválido.'
-    >>> purge_txt("La cantidad recae en un inventario negativo  [DocumentLines.ItemCode][line: 3]")
+    >>> sum_up_errs("La cantidad recae en un inventario negativo  [DocumentLines.ItemCode][line: 3]")
     'Inventario negativo.'
-     >>> purge_txt("No existen registros coincidentes (ODBC -2028) [4599096]")
+     >>> sum_up_errs("No existen registros coincidentes (ODBC -2028) [4599096]")
      'No existen registros coincidentes.'
-    >>> purge_txt("10001153 - Cantidad insuficiente para el artículo 300090055097 con el lote FY5874 en el almacén")
+    >>> sum_up_errs("10001153 - Cantidad insuficiente para el artículo 300090055097 con el lote FY5874 en el almacén")
     'Cantidad insuficiente en artículo.'
-    >>> purge_txt("No se encontraron entregas para SSC 4603881")
+    >>> sum_up_errs("No se encontraron entregas para SSC 4603881")
     'No se encontraron entregas en SSC.'
     """
     if 'CECO no reconocido' in txt:
@@ -132,6 +134,9 @@ def purge_txt(txt: str) -> str:
     elif 'Cantidad insuficiente para el artículo' in txt:
         return "Cantidad insuficiente en artículo."
 
+    elif 'No fue encontrado AbsEntry' in txt:
+        return "No fue encontrado AbsEntry en lote."
+
     return txt
 
 @register.filter
@@ -142,7 +147,7 @@ def wrap_errors(list_errs: list[str]) -> set:
     :param list_errs: ['[CSV] CECO no reconocido 112', '[CSV] CECO no reconocido 920']
     :return: ['CECO no reconocido']
     """
-    return {purge_txt(clean(err)) for err in list_errs}
+    return {sum_up_errs(clean(err)) for err in list_errs}
 
 
 @register.filter
@@ -157,7 +162,23 @@ def treat_invalid_lote(txt: str) -> str:
      >>> treat_invalid_lote("[SAP] 480000112 - El número de serie/lote 23089 seleccionado en la fila 1 no existe; especifique un número de serie/lote válido.")
      '23089'
     """
-    result = re.findall(r"lote\s(.*?)\sseleccionado", txt)
-    if result:
+    if result := re.findall(r"lote\s(.*?)\sseleccionado", txt):
         return result[0]
     return txt
+
+@register.filter
+def extract_date(filename: str) -> str:
+    """
+    Dado el nombre de un archivo retorna la fecha
+    contenida en el nombre del archivo.
+    Ej.: Dispensacion202311172330.csv
+    >>> extract_date('Dispensacion202311172330.csv')
+    '2023-11-17'
+    """
+    if match := re.findall(r'\d+', filename):
+        try:
+            return f"{match[0][:4]}-{match[0][4:6]}-{match[0][6:8]}"
+        except Exception:
+            return ''
+    return ''
+
