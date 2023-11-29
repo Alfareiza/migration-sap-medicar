@@ -29,7 +29,7 @@ class Csv2Dict:
         referencias de los registros que tienen ese tipo de error.
         Los cuáles podrán ser indexados en self.data.
         """
-        self.result_succss, self.csv_errs, self.sap_errs = dict(), dict(), dict()
+        self.result_succss, self.csv_errs, self.sap_errs = {}, {}, {}
         for k, v in self.data.items():
             status_text = make_text_status(v['csv'])
 
@@ -105,10 +105,12 @@ class Csv2Dict:
                 log.error(f"{self.pk} {row[f'{self.pk}']}. {txt}")
                 self.reg_error(row, txt)
 
-    def get_centro_de_costo(self, row: dict, column_name: str) -> str:
+    def get_centro_de_costo(self, row: dict, column_name: str, tipo_ajuste=None) -> str:
         """
         Define el AccountCode a partir de un conjunto de constantes
         :param row: Diccionario con datos que vienen del csv.
+        :param column_name: Columna a ser considerada.
+        :param tipo_ajuste: Puede ser 'entrada', o 'salida'
         :return: Centro de costo definido por contabilidad.
         """
         # match row.get('SubPlan', '').upper():
@@ -125,13 +127,18 @@ class Csv2Dict:
                 return "7165950204"
             case "EVENTO PBS SUBSIDIADO":
                 return "7165950201"
-            case "FALTANTES":  # TODO AJUSTE EN INVENTARIO GENERAL tiene esta cuenta de costo cuando seja ajustes_salida
+            case "AJUSTE POR FALTANTE":  # Estaba FALTANTES
                 return "7165950301"
-            case "SOBRANTES":  # TODO AJUSTE EN INVENTARIO GENERAL tiene esta cuenta de costo cuando seja ajustes_entrada
+            case "AJUSTE POR SOBRANTE":  # Estaba SOBRANTES
                 return "7165950302"
+            case "AJUSTE EN INVENTARIO GENERAL":
+                if tipo_ajuste == 'salida':
+                    return "7165950301"
+                elif tipo_ajuste == 'entrada':
+                    return "7165950302"
             case "SALIDA POR DONACION":
                 return "7165950303"
-            case "VENCIMIENTO":
+            case "VENCIDOS":
                 return "7165950101"
             case "":
                 return ""
@@ -324,6 +331,7 @@ class Csv2Dict:
         Luego se calcula la cantidad  entre NumInBuy (embalaje).
             Ej.: 60 (cantidad) / 20 (NumInBuy) = 3 (Valor a retonar)
         """
+        res = None
         try:
             if not row['Plu'].isnumeric():
                 raise Exception('Plu no numerico. No pudo ser consultado su embalaje en SAP')
@@ -510,7 +518,7 @@ class Csv2Dict:
                 document_lines.update(
                     Quantity=self.make_int(row, "Cantidad"),
                     CostingCode=self.get_costing_code(row),
-                    AccountCode=self.get_centro_de_costo(row, 'TipoAjuste'),
+                    AccountCode=self.get_centro_de_costo(row, 'TipoAjuste', 'salida'),
                     BatchNumbers=[
                         {
                             "BatchNumber": row["Lote"],
@@ -522,7 +530,7 @@ class Csv2Dict:
                 document_lines.update(
                     Quantity=self.make_int(row, "Cantidad"),
                     CostingCode=self.get_costing_code(row),
-                    AccountCode=self.get_centro_de_costo(row, 'TipoAjuste'),
+                    AccountCode=self.get_centro_de_costo(row, 'TipoAjuste', 'entrada'),
                     UnitPrice=self.make_float(row, 'Precio'),
                     BatchNumbers=[
                         {
@@ -765,6 +773,8 @@ class Csv2Dict:
                     idx = lst_item_codes.index(article['ItemCode'])
                 except ValueError:
                     self.data[key]['json']["DocumentLines"].append(article)
+                except TypeError:
+                    ...
                 else:
                     self.data[key]['json']["DocumentLines"][idx]['Quantity'] += article['Quantity']
                     self.data[key]['json']["DocumentLines"][idx]['BatchNumbers'].append(article['BatchNumbers'][0])
@@ -800,7 +810,7 @@ class Csv2Dict:
                 if self.name in ('traslados',):
                     self.add_article(key, self.build_stock_transfer_lines(row))
                     self.data[key]['csv'].append(row)
-                if self.name in ('pagos_recibidos'):
+                if self.name in ('pagos_recibidos', ):
                     self.data[key]["PaymentInvoices"].append(self.build_payment_invoices(row))
             elif key != '':
                 # Entra aquí la primera vez que itera sobre el pk
