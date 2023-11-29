@@ -8,7 +8,8 @@ from core.settings import DISPENSACION_HEADER, FACTURACION_HEADER, NOTAS_CREDITO
     AJUSTE_LOTE_HEADER, PAGOS_RECIBIDOS_HEADER, BASE_DIR
 from utils.converters import Csv2Dict
 from utils.gdrive.handler_api import GDriveHandler
-from utils.resources import set_filename, Email
+from utils.resources import set_filename
+from utils.mail import Email
 
 
 class Validate:
@@ -137,7 +138,11 @@ class Mail:
         """
         module = kwargs['parser'].module
         data = kwargs['csv_to_dict']
-        module.filepath = module.filepath or kwargs['file']['name']  # Nombre del archivo en local o del drive
+        if module.filepath and '/' in module.filepath:
+            module.filepath = module.filepath.split('/')[0]
+        else:
+            module.filepath = kwargs['file']['name']
+
         # Accessa a clase Export para traer paths de archivos exportados
         attachs = kwargs['parser'].pipeline[-2].class_variables()
 
