@@ -1,6 +1,7 @@
 import datetime
 import json
 import pickle
+from typing import List
 
 import requests
 from requests import HTTPError, Timeout
@@ -132,7 +133,7 @@ class SAPData(SAP):
     # Se podria agregar un post_init que de manera asíncrona
     # ejecute load_sucursales y load_abs_entries
 
-    def get_all(self, end_url) -> list:
+    def get_all(self, end_url: object) -> List:
         """
         Carga todos los registros de BASE_URL + end_url
         :param end_url: Final de url que será llamada.
@@ -189,31 +190,28 @@ class SAPData(SAP):
     def load_abs_entries(self):
         """
         Carga en el atributo self.sucursales todas las AbsEntry de SAP.
-        con el siguiente formato:
-        # New ?
+        De esta manera a partir de una lista de diccionarios
+        como la siguiente:
+        [
+            {
+                'AbsEntry': 91,
+                'BinCode': '100-SYSTEM-BIN-LOCATION',
+                'WhsCode': '100',
+                'id__': 1
+            }
+            {...}
+        ]
+        Le asigna el valor a self.sucursales con lo siguiente:
         {
-            '100': { '100-SYSTEM-BIN-LOCATION': 91 },
-            '101': {'101-SYSTEM-BIN-LOCATION': 92},
-            '102': {'102-SYSTEM-BIN-LOCATION': 93}
+            '100': {'100-AL': 451, '100-SYSTEM-BIN-LOCATION': 91, '100-TR': 361},
+            '101': {'101-AL': 452, '101-SYSTEM-BIN-LOCATION': 92, '101-TR': 362},
+            '102': {'102-AL': 453, '102-SYSTEM-BIN-LOCATION': 93, '102-TR': 363}
+            ...
         }
-        # Old ?
-        {
-            '100': {
-                    ...
-                    '100-SYSTEM-BIN-LOCATION': 91,
-                    '100-TR': 361,
-                    '100-AL': 451
-                    ...
-            },
-            {...},
-            {...},
-
-        }
-        :return:
+        Siendo cada llave del diccionario un centro.
         """
         log.info('Cargando todas las AbsEntry y BinCode de las bodegas.')
-        bodegas = self.get_all(self.ABSENTRY)
-        if bodegas:
+        if bodegas := self.get_all(self.ABSENTRY):
             for bod in bodegas:
                 # bod = {'AbsEntry': 91, 'BinCode': '100-SYSTEM-BIN-LOCATION', 'WhsCode': '100', 'id__': 1}
                 if bod['WhsCode'] not in self.sucursales:

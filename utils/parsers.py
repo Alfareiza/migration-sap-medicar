@@ -1,13 +1,18 @@
 import csv
+import traceback
 from dataclasses import dataclass, field
 from pathlib import Path, PosixPath
 from typing import Optional
+
+from django.utils.safestring import mark_safe
 
 from core.settings import logger as log, BASE_DIR
 from utils.converters import Csv2Dict
 from utils.decorators import logtime
 from utils.gdrive.handler_api import GDriveHandler
+from utils.mail import EmailError
 from utils.pipelines import Validate, ProcessCSV, Export, ProcessSAP, Mail
+from utils.resources import moment, datetime_str
 from utils.sap.connectors import SAPConnect
 from utils.sap.manager import SAPData
 
@@ -120,7 +125,6 @@ class Parser:
             # Si no se exportan los archivos, entonces no se debe enviar correo
             del self.pipeline[-1]
 
-
     @logtime('')
     def run(self):
         """
@@ -133,7 +137,8 @@ class Parser:
 
         elif isinstance(self.input, GDriveHandler):
             self.export = True
-            self.pipeline.insert(-2, ProcessSAP)  # PARA VALIDACION DE CSVS DEL DRIVE SIN PROCESAMIENTO EN SAP, COMENTAR ESTA LINEA
+            # PARA VALIDACION DE CSVS DEL DRIVE SIN PROCESAMIENTO EN SAP, COMENTAR ESTA LINEA
+            self.pipeline.insert(-2, ProcessSAP)
             self.run_drive(csv_to_dict)
 
         return csv_to_dict
@@ -142,8 +147,19 @@ class Parser:
         """Procesa el archivo cuando se recibe un csv local."""
         with open(self.input, encoding='utf-8-sig') as csvf:
             csv_reader = csv.DictReader(csvf, delimiter=';')
-            for proc in self.pipeline:
-                proc().run(csv_to_dict=csv_to_dict, reader=csv_reader, parser=self)
+            try:
+                for proc in self.pipeline:
+                    proc().run(csv_to_dict=csv_to_dict, reader=csv_reader, parser=self)
+            except Exception as e:
+                mail = EmailError('Error procesando archivo',
+                                  {'errorname': e,
+                                   'error': mark_safe(traceback.format_exc()),
+                                   'filename': 'NotasCredito202311012330.csv',
+                                   'fecha': datetime_str(moment()),
+                                   }, to=[])
+                mail.render_locally(html_name='sample.html')
+                mail.send()
+                raise
             # log.error(f"{proc.__str__(proc)} > {e}")
 
     def run_drive(self, csv_to_dict):
@@ -152,17 +168,27 @@ class Parser:
         self.discover_files(name_folder)
         sap = SAPConnect(self.module)
         for i, file in enumerate(self.input.files, 1):
-        # for file in self.input.files[:2]:
             log.info(f"[CSV] Leyendo {i} de {len(self.input.files)} {file['name']!r}")
-            csv_reader = self.input.read_csv_file_by_id(file['id'])
-            for proc in self.pipeline:
-                proc().run(csv_to_dict=csv_to_dict, reader=csv_reader,
-                           parser=self, sap=sap, file=file,
-                           name_folder=name_folder)
+            try:
+                csv_reader = self.input.read_csv_file_by_id(file['id'])
+                for proc in self.pipeline:
+                    proc().run(csv_to_dict=csv_to_dict, reader=csv_reader,
+                               parser=self, sap=sap, file=file,
+                               name_folder=name_folder)
 
-            csv_to_dict.data.clear()
-            csv_to_dict.errs.clear()
-            csv_to_dict.succss.clear()
+                csv_to_dict.data.clear()
+                csv_to_dict.errs.clear()
+                csv_to_dict.succss.clear()
+            except Exception as e:
+                mail = EmailError(f"Error procesando archivo {file['name']}",
+                                  {'errorname': e,
+                                   'error': traceback.format_exc(),
+                                   'filename': file['name'],
+                                   'fecha': datetime_str(moment()),
+                                   },
+                                  to=[])
+                mail.send()
+                raise
 
     def discover_files(self, name_folder: str) -> None:
         """Busca los archivos en la carpeta {Modulo}Medicar y los carga

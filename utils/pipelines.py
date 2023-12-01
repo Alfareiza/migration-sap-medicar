@@ -9,7 +9,7 @@ from core.settings import DISPENSACION_HEADER, FACTURACION_HEADER, NOTAS_CREDITO
 from utils.converters import Csv2Dict
 from utils.gdrive.handler_api import GDriveHandler
 from utils.resources import set_filename
-from utils.mail import Email
+from utils.mail import EmailModule
 
 
 class Validate:
@@ -149,7 +149,7 @@ class Mail:
         # Se definen los archivos adjuntos al correo.
         # En caso no se deseen todos los mencionados en class_variables()
         # se pueden filtrar aqui.
-        e = Email(module, data, attachs)
+        e = EmailModule(module, data, attachs)
 
         e.send()
 

@@ -123,13 +123,10 @@ def sum_up_errs(txt: str) -> str:
         return "Lote inválido."
 
     elif 'inventario negativo' in txt:
-        return "Inventario negativo."
+        return "Cantidad recae en inventario negativo."
 
     elif 'registros coincidentes' in txt:
         return "No existen registros coincidentes."
-
-    elif 'Cantidad insuficiente para el artículo' in txt:
-        return "Cantidad insuficiente en artículo."
 
     elif 'Cantidad insuficiente para el artículo' in txt:
         return "Cantidad insuficiente en artículo."

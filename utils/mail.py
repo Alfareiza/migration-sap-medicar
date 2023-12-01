@@ -12,7 +12,50 @@ from core.settings import BASE_DIR, logger
 from utils.resources import datetime_str, moment, beautify_name
 
 
-class Email:
+class EmailError:
+    def __init__(self, subject, body, to=None, cc=None, bcc=None,
+                 template=BASE_DIR / "base/templates/notifiers/error_in_module.html"):
+        if bcc is None:
+            bcc = [config('EMAIL_BCC')]
+        if to is None:
+            to = ['desarrollador@logifarma.co', 'logistica@logifarma.co']
+        if cc is None:
+            cc = []
+        self.template = get_template(template)
+        self.to: List = to
+        self.cc: List = cc
+        self.bcc: List = bcc
+        self.subject: str = subject
+        self.ctx: dict = body
+        self.html_content = self.template.render(self.ctx)
+        self.email: EmailMessage = None
+
+    def render_locally(self, html_name=None):
+        if not html_name:
+            html_name = "sample.html"
+        p = Path(html_name)
+        p.write_text(self.html_content)
+
+    def send(self):
+        self.email = EmailMessage(
+            self.subject, self.html_content, to=self.to, bcc=self.bcc,
+            from_email=f"Logs de Migración <{settings.EMAIL_HOST_USER}>"
+        )
+        self.email.content_subtype = "html"
+        try:
+            if self.email.send(fail_silently=False):
+                logger.info('E-mail enviado')
+            else:
+                logger.warning('E-mail no enviado')
+        except SMTPSenderRefused as e:
+            logger.warning(f'E-mail no enviado porque {e}')
+        except Exception as e:
+            logger.warning(f'E-mail no enviado. Error={e}')
+        finally:
+            print(20 * ' ')
+
+
+class EmailModule:
     def __init__(self, module, data, attachs=None):
         self.module = module
         self.template = BASE_DIR / "base/templates/notifiers/index.html"
@@ -25,7 +68,7 @@ class Email:
         self.html_content = None
         self.make_html_content()
 
-    def prepare_email(self) -> EmailMessage:
+    def prepare_email(self):
         """
         Crea clase EmailMessage basado en atributos de la instancia y adjunta
         los archivos que tenga el atributo self.attachs
