@@ -156,7 +156,7 @@ class Parser:
                                    'error': mark_safe(traceback.format_exc()),
                                    'filename': 'NotasCredito202311012330.csv',
                                    'fecha': datetime_str(moment()),
-                                   }, to=[])
+                                   })
                 mail.render_locally(html_name='sample.html')
                 mail.send()
                 raise
@@ -185,8 +185,7 @@ class Parser:
                                    'error': traceback.format_exc(),
                                    'filename': file['name'],
                                    'fecha': datetime_str(moment()),
-                                   },
-                                  to=[])
+                                   })
                 mail.send()
                 raise
 
