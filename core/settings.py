@@ -205,3 +205,10 @@ AJUSTE_LOTE_HEADER = {
 PAGOS_RECIBIDOS_HEADER = {
     'FechaPago', 'NIT', 'Valor'
 }
+
+# SAP INFORMATION
+
+SAP_USER = config('SAP_USER')
+SAP_PASS = config('SAP_PASS')
+SAP_COMPANY = config('SAP_COMPANY')
+SAP_URL = config('SAP_URL')

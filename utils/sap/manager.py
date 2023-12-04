@@ -6,10 +6,10 @@ from typing import List
 import requests
 from requests import HTTPError, Timeout
 
-from core.settings import BASE_DIR
+from core.settings import BASE_DIR, SAP_COMPANY, SAP_USER, SAP_PASS, SAP_URL
 from core.settings import logger as log
 from utils.decorators import login_required
-from utils.resources import clean_text, datetime_str, moment
+from utils.resources import clean_text, moment
 
 login_pkl = BASE_DIR / 'login.pickle'
 
@@ -63,25 +63,25 @@ class SAP:
         Es llamado en su mayoría desde el decorator @login_required
         La respuesta exitosa luce así:
             {
-                '@odata.context': 'https://vm-hbt-hm34.heinsohncloud.com.
+                '@odata.context': 'https://123456.heinsohncloud.com.
                 co:50000/b1s/v2/$metadata#B1Sessions/$entity',
-                'SessionId': 'ad7afdee-0181-11ee-8000-6045bd7e5bd5',
+                'SessionId': '3643564asd-0181-11ee-8000-6045b3645e5bd5',
                 'SessionTimeout': 30,
                 'Version': '1000191'
             }
         :return: True or False
         """
         payload = {
-            "CompanyDB": "PRUEBAS_LOGIFARMA_FEB2",
-            "UserName": "medicar",
-            "Password": "1234",
+            "CompanyDB": SAP_COMPANY,
+            "UserName": SAP_USER,
+            "Password": SAP_PASS,
             "Language": 25
         }
         headers = {'Content-Type': 'application/json'}
         log.info("...Realizando login")
         resp = self.request_api(
             'POST',
-            "https://vm-hbt-hm34.heinsohncloud.com.co:50000/b1s/v2/Login",
+            f"{SAP_URL}/Login",
             headers=headers,
             payload=payload,
         )
@@ -119,7 +119,7 @@ class SAP:
 
 
 class SAPData(SAP):
-    BASE_URL = 'https://vm-hbt-hm34.heinsohncloud.com.co:50000/b1s/v2'
+    BASE_URL = SAP_URL
     SUCURSAL = '/sml.svc/SucursalQuery'
     ABSENTRY = '/sml.svc/InfoUbicacionQuery'
 
@@ -133,6 +133,7 @@ class SAPData(SAP):
     # Se podria agregar un post_init que de manera asíncrona
     # ejecute load_sucursales y load_abs_entries
 
+    @login_required
     def get_all(self, end_url: object) -> List:
         """
         Carga todos los registros de BASE_URL + end_url
@@ -335,4 +336,7 @@ if __name__ == '__main__':
     # client.get_costing_code_from_sucursal('1001')
     # client.load_abs_entries()
     # client.load_sucursales()
-    print('result -> ', client.get_costing_code_from_sucursal('817'))
+    for i in range(10):
+        # print(f'result {i} -> ', client.get_costing_code_from_sucursal('817'))
+        re = client.get_all('/sml.svc/SucursalQuery')
+        print(f'result {i} -> {len(re)}')
