@@ -133,7 +133,7 @@ class GDriveHandler:
 
     @logtime('DRIVE')
     def read_csv_file_by_id(self, file_id: str):
-        file_metadata = self.service.files().get(fileId=file_id).execute()
+        # file_metadata = self.service.files().get(fileId=file_id).execute()
 
         # Download the file content as a bytes object
         request = self.service.files().get_media(fileId=file_id)
@@ -143,7 +143,7 @@ class GDriveHandler:
         while not done:
             _, done = downloader.next_chunk()
 
-        encoding = self.detect_csv_encoding(file_id)
+        # encoding = self.detect_csv_encoding(file_id)
 
         # Convert the bytes content to a string
         file_content_str = file_content.getvalue().decode('utf-8-sig')
