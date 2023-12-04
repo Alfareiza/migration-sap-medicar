@@ -64,6 +64,9 @@ class Csv2Dict:
 
     def get_series(self, row):
         """Determina el series a partir del SubPlan o No."""
+        # TODO En el caso de facturación viene 'Capita complementaria Subsidiado '
+        #  en la columna de subplan y por ende entra en el primer if y quiebra el
+        #  código porque para facturación 'CAPITA' no existe en el dict self.series
         subplan = row.get('SubPlan', '').upper()
         if 'CAPITA' in subplan:
             self.single_serie = self.series['CAPITA']
@@ -84,11 +87,11 @@ class Csv2Dict:
         :return: Codigo del centro.
         """
         match row.get('SubPlan', '').upper():
-            case "CAPITA" | "CAPITA NUEVA EPS DISFARMA":
+            case "CAPITA" | "CAPITA NUEVA EPS DISFARMA" | "Capita complementaria Subsidiado":
                 return "CAPSUB01"
             case "CAPITA SUBSIDIADO":
                 return "CAPSUB01"
-            case "CAPITA CONTRIBUTIVO":
+            case "CAPITA CONTRIBUTIVO" | "Capita complementaria Contributivo":
                 return "CAPCON01"
             case "EVENTO PBS CONTRIBUTIVO":
                 return "EVPBSCON"
@@ -115,9 +118,9 @@ class Csv2Dict:
         """
         # match row.get('SubPlan', '').upper():
         match row.get(column_name, '').upper():
-            case "CAPITA" | "CAPITA SUBSIDIADO" | "CAPITA NUEVA EPS DISFARMA":
+            case "CAPITA" | "CAPITA SUBSIDIADO" | "CAPITA NUEVA EPS DISFARMA" | "Capita complementaria Subsidiado":
                 return "7165950102"
-            case "CAPITA CONTRIBUTIVO":
+            case "CAPITA CONTRIBUTIVO" | "Capita complementaria Contributivo":
                 return "7165950101"
             case "EVENTO PBS CONTRIBUTIVO":
                 return "7165950202"
