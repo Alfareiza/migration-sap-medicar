@@ -69,6 +69,6 @@ def login_required(func):
                         self.sess_id = sess_id
                         login_succeed = True
             if login_succeed:
-                func(*fargs, **fkwargs)
+                return func(*fargs, **fkwargs)
 
         return wrapper
