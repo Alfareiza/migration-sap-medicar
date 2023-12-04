@@ -87,11 +87,11 @@ class Csv2Dict:
         :return: Codigo del centro.
         """
         match row.get('SubPlan', '').upper():
-            case "CAPITA" | "CAPITA NUEVA EPS DISFARMA" | "Capita complementaria Subsidiado":
+            case "CAPITA" | "CAPITA NUEVA EPS DISFARMA" | "CAPITA COMPLEMENTARIA SUBSIDIADO":
                 return "CAPSUB01"
             case "CAPITA SUBSIDIADO":
                 return "CAPSUB01"
-            case "CAPITA CONTRIBUTIVO" | "Capita complementaria Contributivo":
+            case "CAPITA CONTRIBUTIVO" | "CAPITA COMPLEMENTARIA CONTRIBUTIVO":
                 return "CAPCON01"
             case "EVENTO PBS CONTRIBUTIVO":
                 return "EVPBSCON"
@@ -118,9 +118,9 @@ class Csv2Dict:
         """
         # match row.get('SubPlan', '').upper():
         match row.get(column_name, '').upper():
-            case "CAPITA" | "CAPITA SUBSIDIADO" | "CAPITA NUEVA EPS DISFARMA" | "Capita complementaria Subsidiado":
+            case "CAPITA" | "CAPITA SUBSIDIADO" | "CAPITA NUEVA EPS DISFARMA" | "CAPITA COMPLEMENTARIA SUBSIDIADO":
                 return "7165950102"
-            case "CAPITA CONTRIBUTIVO" | "Capita complementaria Contributivo":
+            case "CAPITA CONTRIBUTIVO" | "CAPITA COMPLEMENTARIA CONTRIBUTIVO":
                 return "7165950101"
             case "EVENTO PBS CONTRIBUTIVO":
                 return "7165950202"
