@@ -15,7 +15,7 @@ from utils.mail import EmailModule
 class Validate:
 
     def __str__(self):
-        return "Validate"
+        return "Validación de campos"
 
     def run(self, **kwargs):
         self.validate_header(kwargs['parser'].module.name, kwargs['reader'].fieldnames)
@@ -52,9 +52,8 @@ class Validate:
 
 
 class ProcessCSV:
-
     def __str__(self):
-        return "ProcessCSV"
+        return "Procesamiento de CSV"
 
     def run(self, **kwargs):
         # csv_to_dict.process(csv_reader)
@@ -64,7 +63,7 @@ class ProcessCSV:
 class ProcessSAP:
 
     def __str__(self):
-        return "ProcessSAP"
+        return "Procesamiento a SAP"
 
     def run(self, **kwargs):
         """Ejecuta SAPConnect.process()"""
@@ -78,6 +77,9 @@ class Export:
     file_errors = None
     pkl_data = None
     pkl_module = None
+
+    def __str__(self):
+        return "Exportación de archivos"
 
     @classmethod
     def class_variables(cls):
@@ -126,11 +128,10 @@ class Export:
             Export.pkl_data = fp.make_pkl(kwargs['csv_to_dict'], filename=f"{kwargs['parser'].module.name}_data.pkl")
 
 
-
 class Mail:
 
     def __str__(self):
-        return "Mail"
+        return "Reporte por Email"
 
     def run(self, **kwargs):
         """
@@ -233,4 +234,3 @@ class File:
         :return: Lista de dicts o luego de haber sido filtrada.
         """
         ...
-
