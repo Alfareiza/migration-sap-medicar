@@ -175,8 +175,7 @@ class SAPData(SAP):
         :return:
         """
         log.info('Cargando todas las sucursales.')
-        sucursales = self.get_all(self.SUCURSAL)
-        if sucursales:
+        if sucursales := self.get_all(self.SUCURSAL):
             for sucursal in sucursales:
                 if sucursal['WhsCode'] not in self.sucursales:
                     self.sucursales[sucursal['WhsCode']] = {}
@@ -303,9 +302,8 @@ class SAPData(SAP):
         """
         if embalaje_info := self.get_all(f"/sml.svc/InfoEmbalajeQuery?$filter=ItemCode eq '{plu}'"):
             return embalaje_info
-        else:
-            log.warning(f'No se encontró info de embalaje para el plu {plu!r}.')
-            return []
+        log.warning(f'No se encontró info de embalaje para el plu {plu!r}.')
+        return []
 
     @login_required
     def get_bin_abs_entry_from_lote(self, lote: str) -> int:
@@ -328,13 +326,13 @@ class SAPData(SAP):
         """
         if lote_info := self.get_all(f"/sml.svc/InfoLoteQuery?$filter=DistNumber eq '{lote}'"):
             return lote_info[0]['AbsEntry']
-        else:
-            log.warning(f'No se encontró info del lote {lote!r} en SAP.')
-            return 0
+        log.warning(f'No se encontró info del lote {lote!r} en SAP.')
+        return 0
 
 
 if __name__ == '__main__':
     client = SAPData()
     # client.get_costing_code_from_sucursal('1001')
     # client.load_abs_entries()
-    client.load_sucursales()
+    # client.load_sucursales()
+    print('result -> ', client.get_costing_code_from_sucursal('817'))
