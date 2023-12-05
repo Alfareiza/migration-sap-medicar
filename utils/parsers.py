@@ -197,8 +197,9 @@ class Parser:
         files = self.input.get_files_in_folder_by_name(name_folder, ext='csv')
         if not files:
             log.warning(f'No se encontraron archivos en carpeta {name_folder!r}')
-        log.info(f"Archivos reconocidos en carpeta {name_folder!r}:  "
-                 f"{', '.join(list(map(lambda f: f['name'], files)))}")
+        else:
+            log.info(f"Archivos reconocidos en carpeta {name_folder!r}:  "
+                     f"{', '.join(list(map(lambda f: f['name'], files)))}")
         self.input.files = files
 
     def folder_to_check(self) -> str:

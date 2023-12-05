@@ -7,6 +7,7 @@ from core.settings import DISPENSACION_HEADER, FACTURACION_HEADER, NOTAS_CREDITO
     AJUSTES_SALIDA_HEADER, TRASLADOS_HEADER, logger as log, DISPENSACIONES_ANULADAS_HEADER, COMPRAS_HEADER, \
     AJUSTE_LOTE_HEADER, PAGOS_RECIBIDOS_HEADER, BASE_DIR
 from utils.converters import Csv2Dict
+from utils.decorators import once_in_interval
 from utils.gdrive.handler_api import GDriveHandler
 from utils.resources import set_filename
 from utils.mail import EmailModule
@@ -65,6 +66,7 @@ class ProcessSAP:
     def __str__(self):
         return "Procesamiento a SAP"
 
+    @once_in_interval(2)
     def run(self, **kwargs):
         """Ejecuta SAPConnect.process()"""
         if csvtodict := kwargs['csv_to_dict']:
@@ -72,6 +74,12 @@ class ProcessSAP:
                 kwargs['sap'].process(kwargs['csv_to_dict'])
             else:
                 log.info(f'{csvtodict.name} por no haber payloads, no se harán las peticiones en SAP')
+
+            self.post_run(csvtodict)
+
+    def post_run(self, csvtodict) -> None:
+        # todo agregar columna llamada json con el json de aquel elemento
+        ...
 
 
 class Export:
