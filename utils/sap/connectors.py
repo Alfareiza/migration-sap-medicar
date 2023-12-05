@@ -62,7 +62,7 @@ class SAPConnect(SAP):
             # Si NO hubo ERROR al hacer el POST o PATCH
             for csv_item in self.info.data[key]['csv']:
                 csv_item['Status'] = f"DocEntry: {res.get('DocEntry')}"
-            log.info(f"{method.upper()} Realizado con exito! {key}. DocEntry: {res.get('DocEntry')}")
+            log.info(f"{method.__name__.upper()} Realizado con exito! {key}. DocEntry: {res.get('DocEntry')}")
 
     def build_url(self, key):
         """Contruye la url a la cual se realizará la petición a la API de SAP."""
