@@ -67,7 +67,11 @@ class ProcessSAP:
 
     def run(self, **kwargs):
         """Ejecuta SAPConnect.process()"""
-        kwargs['sap'].process(kwargs['csv_to_dict'])
+        if csvtodict := kwargs['csv_to_dict']:
+            if csvtodict.succss:
+                kwargs['sap'].process(kwargs['csv_to_dict'])
+            else:
+                log.info(f'{csvtodict.name} por no haber payloads, no se harán las peticiones en SAP')
 
 
 class Export:

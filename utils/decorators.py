@@ -1,6 +1,7 @@
 import functools
 import pickle
 import time
+from datetime import datetime, timedelta
 from functools import wraps
 
 from core.settings import logger as log, BASE_DIR
@@ -72,3 +73,30 @@ def login_required(func):
                 return func(*fargs, **fkwargs)
 
         return wrapper
+
+
+def once_in_interval(interval_seconds):
+    def decorator(func):
+        last_execution_time = datetime.min
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            nonlocal last_execution_time
+
+            current_time = datetime.now()
+
+            if current_time - last_execution_time >= timedelta(seconds=interval_seconds):
+                # Execute the function
+                result = func(*args, **kwargs)
+
+                # Update the last execution time
+                last_execution_time = datetime.now()
+
+                return result
+            else:
+                # Function was not executed due to repeated attempt
+                log.warning(f"Function '{func.__name__}' was not executed due to a repeated attempt within {interval_seconds} seconds.")
+
+        return wrapper
+
+    return decorator

@@ -1,7 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 
 from core.settings import logger as log
-from utils.decorators import logtime, login_required
+from utils.decorators import logtime, login_required, once_in_interval
 from utils.sap.manager import SAP
 
 
@@ -10,6 +10,7 @@ class SAPConnect(SAP):
         super().__init__(module)
         self.info = None  # Instancia de clase Csv2Dict
 
+    @once_in_interval(2)
     @login_required
     def process(self, csv_to_dict):
         self.info = csv_to_dict
