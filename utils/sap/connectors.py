@@ -14,9 +14,9 @@ class SAPConnect(SAP):
     def process(self, csv_to_dict):
         self.info = csv_to_dict
         method = self.post if self.info.name != 'ajustes_vencimiento_lote' else self.patch
-        self.register(method)
-        # self.register_sync(method)
-        log.info(f"Procesadas {len(self.info.succss)} {method} a API de SAP.")
+        # self.register(method)
+        self.register_sync(method)
+        log.info(f"Procesadas {len(self.info.succss)} {method.__name__} a API de SAP.")
 
     @logtime('MASSIVE POSTS')
     def register(self, method):
@@ -29,7 +29,7 @@ class SAPConnect(SAP):
 
     def register_sync(self, method):
         for i, key in enumerate(list(self.info.succss), 1):
-            log.info(f'{method}ing {i} {key}')
+            log.info(f'{method.__name__}ing {i} {key}')
             self.request_info(method, key, self.info.data[key]['json'], self.build_url(key))
 
     def request_info(self, method, key, item, url):
@@ -71,7 +71,7 @@ class SAPConnect(SAP):
                 try:
                     docentry_lote = self.info.data[key]['json'].pop('Series')
                 except KeyError as e:
-                    log.erro(f"ERROR={e}. Lote sin 'Series': {self.info.data[key]['json']}")
+                    log.error(f"ERROR={e}. Lote sin 'Series': {self.info.data[key]}")
                     return self.module.url
                 else:
                     return self.module.url.format(docentry_lote)
