@@ -38,10 +38,7 @@ class SAP:
             else:
                 err = e.response.content
             extra_txt = payload['U_LF_Formula'] if 'U_LF_Formula' in payload else ''
-            if self.module:
-                tag = f'[{self.module.name}], '
-            else:
-                tag = ''
+            tag = f'[{self.module.name}], ' if self.module else ''
             log.error(f"{tag}{err['error']['message']} [{extra_txt}]")
             res = {"ERROR": clean_text(err['error']['message'])}
         except Exception as e:

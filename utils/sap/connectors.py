@@ -16,21 +16,20 @@ class SAPConnect(SAP):
         method = self.post if self.info.name != 'ajustes_vencimiento_lote' else self.patch
         self.register(method)
         # self.register_sync(method)
-        log.info(f"Procesadas {len(self.info.succss)} peticiones a API de SAP.")
+        log.info(f"Procesadas {len(self.info.succss)} {method} a API de SAP.")
 
     @logtime('MASSIVE POSTS')
     def register(self, method):
         with ThreadPoolExecutor(max_workers=12) as executor:
             _ = [executor.submit(
-                self.request_info, method,
-                key, self.info.data[key]['json'],
-                self.build_url(key)
+                self.request_info,  # func
+                method, key, self.info.data[key]['json'], self.build_url(key)  # args
             )
                 for key in list(self.info.succss)]
 
     def register_sync(self, method):
         for i, key in enumerate(list(self.info.succss), 1):
-            log.info(f'Posting {i} {key}')
+            log.info(f'{method}ing {i} {key}')
             self.request_info(method, key, self.info.data[key]['json'], self.build_url(key))
 
     def request_info(self, method, key, item, url):
@@ -60,17 +59,22 @@ class SAPConnect(SAP):
             for csv_item in self.info.data[key]['csv']:
                 csv_item['Status'] = f"[SAP] {value_err}"
         else:
-            # Si NO hubo ERROR al hacer el POST
+            # Si NO hubo ERROR al hacer el POST o PATCH
             for csv_item in self.info.data[key]['csv']:
                 csv_item['Status'] = f"DocEntry: {res.get('DocEntry')}"
-            log.info(f"POST Realizado con exito! {key}. DocEntry: {res.get('DocEntry')}")
-
+            log.info(f"{method.upper()} Realizado con exito! {key}. DocEntry: {res.get('DocEntry')}")
 
     def build_url(self, key):
         """Contruye la url a la cual se realizará la petición a la API de SAP."""
         if not isinstance(self.module.series, dict):
             if self.module.name == 'ajustes_vencimiento_lote':
-                return self.module.url.format(self.info.data[key]['json'].pop('Series'))
+                try:
+                    docentry_lote = self.info.data[key]['json'].pop('Series')
+                except KeyError as e:
+                    log.erro(f"ERROR={e}. Lote sin 'Series': {self.info.data[key]['json']}")
+                    return self.module.url
+                else:
+                    return self.module.url.format(docentry_lote)
             return self.module.url
 
         for k, v in self.module.series.items():
