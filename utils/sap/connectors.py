@@ -29,7 +29,7 @@ class SAPConnect(SAP):
                 self.request_info,  # func
                 method, key, self.info.data[key]['json'], self.build_url(key)  # args
             )
-                for key in list(self.info.succss)]
+                for key in list(self.info.succss)[:4000]]
 
     def register_sync(self, method):
         for i, key in enumerate(list(self.info.succss), 1):
