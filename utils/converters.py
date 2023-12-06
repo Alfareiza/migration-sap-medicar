@@ -367,10 +367,10 @@ class Csv2Dict:
 
     @logtime('CSV')
     def process(self, csv_reader):
-        log.info("Comenzando procesamiendo de CSV.")
+        log.info(f"[{self.name}] Comenzando procesamiendo de CSV.")
         self.process_module(csv_reader)
-        log.info("CSV procesado con éxito.")
-        log.info(f"{len(self.succss)} Payload(s) creados!!.")
+        log.info(f"[{self.name}] CSV procesado con éxito.")
+        log.info(f"[{self.name}] {len(self.succss)} Payloads creados!!.")
         log.error(f"CSV {self.name} con error {len(self.errs)}: {' '.join(self.errs) if self.errs else ''}")
 
     def build_payment_invoices(self, row):

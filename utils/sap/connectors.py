@@ -17,7 +17,10 @@ class SAPConnect(SAP):
         method = self.post if self.info.name != 'ajustes_vencimiento_lote' else self.patch
         self.register(method)
         # self.register_sync(method)
-        log.info(f"{self.info.name} {len(self.info.succss)} {method.__name__} realizados a API de SAP.")
+        log.info(f"{self.info.name} {len(self.info.succss)} {method.__name__}s realizados a API"
+                 f" de SAP NO tuvieron error.")
+        log.info(f"{self.info.name} {len(self.info.errs)} {method.__name__}s realizados a API"
+                 f" de SAP fueron rechazados")
 
     @logtime('MASSIVE POSTS')
     def register(self, method):
