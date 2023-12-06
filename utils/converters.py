@@ -163,7 +163,7 @@ class Csv2Dict:
             if not costing_code:
                 raise Exception()
         except Exception:
-            txt = f"[CSV] CECO no reconocido {row['CECO']}"
+            txt = f"[CSV] CECO no reconocido {row['CECO']!r}"
             log.error(f"{self.pk} {row[f'{self.pk}']}. {txt}")
             self.reg_error(row, txt)
         else:
@@ -199,8 +199,7 @@ class Csv2Dict:
             return f"{anho}{mes}{dia}"
 
     def get_codigo_tercero(self, row: dict) -> str:
-        """Determina el codigo del nit, agregándole CL al
-        comienzo del valor recibido."""
+        """ Determina el codigo del nit, agregándole CL al comienzo del valor recibido """
         nit = row.get('NIT', '')
         if nit != '':
             return f"CL{nit}"
