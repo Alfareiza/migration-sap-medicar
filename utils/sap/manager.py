@@ -26,10 +26,10 @@ class SAP:
         try:
             response = requests.request(method, url, headers=headers,
                                         data=json.dumps(payload),
-                                        timeout=40)
+                                        timeout=30)
             response.raise_for_status()
         except Timeout:
-            log.error(txt := "No hubo respuesta de la API en 60 segundos.")
+            log.error(txt := "No hubo respuesta de la API en 30 segundos.")
             # TODO ENVIAR CORREO NOTIFICANDO PROBLEMA
             res = {"ERROR": txt}
         except HTTPError as e:
