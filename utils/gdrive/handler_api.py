@@ -94,7 +94,7 @@ class GDriveHandler:
                        It might have the next estructure:
                        filter = {'ext': 'csv'}
         :param folder_name: 'My Folder'
-        :return: Ex.:
+        :return: Ex.: An empty list or something like the next:
                       [
                         {'id': '1Pf...Y',
                         'kind': 'drive#file',
