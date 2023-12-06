@@ -26,10 +26,10 @@ class SAP:
         try:
             response = requests.request(method, url, headers=headers,
                                         data=json.dumps(payload),
-                                        timeout=20)
+                                        timeout=60)
             response.raise_for_status()
         except Timeout:
-            log.error(txt := "No hubo respuesta de la API en 20 segundos.")
+            log.error(txt := "No hubo respuesta de la API en 60 segundos.")
             # TODO ENVIAR CORREO NOTIFICANDO PROBLEMA
             res = {"ERROR": txt}
         except HTTPError as e:
@@ -126,6 +126,8 @@ class SAPData(SAP):
         self.sucursales_loaded = False
         self.entregas = {}
         self.entregas_loaded = False
+        self.abs_entries = {}
+        self.abs_entries_loaded = False
 
     # Se podria agregar un post_init que de manera asíncrona
     # ejecute load_sucursales y load_abs_entries
@@ -212,11 +214,12 @@ class SAPData(SAP):
             for bod in bodegas:
                 # bod = {'AbsEntry': 91, 'BinCode': '100-SYSTEM-BIN-LOCATION', 'WhsCode': '100', 'id__': 1}
                 if bod['WhsCode'] not in self.sucursales:
-                    self.sucursales[bod['WhsCode']] = {}
-                self.sucursales[bod['WhsCode']][bod['BinCode']] = bod['AbsEntry']
+                    self.abs_entries[bod['WhsCode']] = {}
+                self.abs_entries[bod['WhsCode']][bod['BinCode']] = bod['AbsEntry']
         else:
             log.warning(f'No se encontraron ABSENTRIES en {self.ABSENTRY}.')
         # log.info('Proceso de cargar sucursales finalizado.')
+        self.abs_entries = True
 
     def get_costing_code_from_sucursal(self, ceco: str) -> str:
         """
@@ -274,9 +277,9 @@ class SAPData(SAP):
         :return: Caso encontrar el AbsEntry del value, retorna
                  el valor encontrado en self.sucursales, sino un cero.
         """
-        if ceco in self.sucursales and self.sucursales[ceco].get(f"{ceco}-AL"):
-            return self.sucursales[ceco].get(f"{ceco}-AL")
-        elif not self.sucursales and not self.sucursales_loaded:
+        if ceco in self.abs_entries and self.abs_entries[ceco].get(f"{ceco}-AL"):
+            return self.abs_entries[ceco].get(f"{ceco}-AL")
+        elif not self.abs_entries and not self.abs_entries_loaded:
             self.load_abs_entries()
             return self.get_bin_abs_entry_from_ceco(ceco)
         else:
