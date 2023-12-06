@@ -26,7 +26,7 @@ class SAP:
         try:
             response = requests.request(method, url, headers=headers,
                                         data=json.dumps(payload),
-                                        timeout=60)
+                                        timeout=40)
             response.raise_for_status()
         except Timeout:
             log.error(txt := "No hubo respuesta de la API en 60 segundos.")
