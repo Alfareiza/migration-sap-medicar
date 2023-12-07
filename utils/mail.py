@@ -129,8 +129,8 @@ class EmailModule:
 
     def set_destinatary(self):
         self.destinatary = [
-            # 'desarrollador@logifarma.co',
-            # 'logistica@logifarma.co'
+            'desarrollador@logifarma.co',
+            'logistica@logifarma.co'
         ]
 
     def set_subject(self):
