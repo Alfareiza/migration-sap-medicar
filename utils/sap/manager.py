@@ -219,7 +219,7 @@ class SAPData(SAP):
         else:
             log.warning(f'No se encontraron ABSENTRIES en {self.ABSENTRY}.')
         # log.info('Proceso de cargar sucursales finalizado.')
-        self.abs_entries = True
+        self.abs_entries_loaded = True
 
     def get_costing_code_from_sucursal(self, ceco: str) -> str:
         """
@@ -334,7 +334,7 @@ class SAPData(SAP):
 if __name__ == '__main__':
     client = SAPData()
     # client.get_costing_code_from_sucursal('1001')
-    # client.load_abs_entries()
+    client.load_abs_entries()
     # client.load_sucursales()
     for i in range(10):
         # print(f'result {i} -> ', client.get_costing_code_from_sucursal('817'))

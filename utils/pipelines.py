@@ -5,12 +5,12 @@ from dataclasses import dataclass
 
 from core.settings import DISPENSACION_HEADER, FACTURACION_HEADER, NOTAS_CREDITO_HEADER, AJUSTES_ENTRADA_HEADER, \
     AJUSTES_SALIDA_HEADER, TRASLADOS_HEADER, logger as log, DISPENSACIONES_ANULADAS_HEADER, COMPRAS_HEADER, \
-    AJUSTE_LOTE_HEADER, PAGOS_RECIBIDOS_HEADER, BASE_DIR
+    AJUSTE_LOTE_HEADER, PAGOS_RECIBIDOS_HEADER, BASE_DIR, AJUSTES_ENTRADA_PRUEBA_HEADER
 from utils.converters import Csv2Dict
 from utils.decorators import once_in_interval
 from utils.gdrive.handler_api import GDriveHandler
 from utils.resources import set_filename
-from utils.mail import EmailModule
+from utils.mail import EmailModule, send_mail_due_to_many_documents
 
 
 class Validate:
@@ -44,11 +44,12 @@ class Validate:
                 fields = AJUSTE_LOTE_HEADER
             case 'pagos_recibidos':
                 fields = PAGOS_RECIBIDOS_HEADER
+            case 'ajustes_entrada_prueba':
+                fields = AJUSTES_ENTRADA_PRUEBA_HEADER
             case _:
                 fields = {}
 
         if diff := fields.difference(set(fieldnames)):
-            # TODO enviar correo cuando esté en producción
             raise Exception(f"Hacen falta los siguientes campos: {', '.join(diff)}")
 
 
@@ -71,7 +72,10 @@ class ProcessSAP:
         """Ejecuta SAPConnect.process()"""
         if csvtodict := kwargs['csv_to_dict']:
             if csvtodict.succss:
-                kwargs['sap'].process(kwargs['csv_to_dict'])
+                if length := len(csvtodict.succss) > 3000:
+                    send_mail_due_to_many_documents(kwargs['file']['name'], csvtodict.csv_lines, length)
+                else:
+                    kwargs['sap'].process(kwargs['csv_to_dict'])
             else:
                 log.info(f'{csvtodict.name} por no haber payloads, no se harán las peticiones en SAP')
 

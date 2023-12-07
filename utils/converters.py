@@ -150,7 +150,7 @@ class Csv2Dict:
                 log.error(f"{self.pk} {row[f'{self.pk}']}. {txt}")
                 self.reg_error(row, txt)
 
-    def get_costing_code(self, row) -> str:
+    def get_costing_code(self, row, column_name='CECO') -> str:
         """
         Determina el CostingCode apartir del CECO.
         CECO es un número que se consulta en API de SAP
@@ -158,7 +158,7 @@ class Csv2Dict:
         :return:
         """
         try:
-            ceco = row['CECO']
+            ceco = row[column_name]
             costing_code = self.sap.get_costing_code_from_sucursal(ceco)
             if not costing_code:
                 raise Exception()
@@ -185,6 +185,21 @@ class Csv2Dict:
             log.error(f"{self.pk} {row[f'{self.pk}']}. No fue detectado "
                       f"ni contributivo ni subsidiado en {plan!r}")
             self.reg_error(row, txt)
+
+    def transform_date_v2(self, row: dict, column_name: str) -> str:
+        """Transforma la fecha del formato 30/11/2024 a 20221231
+        Obs.: Solamente usado para pruebas, por ajustes_entradas_prueba
+        """
+        try:
+            dt = row[column_name]
+            anho, mes, dia = dt.split('-')
+        except Exception:
+            log.error(f"{self.pk} {row[f'{self.pk}']}. Fecha '{dt}' no pudo ser transformada. "
+                      f'Se esperaba el formato "31/12/2023" y se recibió {dt}')
+            self.reg_error(row,
+                           f'[CSV] Formato inesperado en {column_name} se espera este formato -> "31/12/2023"')
+        else:
+            return f"{anho}{mes}{dia}"
 
     def transform_date(self, row: dict, column_name: str) -> str:
         """ Transforma la fecha del formato "2022-12-31 18:36:00" a "20221231" """
@@ -257,8 +272,8 @@ class Csv2Dict:
             return self.make_int(row, "NroAutorizacion")
         return ''
 
-    def get_plu(self, row):
-        item_code = row.get("Plu", '')
+    def get_plu(self, row, column_name='Plu'):
+        item_code = row.get(column_name, '')
         if item_code != '':
             return item_code
         log.error(f"{self.pk} {row[f'{self.pk}']}. Plu no reconocido : {item_code!r}")
@@ -417,14 +432,14 @@ class Csv2Dict:
     def build_document_lines(self, row):
         # document_lines tiene los valores que son iguales para todos los modulos
         document_lines = {
-            "ItemCode": self.get_plu(row),
+            # "ItemCode": self.get_plu(row),
             "WarehouseCode": row.get("CECO", ''),
             "CostingCode2": row.get("CECO", ''),
         }
         match self.name:
             case 'factura_eventos':  # 1.2
                 document_lines.update(
-                    ItemCode="",
+                    ItemCode=self.get_plu(row),
                     # TODO: Preguntar a Marlay cual es el ItemCode Cuando se trata de 1.2 Factura Eventos 391
                     ItemDescription=row["Articulo"],
                     Price=self.make_float(row, "Vlr.Unitario Margen"),
@@ -434,6 +449,7 @@ class Csv2Dict:
                 )
             case 'facturacion':  # 5.1
                 document_lines.update(
+                    ItemCode=self.get_plu(row),
                     Quantity=self.make_int(row, "CantidadDispensada"),
                     Price=self.make_float(row, "Precio"),
                     BaseType="15",
@@ -444,6 +460,7 @@ class Csv2Dict:
                 )
             case 'notas_credito':  # 2
                 document_lines.update(
+                    ItemCode=self.get_plu(row),
                     Quantity=self.make_int(row, "CantidadDispensada"),
                     BaseType="13",
                     BaseEntry=self.get_info_sap_entrega(row, 'DocEntry'),
@@ -462,6 +479,7 @@ class Csv2Dict:
             case 'dispensacion':  # 4 y 5
                 if self.single_serie == self.series['CAPITA']:  # 4
                     document_lines.update(
+                        ItemCode=self.get_plu(row),
                         Quantity=self.make_int(row, "CantidadDispensada"),
                         AccountCode=self.get_centro_de_costo(row, 'SubPlan'),
                         CostingCode=self.get_costing_code(row),
@@ -476,6 +494,7 @@ class Csv2Dict:
                 elif self.single_serie == self.series['EVENTO']:  # 5
                     document_lines.update(
                         # LineNum=0,  # TODO: Es el renglon en SAP del Item.
+                        ItemCode=self.get_plu(row),
                         Quantity=self.make_int(row, "CantidadDispensada"),
                         Price=self.make_float(row, "Precio"),
                         CostingCode=self.get_costing_code(row),
@@ -491,6 +510,7 @@ class Csv2Dict:
                     # Entraria aqui cuando no haya sido posible definir el single_serie
                     # predeterminado que podría ser o 77 o 81
                     document_lines.update(
+                        ItemCode=self.get_plu(row),
                         AccountCode=self.get_centro_de_costo(row, 'SubPlan'),
                         Quantity=self.make_int(row, "CantidadDispensada"),
                         CostingCode=self.get_costing_code(row),
@@ -506,6 +526,7 @@ class Csv2Dict:
                 for key in ('CostingCode2',):
                     document_lines.pop(key, None)
                 document_lines.update(
+                    ItemCode=self.get_plu(row),
                     UnitPrice=self.make_float(row, 'Precio'),
                     BatchNumbers=[
                         {
@@ -518,6 +539,7 @@ class Csv2Dict:
                 document_lines.update(Quantity=self.get_num_in_buy(row, document_lines['BatchNumbers'][0]['Quantity']))
             case 'ajustes_salida':  # 8.1
                 document_lines.update(
+                    ItemCode=self.get_plu(row),
                     Quantity=self.make_int(row, "Cantidad"),
                     CostingCode=self.get_costing_code(row),
                     AccountCode=self.get_centro_de_costo(row, 'TipoAjuste', 'salida'),
@@ -530,6 +552,7 @@ class Csv2Dict:
                 )
             case 'ajustes_entrada':  # 8.2
                 document_lines.update(
+                    ItemCode=self.get_plu(row),
                     Quantity=self.make_int(row, "Cantidad"),
                     CostingCode=self.get_costing_code(row),
                     AccountCode=self.get_centro_de_costo(row, 'TipoAjuste', 'entrada'),
@@ -542,8 +565,26 @@ class Csv2Dict:
                         }
                     ]
                 )
+            case 'ajustes_entrada_prueba':
+                document_lines.update(
+                    ItemCode=self.get_plu(row, 'codigo'),
+                    WarehouseCode=row.get("bodega_ent", ''),
+                    CostingCode2=row.get("bodega_ent", ''),
+                    Quantity=self.make_int(row, "cantidad"),
+                    CostingCode=self.get_costing_code(row, "bodega_ent"),
+                    AccountCode="7165950302",
+                    UnitPrice=self.make_float(row, 'Costo'),
+                    BatchNumbers=[
+                        {
+                            "BatchNumber": row["lote"],
+                            "Quantity": self.make_int(row, 'cantidad'),
+                            "ExpiryDate": self.transform_date_v2(row, 'fecha_venc')
+                        }
+                    ]
+                )
             case 'dispensaciones_anuladas':
                 document_lines.update(
+                    ItemCode=self.get_plu(row),
                     Quantity=self.make_int(row, "Cantidad"),
                     CostingCode=self.get_costing_code(row),
                     CostingCode3=self.get_contrato(row),
@@ -712,6 +753,18 @@ class Csv2Dict:
                     U_HBT_Tercero="PR900073223",
                     DocumentLines=[self.build_document_lines(row)],
                 )
+            case 'ajustes_entrada_prueba':  # 8.2
+                for key in ("U_LF_IdAfiliado", "U_LF_Formula",
+                            "U_LF_Mipres", "U_LF_Usuario"):
+                    base_dct.pop(key, None)
+                base_dct.update(
+                    Series=self.series,
+                    DocDate=self.transform_date_v2(row, 'fecha_tras'),
+                    DocDueDate=self.transform_date_v2(row, 'fecha_tras'),
+                    U_HBT_Tercero="PR900073223",
+                    Comments=load_comments(row, 'usuario'),
+                    DocumentLines=[self.build_document_lines(row)],
+                )
             case 'dispensaciones_anuladas':  # 8.2
                 base_dct.update(
                     Series=self.series,
@@ -806,7 +859,7 @@ class Csv2Dict:
             log.info(f'{i} [{self.name.capitalize()}] Leyendo {self.pk} {key}')
             row['Status'] = ''
             if key in self.data:
-                if self.name in ('facturacion', 'notas_credito', 'dispensacion', 'compras', 'ajustes_entrada', 'ajustes_salida'):
+                if self.name in ('facturacion', 'notas_credito', 'dispensacion', 'compras', 'ajustes_entrada_prueba', 'ajustes_entrada', 'ajustes_salida'):
                     self.add_article(key, self.build_document_lines(row))
                     self.data[key]['csv'].append(row)
                 if self.name in ('traslados',):

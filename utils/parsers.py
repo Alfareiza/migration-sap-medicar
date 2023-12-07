@@ -80,6 +80,10 @@ class Module:
                 self.url = f'{self.BASE_URL}/InventoryGenEntries'
                 self.pk = 'NroDocumento'
                 self.series = 83
+            case 'ajustes_entrada_prueba':
+                self.url = f'{self.BASE_URL}/InventoryGenEntries'
+                self.pk = 'despacho'
+                self.series = 83
             case 'dispensaciones_anuladas':
                 self.url = f'{self.BASE_URL}/InventoryGenEntries'
                 self.pk = 'NroSSC'
@@ -203,7 +207,7 @@ class Parser:
         self.input.files = files
 
     def folder_to_check(self) -> str:
-        if self.module.name not in ('ajustes_entrada', 'ajustes_salida', 'notas_credito',
+        if self.module.name not in ('ajustes_entrada', 'ajustes_entrada_prueba', 'ajustes_salida', 'notas_credito',
                                     'ajustes_vencimiento_lote', 'pagos_recibidos', 'pagos_recibidos',
                                     'dispensaciones_anuladas'):
             return f"{self.module.name.capitalize()}Medicar"

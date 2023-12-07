@@ -206,6 +206,12 @@ PAGOS_RECIBIDOS_HEADER = {
     'FechaPago', 'NIT', 'Valor'
 }
 
+AJUSTES_ENTRADA_PRUEBA_HEADER = {
+    'despacho', 'fecha_tras', 'bodega_salida', 'bodega_ent',
+    'codigo', 'cantidad', 'lote', 'fecha_venc', 'Costo',
+    'usuario',
+}
+
 # SAP INFORMATION
 
 SAP_USER = config('SAP_USER')

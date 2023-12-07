@@ -13,7 +13,7 @@ from utils.resources import datetime_str, moment, beautify_name
 
 
 class EmailError:
-    def __init__(self, subject, body, to=None, cc=None, bcc=None,
+    def __init__(self, subject, body: str | dict, to=None, cc=None, bcc=None,
                  template=BASE_DIR / "base/templates/notifiers/error_in_module.html"):
         if bcc is None:
             bcc = [config('EMAIL_BCC')]
@@ -21,27 +21,30 @@ class EmailError:
             to = ['desarrollador@logifarma.co', 'logistica@logifarma.co']
         if cc is None:
             cc = []
-        self.template = get_template(template)
         self.to: List = to
         self.cc: List = cc
         self.bcc: List = bcc
         self.subject: str = subject
-        self.ctx: dict = body
-        self.html_content = self.template.render(self.ctx)
-        self.email: EmailMessage = None
+        self.content = body
+        self.email: EmailMessage()
+
+        if isinstance(body, dict):
+            self.template = get_template(template)
+            self.content = self.template.render(body)
+            self.email.content_subtype = "html"
+
+        self.email = EmailMessage(
+            self.subject, self.content, to=self.to, bcc=self.bcc,
+            from_email=f"Logs de Migración <{settings.EMAIL_HOST_USER}>"
+        )
 
     def render_locally(self, html_name=None):
         if not html_name:
             html_name = "sample.html"
         p = Path(html_name)
-        p.write_text(self.html_content)
+        p.write_text(self.content)
 
     def send(self):
-        self.email = EmailMessage(
-            self.subject, self.html_content, to=self.to, bcc=self.bcc,
-            from_email=f"Logs de Migración <{settings.EMAIL_HOST_USER}>"
-        )
-        self.email.content_subtype = "html"
         try:
             if self.email.send(fail_silently=False):
                 logger.info('E-mail enviado')
@@ -126,8 +129,8 @@ class EmailModule:
 
     def set_destinatary(self):
         self.destinatary = [
-            'desarrollador@logifarma.co',
-            'logistica@logifarma.co'
+            # 'desarrollador@logifarma.co',
+            # 'logistica@logifarma.co'
         ]
 
     def set_subject(self):
@@ -144,3 +147,11 @@ class EmailModule:
             name = self.module.name
         p = Path(f"{name}.html")
         p.write_text(self.html_content)
+
+
+# functions form template of e-mails
+def send_mail_due_to_many_documents(filename, lines, length):
+    mail = EmailError(f"Archivo {filename} no procesado por tener más de 3000 documentos",
+                      f"""Archivo {filename!r}:\nLíneas: {lines}\nDocumentos: {length}""",
+                      template=None)
+    mail.send()
