@@ -13,8 +13,7 @@ from utils.resources import datetime_str, moment, beautify_name
 
 
 class EmailError:
-    def __init__(self, subject, body: str | dict, to=None, cc=None, bcc=None,
-                 template=BASE_DIR / "base/templates/notifiers/error_in_module.html"):
+    def __init__(self, subject, body: str | dict, to=None, cc=None, bcc=None, template=None):
         if bcc is None:
             bcc = [config('EMAIL_BCC')]
         if to is None:
@@ -47,7 +46,7 @@ class EmailError:
     def send(self):
         try:
             if self.email.send(fail_silently=False):
-                logger.info('E-mail enviado')
+                logger.info(f'E-mail enviado con asunto {self.email.subject!r}')
             else:
                 logger.warning('E-mail no enviado')
         except SMTPSenderRefused as e:
@@ -149,9 +148,25 @@ class EmailModule:
         p.write_text(self.html_content)
 
 
-# functions form template of e-mails
+# functions for template of e-mails
 def send_mail_due_to_many_documents(filename, lines, length):
     mail = EmailError(f"Archivo {filename} no procesado por tener más de 3000 documentos",
-                      f"""Archivo {filename!r}:\nLíneas: {lines}\nDocumentos: {length}""",
-                      template=None)
+                      f"""Archivo {filename!r}:\nLíneas: {lines}\nDocumentos: {length}""")
+    mail.send()
+
+
+def send_mail_due_to_general_error_in_file(filename, title_error, body_error):
+    """
+    Envia un e-mail cuando hay un error no detectado en la
+    ejecución del pipeline.
+    Posibles errores:
+     - googleapiclient.errors.HttpError
+    """
+    mail = EmailError(f"Error procesando archivo {filename}",
+                      {'errorname': title_error,
+                       'error': body_error,
+                       'filename': filename,
+                       'fecha': datetime_str(moment()),
+                       },
+                      template=BASE_DIR / "base/templates/notifiers/error_in_module.html")
     mail.send()

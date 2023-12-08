@@ -3,6 +3,7 @@ import json
 import pickle
 from dataclasses import dataclass
 
+from base.exceptions import ArchivoExcedeCantidadDocumentos
 from core.settings import DISPENSACION_HEADER, FACTURACION_HEADER, NOTAS_CREDITO_HEADER, AJUSTES_ENTRADA_HEADER, \
     AJUSTES_SALIDA_HEADER, TRASLADOS_HEADER, logger as log, DISPENSACIONES_ANULADAS_HEADER, COMPRAS_HEADER, \
     AJUSTE_LOTE_HEADER, PAGOS_RECIBIDOS_HEADER, BASE_DIR, AJUSTES_ENTRADA_PRUEBA_HEADER
@@ -72,8 +73,8 @@ class ProcessSAP:
         """Ejecuta SAPConnect.process()"""
         if csvtodict := kwargs['csv_to_dict']:
             if csvtodict.succss:
-                if length := len(csvtodict.succss) > 3000:
-                    send_mail_due_to_many_documents(kwargs['file']['name'], csvtodict.csv_lines, length)
+                if len(csvtodict.succss) > 3000:
+                    raise ArchivoExcedeCantidadDocumentos
                 else:
                     kwargs['sap'].process(kwargs['csv_to_dict'])
             else:

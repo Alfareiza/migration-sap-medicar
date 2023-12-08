@@ -6,11 +6,12 @@ from typing import Optional
 
 from django.utils.safestring import mark_safe
 
+from base.exceptions import ArchivoExcedeCantidadDocumentos
 from core.settings import logger as log, BASE_DIR
 from utils.converters import Csv2Dict
 from utils.decorators import logtime
 from utils.gdrive.handler_api import GDriveHandler
-from utils.mail import EmailError
+from utils.mail import EmailError, send_mail_due_to_many_documents, send_mail_due_to_general_error_in_file
 from utils.pipelines import Validate, ProcessCSV, Export, ProcessSAP, Mail
 from utils.resources import moment, datetime_str
 from utils.sap.connectors import SAPConnect
@@ -183,14 +184,10 @@ class Parser:
                 csv_to_dict.data.clear()
                 csv_to_dict.errs.clear()
                 csv_to_dict.succss.clear()
+            except ArchivoExcedeCantidadDocumentos:
+                send_mail_due_to_many_documents(file['name'], csv_to_dict.csv_lines, len(csv_to_dict.succss))
             except Exception as e:
-                mail = EmailError(f"Error procesando archivo {file['name']}",
-                                  {'errorname': e,
-                                   'error': traceback.format_exc(),
-                                   'filename': file['name'],
-                                   'fecha': datetime_str(moment()),
-                                   })
-                mail.send()
+                send_mail_due_to_general_error_in_file(file['name'], e, traceback.format_exc())
                 raise
 
     def discover_files(self, name_folder: str) -> None:
