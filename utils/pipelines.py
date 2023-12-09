@@ -73,10 +73,10 @@ class ProcessSAP:
         """Ejecuta SAPConnect.process()"""
         if csvtodict := kwargs['csv_to_dict']:
             if csvtodict.succss:
-                if len(csvtodict.succss) > 3000:
-                    raise ArchivoExcedeCantidadDocumentos
-                else:
-                    kwargs['sap'].process(kwargs['csv_to_dict'])
+                # if len(csvtodict.succss) > 3000:
+                #     raise ArchivoExcedeCantidadDocumentos
+                # else:
+                kwargs['sap'].process(kwargs['csv_to_dict'])
             else:
                 log.info(f'{csvtodict.name} por no haber payloads, no se harán las peticiones en SAP')
 
