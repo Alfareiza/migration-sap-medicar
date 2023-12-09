@@ -1,3 +1,6 @@
+import os
+
+from decouple import config
 from django.core.management import BaseCommand
 
 from core.settings import logger as log
@@ -6,6 +9,7 @@ from utils.gdrive.handler_api import GDriveHandler
 from utils.parsers import Module
 from utils.sap.manager import SAPData
 
+task_status = config('TASK_STATUS')
 
 class Command(BaseCommand):
     help = 'Realiza la migración de detemrinado modulo'
@@ -31,6 +35,11 @@ class Command(BaseCommand):
          'pythonpath': None, 'traceback': False, 'no_color': False,
          'force_color': False, 'skip_checks': False, 'modulos': ['foo']}
         """
+        log.info(f'Status actual es {os.environ["TASK_STATUS"]}')
+        if os.environ["TASK_STATUS"] == 'ocupado':
+            log.info('Como estoy ocupado, no voy a hacer nada')
+            return None
+
         log.info(f"{' INICIANDO MIGRACIÓN ':▼^70}")
         if options['modulos'] == ['todos']:
             self.main(
@@ -61,13 +70,23 @@ class Command(BaseCommand):
                         - ('ajustes_entrada', 'ajustes_salida')
         :param kwargs: Might be {'filepath': 'path_of_the_file.csv'}
         """
-        client = GDriveHandler()
-        manager_sap = SAPData()
-        for module in args:
-            log.info(f'\t===== {module.upper()} ====')
-            if dir := kwargs.get('filepath'):
-                mdl = Module(name=module, filepath=dir, sap=manager_sap)  # Caso sea local
-            else:
-                mdl = Module(name=module, drive=client, sap=manager_sap)  # Caso sea del drive
-            data = mdl.exec_migration(export=True)
-            log.info(f'\t===== {module.upper()}  ====')
+        log.info("Cambiando estado de migración para 'OCUPADO'")
+        os.environ["TASK_STATUS"] = 'ocupado'
+        # import time
+        # time.sleep(30)
+        # client = GDriveHandler()
+        # manager_sap = SAPData()
+        # for module in args:
+        #     log.info(f'\t===== {module.upper()} ====')
+        #     if dir := kwargs.get('filepath'):
+        #         mdl = Module(name=module, filepath=dir, sap=manager_sap)  # Caso sea local
+        #     else:
+        #         mdl = Module(name=module, drive=client, sap=manager_sap)  # Caso sea del drive
+        #     data = mdl.exec_migration(export=True)
+        #     log.info(f'\t===== {module.upper()}  ====')
+
+        # log.info("Cambiando estado de migración para 'LIBRE'")
+        # os.environ["TASK_STATUS"] = 'libre'
+
+
+        log.info(f'status final es {os.environ["TASK_STATUS"]}')
