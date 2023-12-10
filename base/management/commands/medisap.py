@@ -9,7 +9,6 @@ from utils.gdrive.handler_api import GDriveHandler
 from utils.parsers import Module
 from utils.sap.manager import SAPData
 
-task_status = config('TASK_STATUS')
 
 class Command(BaseCommand):
     help = 'Realiza la migración de detemrinado modulo'
