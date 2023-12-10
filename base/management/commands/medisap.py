@@ -72,7 +72,7 @@ class Command(BaseCommand):
         :param kwargs: Might be {'filepath': 'path_of_the_file.csv'}
         """
         import time
-        time.sleep(720)
+        time.sleep(900)
         # client = GDriveHandler()
         # manager_sap = SAPData()
         # for module in args:
