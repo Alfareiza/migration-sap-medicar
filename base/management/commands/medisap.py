@@ -3,22 +3,30 @@ import os
 from decouple import config
 from django.core.management import BaseCommand
 
+from base.models import RegistroMigracion
 from core.settings import logger as log
 from utils.decorators import logtime
 from utils.gdrive.handler_api import GDriveHandler
+from utils.interactor_db import crea_registro_migracion, update_estado_finalizado
 from utils.parsers import Module
 from utils.sap.manager import SAPData
 
 
 class Command(BaseCommand):
-    help = 'Realiza la migración de detemrinado modulo'
+    help = 'Realiza la migración de determinado modulo'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.migracion = None
 
     def add_arguments(self, parser):
         parser.add_argument("modulos", nargs="+", type=str)
         parser.add_argument("--filepath", nargs="+", type=str)
+
+    @staticmethod
+    def migration_proceed():
+        last_migration = RegistroMigracion.objects.last()
+        return last_migration.estado in ('finalizado', 'error') if last_migration else True
 
     @logtime('MIGRATION BOT')
     def handle(self, *args, **options):
@@ -34,14 +42,12 @@ class Command(BaseCommand):
          'pythonpath': None, 'traceback': False, 'no_color': False,
          'force_color': False, 'skip_checks': False, 'modulos': ['foo']}
         """
-        # if "TASK_STATUS" in os.environ:
-        #     log.info(f"Como estoy {os.environ['TASK_STATUS']}, no voy a hacer nada")
-        #     return None
-        #
-        # os.environ["TASK_STATUS"] = 'ocupado'
-        # log.info(f'status actual es {os.environ.get("TASK_STATUS")}')
+        if not self.migration_proceed():
+            return
 
         log.info(f"{' INICIANDO MIGRACIÓN ':▼^70}")
+        self.migracion = crea_registro_migracion()
+
         if options['modulos'] == ['todos']:
             self.main(
                 'compras',
@@ -55,11 +61,15 @@ class Command(BaseCommand):
                 'facturacion',
                 'notas_credito',
                 'pagos_recibidos',
+                migracion_id=self.migracion.id
             )
         else:
-            self.main(*options['modulos'], filepath=options['filepath'][0] if options.get('filepath') else None)
+            self.main(*options['modulos'], migracion_id=self.migracion.id, filepath=options['filepath'][0] if options.get('filepath') else None)
 
         log.info(f"{' MIGRACIÓN FINALIZADA ':▲^70}")
+        update_estado_finalizado(self.migracion.id)
+
+        return
 
     def main(self, *args, **kwargs):
         """
@@ -71,23 +81,18 @@ class Command(BaseCommand):
                         - ('ajustes_entrada', 'ajustes_salida')
         :param kwargs: Might be {'filepath': 'path_of_the_file.csv'}
         """
-        # import time
-        # time.sleep(900)
+        migracion_id = kwargs.get('migracion_id')
+        import time
+        time.sleep(10)
         client = GDriveHandler()
         manager_sap = SAPData()
         for module in args:
             log.info(f'\t===== {module.upper()} ====')
             if dir := kwargs.get('filepath'):
-                mdl = Module(name=module, filepath=dir, sap=manager_sap)  # Caso sea local
+                mdl = Module(name=module, filepath=dir, sap=manager_sap, migracion_id=migracion_id)  # Caso sea local
             else:
-                mdl = Module(name=module, drive=client, sap=manager_sap)  # Caso sea del drive
+                mdl = Module(name=module, drive=client, sap=manager_sap, migracion_id=migracion_id)  # Caso sea del drive
             data = mdl.exec_migration(export=True)
             log.info(f'\t===== {module.upper()}  ====')
 
-        # log.info("Cambiando estado de migración para 'LIBRE'")
-        # os.environ["TASK_STATUS"] = 'libre'
-        # log.info(f'status final es {os.environ["TASK_STATUS"]!r}')
-        # try:
-        #     del os.environ['TASK_STATUS']
-        # except Exception as e:
-        #     log.error('No fue posible eliminar TASK_STATUS de las variables de ambiente')
+

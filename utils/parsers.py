@@ -11,6 +11,7 @@ from core.settings import logger as log, BASE_DIR
 from utils.converters import Csv2Dict
 from utils.decorators import logtime
 from utils.gdrive.handler_api import GDriveHandler
+from utils.interactor_db import update_estado_error
 from utils.mail import EmailError, send_mail_due_to_many_documents, send_mail_due_to_general_error_in_file
 from utils.pipelines import Validate, ProcessCSV, Export, ProcessSAP, Mail
 from utils.resources import moment, datetime_str
@@ -21,6 +22,7 @@ from utils.sap.manager import SAPData
 @dataclass
 class Module:
     name: str  # 'dispensacion', 'factura', 'notas_credito', etc.
+    migracion_id: int  # 'dispensacion', 'factura', 'notas_credito', etc.
     filepath: Optional[str] = None  # Ruta del archivo csv con el origen de la información
     drive: Optional[GDriveHandler] = None
     sap: Optional[SAPData] = None
@@ -156,6 +158,7 @@ class Parser:
                 for proc in self.pipeline:
                     proc().run(csv_to_dict=csv_to_dict, reader=csv_reader, parser=self)
             except Exception as e:
+                update_estado_error(self.module.migracion_id)
                 send_mail_due_to_general_error_in_file('archivo202311062330.csv', e, traceback.format_exc(),
                                                        self.pipeline.index(proc) + 1, proc or '', list(self.pipeline))
                 raise
@@ -178,9 +181,10 @@ class Parser:
                 csv_to_dict.data.clear()
                 csv_to_dict.errs.clear()
                 csv_to_dict.succss.clear()
-            except ArchivoExcedeCantidadDocumentos:
-                send_mail_due_to_many_documents(file['name'], csv_to_dict.csv_lines, len(csv_to_dict.succss))
+            # except ArchivoExcedeCantidadDocumentos:
+            #     send_mail_due_to_many_documents(file['name'], csv_to_dict.csv_lines, len(csv_to_dict.succss))
             except Exception as e:
+                update_estado_error(self.module.migracion_id)
                 send_mail_due_to_general_error_in_file(file['name'], e, traceback.format_exc(),
                                                        self.pipeline.index(proc) + 1, proc or '', list(self.pipeline))
                 # TODO Crear estrategia para hacer algo cuando haya una falla en el
