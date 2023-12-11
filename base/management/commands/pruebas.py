@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 from decouple import config
 from django.core.management import BaseCommand
@@ -32,7 +33,9 @@ class Command(BaseCommand):
         # os.environ["TASK_STATUS"] = 'ocupado'
         # log.info(f'status actual es {os.environ.get("TASK_STATUS")}')
 
-        log.info(f"{' INICIANDO MIGRACIÓN ':▼^70}")
+        log.info(f"{' INICIANDO PRUEBAS {} ':▼^70}".format(f"{datetime.now():%T}"))
+        log.info(f"{datetime.now():%T}")
         import time
         time.sleep(15 * 60)
-        log.info(f"{' MIGRACIÓN FINALIZADA ':▲^70}")
+        log.info(f"{' FINALIZANDO PRUEBAS {} ':▲^70}".format(f"{datetime.now():%T}"))
+        return
