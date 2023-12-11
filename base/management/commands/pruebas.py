@@ -4,14 +4,24 @@ from datetime import datetime
 from decouple import config
 from django.core.management import BaseCommand
 
+from base.models import RegistroMigracion
 from core.settings import logger as log
 from utils.decorators import logtime
 from utils.gdrive.handler_api import GDriveHandler
+from utils.interactor_db import crea_registro_migracion, update_estado_finalizado
 from utils.parsers import Module
 from utils.sap.manager import SAPData
 
 
 class Command(BaseCommand):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.migracion = None
+
+    @staticmethod
+    def migration_proceed():
+        last_migration = RegistroMigracion.objects.last()
+        return last_migration.estado in ('finalizado', 'error') if last_migration else True
 
     def handle(self, *args, **options):
         """
@@ -26,16 +36,17 @@ class Command(BaseCommand):
          'pythonpath': None, 'traceback': False, 'no_color': False,
          'force_color': False, 'skip_checks': False, 'modulos': ['foo']}
         """
-        # if "TASK_STATUS" in os.environ:
-        #     log.info(f"Como estoy {os.environ['TASK_STATUS']}, no voy a hacer nada")
-        #     return None
-        #
-        # os.environ["TASK_STATUS"] = 'ocupado'
-        # log.info(f'status actual es {os.environ.get("TASK_STATUS")}')
+        if not self.migration_proceed():
+            log.info('No se puede hacer migración aún, estoy ocupado')
+            return
 
         log.info(f"{' INICIANDO PRUEBAS {} ':▼^70}".format(f"{datetime.now():%T}"))
+        self.migracion = crea_registro_migracion()
         log.info(f"{datetime.now():%T}")
+
         import time
         time.sleep(15 * 60)
+
         log.info(f"{' FINALIZANDO PRUEBAS {} ':▲^70}".format(f"{datetime.now():%T}"))
+        update_estado_finalizado(self.migracion.id)
         return
