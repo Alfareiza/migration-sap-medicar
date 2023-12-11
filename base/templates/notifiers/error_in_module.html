@@ -124,10 +124,40 @@ color : white;
                           </h3>
                       </td>
                      </tr>
+                    <tr>
+                      <td align="left" class="es-m-txt-c" style="padding:0;Margin:0;padding-top:15px;padding-bottom:15px">
+                          <p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:arial, 'helvetica neue', helvetica, sans-serif;line-height:24px;color:#333333;font-size:16px">
+                              Error durante la ejecución del paso #  {{ current_step_number }}, <b>{{ current_step_name|lower }}</b>.
+                       </p>
+                      </td>
+                     </tr>
                      <tr>
                       <td align="left" style="padding:0;Margin:0;padding-top:10px;padding-bottom:10px">
-                          <p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:arial, 'helvetica neue', helvetica, sans-serif;line-height:24px;color:#333333;font-size:16px">
-                          {{ errorname }}
+                          <table cellpadding="0" cellspacing="0" role="presentation" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;border-spacing:0px:" width="100%">
+                              <tr>
+                                  {% for step in steps %}
+                                  <td align="center" style="padding:0;Margin:0;padding-top:15px;padding-bottom:15px;font-size: 1.4rem;background-color: aliceblue;" width="25%">
+                                    {{ step }}
+                                  </td>
+                                  {% endfor %}
+                              </tr>
+                              <tr>
+                                  {% for step in steps %}
+                                  <td align="center" style="padding:0;Margin:0;padding-top:15px;padding-bottom:15px;font-size: 1rem;background-color: aliceblue" width="25%">
+                                      {% if forloop.counter < current_step_number %}
+                                        ✅
+                                      {% elif forloop.counter == current_step_number %}
+                                        ❌
+                                      {% else %}
+                                        🕐
+                                      {% endif %}
+                                  </td>
+                                  {% endfor %}
+                              </tr>
+                          </table>
+
+                          <p style="Margin:0;-webkit-text-size-adjust:none;-ms-text-size-adjust:none;mso-line-height-rule:exactly;font-family:arial, 'helvetica neue', helvetica, sans-serif;line-height:24px;color:#333333;font-size:16px:margin-top: 1rem;">
+                          <br>{{ errorname }}
                           </p>
                           <pre style="background-color: #1e1e1e; color: #ffffff; padding: 0rem 1.4rem;border-radius: .4rem;">
                                   <code style="color: #d4d4d4;line-height : 25px;">

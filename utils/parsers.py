@@ -156,14 +156,8 @@ class Parser:
                 for proc in self.pipeline:
                     proc().run(csv_to_dict=csv_to_dict, reader=csv_reader, parser=self)
             except Exception as e:
-                mail = EmailError('Error procesando archivo',
-                                  {'errorname': e,
-                                   'error': mark_safe(traceback.format_exc()),
-                                   'filename': 'NotasCredito202311012330.csv',
-                                   'fecha': datetime_str(moment()),
-                                   })
-                mail.render_locally(html_name='sample.html')
-                mail.send()
+                send_mail_due_to_general_error_in_file('archivo202311062330.csv', e, traceback.format_exc(),
+                                                       self.pipeline.index(proc) + 1, proc or '', list(self.pipeline))
                 raise
             # log.error(f"{proc.__str__(proc)} > {e}")
 
@@ -187,7 +181,12 @@ class Parser:
             except ArchivoExcedeCantidadDocumentos:
                 send_mail_due_to_many_documents(file['name'], csv_to_dict.csv_lines, len(csv_to_dict.succss))
             except Exception as e:
-                send_mail_due_to_general_error_in_file(file['name'], e, traceback.format_exc())
+                send_mail_due_to_general_error_in_file(file['name'], e, traceback.format_exc(),
+                                                       self.pipeline.index(proc) + 1, proc or '', list(self.pipeline))
+                # TODO Crear estrategia para hacer algo cuando haya una falla en el
+                #  proc.__name__ == 'Mail'
+                #  proc.__name__ == 'Export'
+                #  proc.__name__ == 'ProcessSAP'
                 raise
 
     def discover_files(self, name_folder: str) -> None:

@@ -25,7 +25,7 @@ class EmailError:
         self.bcc: List = bcc
         self.subject: str = subject
         self.content = body
-        self.email: EmailMessage()
+        self.email = EmailMessage()
 
         if isinstance(body, dict):
             self.template = get_template(template)
@@ -155,7 +155,7 @@ def send_mail_due_to_many_documents(filename, lines, length):
     mail.send()
 
 
-def send_mail_due_to_general_error_in_file(filename, title_error, body_error):
+def send_mail_due_to_general_error_in_file(filename, title_error, body_error, current_step_number, current_step_name, steps):
     """
     Envia un e-mail cuando hay un error no detectado en la
     ejecución del pipeline.
@@ -167,6 +167,10 @@ def send_mail_due_to_general_error_in_file(filename, title_error, body_error):
                        'error': body_error,
                        'filename': filename,
                        'fecha': datetime_str(moment()),
+                       'current_step_number': current_step_number,
+                       'current_step_name': current_step_name,
+                       'steps': steps,
                        },
                       template=BASE_DIR / "base/templates/notifiers/error_in_module.html")
     mail.send()
+    # mail.render_locally(html_name='sample.html')
