@@ -213,6 +213,22 @@ class Csv2Dict:
         else:
             return f"{anho}{mes}{dia}"
 
+    def generate_idssc(self, row: dict, doc_date: str) -> str:
+        """
+        Usado en el módulo de dispensación, genera un código único por
+        registro, que contiene el NroSSC concatenado con el doc_date
+        :param row: Linea del csv leida en determinado momento.
+        :param doc_date: Fecha ya convertida en formato reconocido por sap
+                        Ej.: '20230719'
+        :return:
+        """
+        nro_ssc = row.get(self.pk, '')
+        if not nro_ssc and not doc_date:
+            log.error(f"{self.pk} {nro_ssc}. No reconocido")
+            self.reg_error(nro_ssc, f"[CSV] No fue posible crear el IDSSC")
+
+        return f"{doc_date}{nro_ssc}"
+
     def get_codigo_tercero(self, row: dict) -> str:
         """ Determina el codigo del nit, agregándole CL al comienzo del valor recibido """
         nit = row.get('NIT', '')
@@ -672,9 +688,10 @@ class Csv2Dict:
             case 'dispensacion':  # 4 y 5 [Implementado]
                 base_dct.update(Series=self.get_series(row))
                 if base_dct['Series'] == 77:  # 4
+                    base_dct.update(DocDate=self.transform_date(row, "FechaDispensacion"))
                     base_dct.update(
-                        DocDate=self.transform_date(row, "FechaDispensacion"),
                         TaxDate=self.transform_date(row, "FechaDispensacion"),
+                        U_LF_IDSSC=self.generate_idssc(row, base_dct.get('DocDate')),
                         U_HBT_Tercero=self.get_codigo_tercero(row),
                         U_LF_Plan=self.get_plan(row),
                         U_LF_NombreAfiliado=self.get_nombre_afiliado(row),

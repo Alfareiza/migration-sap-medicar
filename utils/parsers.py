@@ -121,7 +121,8 @@ class Parser:
     input: str or GDriveHandler
     export: bool = False
     output_filepath: str = ''
-    pipeline = list = [Validate, ProcessCSV, Export,
+    pipeline = list = [Validate, ProcessCSV,
+                       Export,
                        Mail
                        ]
 

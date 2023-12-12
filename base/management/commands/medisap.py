@@ -28,7 +28,7 @@ class Command(BaseCommand):
     @staticmethod
     def migration_proceed():
         last_migration = RegistroMigracion.objects.last()
-        return last_migration.estado in ('finalizado', 'error') if last_migration else True
+        return last_migration.estado in ('finalizado', ) if last_migration else True
 
     @logtime('MIGRATION BOT')
     def handle(self, *args, **options):
