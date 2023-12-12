@@ -690,8 +690,8 @@ class Csv2Dict:
                 if base_dct['Series'] == 77:  # 4
                     base_dct.update(DocDate=self.transform_date(row, "FechaDispensacion"))
                     base_dct.update(
-                        TaxDate=self.transform_date(row, "FechaDispensacion"),
                         U_LF_IDSSC=self.generate_idssc(row, base_dct.get('DocDate')),
+                        TaxDate=self.transform_date(row, "FechaDispensacion"),
                         U_HBT_Tercero=self.get_codigo_tercero(row),
                         U_LF_Plan=self.get_plan(row),
                         U_LF_NombreAfiliado=self.get_nombre_afiliado(row),
@@ -701,8 +701,9 @@ class Csv2Dict:
                         DocumentLines=[self.build_document_lines(row)],
                     )
                 elif base_dct['Series'] == 81:  # 5
+                    base_dct.update(DocDate=self.transform_date(row, "FechaDispensacion"))
                     base_dct.update(
-                        DocDate=self.transform_date(row, "FechaDispensacion"),
+                        U_LF_IDSSC=self.generate_idssc(row, base_dct.get('DocDate')),
                         TaxDate=self.transform_date(row, "FechaDispensacion"),
                         CardCode=self.get_codigo_tercero(row),
                         U_HBT_Tercero=self.get_codigo_tercero(row),
@@ -714,12 +715,13 @@ class Csv2Dict:
                     )
                 else:
                     # Si no fue posible definir el Series por algun motivo.
+                    base_dct.update(DocDate=self.transform_date(row, "FechaDispensacion"))
                     base_dct.update(
+                        U_LF_IDSSC=self.generate_idssc(row, base_dct.get('DocDate')),
                         U_HBT_Tercero=self.get_codigo_tercero(row),
                         U_LF_NivelAfiliado=self.make_int(row, "CategoriaActual"),
                         U_LF_Plan=self.get_plan(row),
                         U_LF_Autorizacion=self.get_num_aut(row),
-                        DocDate=self.transform_date(row, "FechaDispensacion"),
                         TaxDate=self.transform_date(row, "FechaDispensacion"),
                         U_LF_NombreAfiliado=self.get_nombre_afiliado(row),
                         DocumentLines=[self.build_document_lines(row)],
