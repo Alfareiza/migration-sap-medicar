@@ -181,17 +181,29 @@ class Parser:
                 csv_to_dict.data.clear()
                 csv_to_dict.errs.clear()
                 csv_to_dict.succss.clear()
-            # except ArchivoExcedeCantidadDocumentos:
-            #     send_mail_due_to_many_documents(file['name'], csv_to_dict.csv_lines, len(csv_to_dict.succss))
             except Exception as e:
-                update_estado_error(self.module.migracion_id)
                 send_mail_due_to_general_error_in_file(file['name'], e, traceback.format_exc(),
                                                        self.pipeline.index(proc) + 1, proc or '', list(self.pipeline))
-                # TODO Crear estrategia para hacer algo cuando haya una falla en el
-                #  proc.__name__ == 'Mail'
-                #  proc.__name__ == 'Export'
-                #  proc.__name__ == 'ProcessSAP'
+                self.strategy_post_error(proc.__name__)
                 raise
+
+    def strategy_post_error(self, proc_name):
+        """
+        Ejecuta algo a partir del nombre del step.
+        Esta función es ejecutada cuando suceda un error durante
+        la ejecución de uno de los pasos del pipeline.
+        """
+        match proc_name:
+            case 'Validate':
+                ...
+            case 'ProcessCSV':
+                ...
+            case 'ProcessSAP':
+                update_estado_error(self.module.migracion_id)
+            case 'Export':
+                update_estado_error(self.module.migracion_id)
+            case 'Mail':
+                update_estado_error(self.module.migracion_id)
 
     def discover_files(self, name_folder: str) -> None:
         """Busca los archivos en la carpeta {Modulo}Medicar y los carga
