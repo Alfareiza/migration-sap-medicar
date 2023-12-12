@@ -1,4 +1,6 @@
 import os
+import signal
+import sys
 
 from decouple import config
 from django.core.management import BaseCommand
@@ -42,10 +44,14 @@ class Command(BaseCommand):
          'pythonpath': None, 'traceback': False, 'no_color': False,
          'force_color': False, 'skip_checks': False, 'modulos': ['foo']}
         """
+
+        pid = os.getpid()
+        signal.signal(signal.SIGTERM, self.handle_sigterm)
+
         if not self.migration_proceed():
             return
 
-        log.info(f"{' INICIANDO MIGRACIÓN ':▼^70}")
+        log.info(f"{' INICIANDO MIGRACIÓN {} ':▼^70}".format(pid))
         self.migracion = crea_registro_migracion()
 
         if options['modulos'] == ['todos']:
@@ -64,9 +70,10 @@ class Command(BaseCommand):
                 migracion_id=self.migracion.id
             )
         else:
-            self.main(*options['modulos'], migracion_id=self.migracion.id, filepath=options['filepath'][0] if options.get('filepath') else None)
+            self.main(*options['modulos'], migracion_id=self.migracion.id,
+                      filepath=options['filepath'][0] if options.get('filepath') else None)
 
-        log.info(f"{' MIGRACIÓN FINALIZADA ':▲^70}")
+        log.info(f"{' FINALIZANDO MIGRACIÓN {} ':▲^70}".format(pid))
         update_estado_finalizado(self.migracion.id)
 
         return
@@ -89,8 +96,11 @@ class Command(BaseCommand):
             if dir := kwargs.get('filepath'):
                 mdl = Module(name=module, filepath=dir, sap=manager_sap, migracion_id=migracion_id)  # Caso sea local
             else:
-                mdl = Module(name=module, drive=client, sap=manager_sap, migracion_id=migracion_id)  # Caso sea del drive
+                mdl = Module(name=module, drive=client, sap=manager_sap,
+                             migracion_id=migracion_id)  # Caso sea del drive
             data = mdl.exec_migration(export=True)
             log.info(f'\t===== {module.upper()}  ====')
 
-
+    def handle_sigterm(self, signum, frame):
+        log.warning(f'Abortando migración # {self.migracion.id} con {signum=}')
+        sys.exit(1)
