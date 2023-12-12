@@ -1,4 +1,5 @@
 import csv
+import sys
 import traceback
 from dataclasses import dataclass, field
 from pathlib import Path, PosixPath
@@ -7,7 +8,7 @@ from typing import Optional
 from django.utils.safestring import mark_safe
 
 from base.exceptions import ArchivoExcedeCantidadDocumentos
-from core.settings import logger as log, BASE_DIR
+from core.settings import logger as log, BASE_DIR, SAP_URL
 from utils.converters import Csv2Dict
 from utils.decorators import logtime
 from utils.gdrive.handler_api import GDriveHandler
@@ -30,9 +31,7 @@ class Module:
     series: dict = field(init=False)
     pk: str = field(init=False)
 
-    BASE_URL = 'https://vm-hbt-hm34.heinsohncloud.com.co:50000/b1s/v2'
-
-    # BASE_URL = 'https://any.com.co:50000/b1s/v2'
+    BASE_URL = SAP_URL
 
     def __post_init__(self):
         if self.filepath:
@@ -175,6 +174,7 @@ class Parser:
             try:
                 csv_reader = self.input.read_csv_file_by_id(file['id'])
                 for proc in self.pipeline:
+                    log.info(file['name'], 'objeto csv_to_dict pesa ', sys.getsizeof(csv_to_dict), 'bytes')
                     proc().run(csv_to_dict=csv_to_dict, reader=csv_reader,
                                parser=self, sap=sap, file=file,
                                name_folder=name_folder)
