@@ -37,7 +37,7 @@ class Command(BaseCommand):
          'force_color': False, 'skip_checks': False, 'modulos': ['foo']}
         """
         if not self.migration_proceed():
-            log.info('No se puede hacer migración aún, estoy ocupado')
+            log.info('No se puede hacer migración, estoy ocupado')
             return
 
         log.info(f"{' INICIANDO PRUEBAS {} ':▼^70}".format(f"{datetime.now():%T}"))
