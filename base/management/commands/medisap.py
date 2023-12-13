@@ -2,12 +2,11 @@ import os
 import signal
 import sys
 
-from decouple import config
 from django.core.management import BaseCommand
 
 from base.models import RegistroMigracion
 from core.settings import logger as log
-from utils.decorators import logtime
+from utils.decorators import logtime, not_on_debug
 from utils.gdrive.handler_api import GDriveHandler
 from utils.interactor_db import crea_registro_migracion, update_estado_finalizado
 from utils.parsers import Module
@@ -19,16 +18,30 @@ class Command(BaseCommand):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.migracion = None
+        self.migracion = None  # Solamente es creado en producción
 
     def add_arguments(self, parser):
         parser.add_argument("modulos", nargs="+", type=str)
         parser.add_argument("--filepath", nargs="+", type=str)
 
+    @not_on_debug
+    def create_migracion(self):
+        self.migracion = crea_registro_migracion()
+
+    @not_on_debug
+    def update_estado_para_finalizado(self):
+        update_estado_finalizado(self.migracion.id)
+
+    @not_on_debug
+    def can_i_proceed(self):
+        if not self.migration_proceed():
+            log.info(f"{'Migración en ejecución':*^30}")
+            return
+
     @staticmethod
     def migration_proceed():
         last_migration = RegistroMigracion.objects.last()
-        return last_migration.estado in ('finalizado', ) if last_migration else True
+        return last_migration.estado in ('finalizado',) if last_migration else True
 
     @logtime('MIGRATION BOT')
     def handle(self, *args, **options):
@@ -48,11 +61,10 @@ class Command(BaseCommand):
         pid = os.getpid()
         signal.signal(signal.SIGTERM, self.handle_sigterm)
 
-        if not self.migration_proceed():
-            return
+        self.can_i_proceed()
 
         log.info(f"{' INICIANDO MIGRACIÓN {} ':▼^70}".format(pid))
-        self.migracion = crea_registro_migracion()
+        self.create_migracion()
 
         if options['modulos'] == ['todos']:
             self.main(
@@ -67,16 +79,13 @@ class Command(BaseCommand):
                 'facturacion',
                 'notas_credito',
                 'pagos_recibidos',
-                migracion_id=self.migracion.id
             )
         else:
             self.main(*options['modulos'],
-                      migracion_id=self.migracion.id,
                       filepath=options['filepath'][0] if options.get('filepath') else None)
 
         log.info(f"{' FINALIZANDO MIGRACIÓN {} ':▲^70}".format(pid))
-        update_estado_finalizado(self.migracion.id)
-
+        self.update_estado_para_finalizado()
         return
 
     def main(self, *args, **kwargs):
@@ -89,16 +98,17 @@ class Command(BaseCommand):
                         - ('ajustes_entrada', 'ajustes_salida')
         :param kwargs: Might be {'filepath': 'path_of_the_file.csv'}
         """
-        migracion_id = kwargs.get('migracion_id')
+        migracion_id = self.migracion.id if self.migracion else 0
         client = GDriveHandler()
         manager_sap = SAPData()
         for module in args:
             log.info(f'\t===== {module.upper()} ====')
             if dir := kwargs.get('filepath'):
-                mdl = Module(name=module, filepath=dir, sap=manager_sap, migracion_id=migracion_id)  # Caso sea local
+                # Caso sea local
+                mdl = Module(name=module, filepath=dir, sap=manager_sap, migracion_id=migracion_id)
             else:
-                mdl = Module(name=module, drive=client, sap=manager_sap,
-                             migracion_id=migracion_id)  # Caso sea del drive
+                # Caso sea del drive
+                mdl = Module(name=module, drive=client, sap=manager_sap, migracion_id=migracion_id)
             data = mdl.exec_migration(export=True)
             log.info(f'\t===== {module.upper()}  ====')
 

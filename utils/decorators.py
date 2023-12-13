@@ -4,7 +4,7 @@ import time
 from datetime import datetime, timedelta
 from functools import wraps
 
-from core.settings import logger as log, BASE_DIR
+from core.settings import logger as log, BASE_DIR, DEBUG
 from utils.resources import moment, datetime_str
 
 login_pkl = BASE_DIR / 'login.pickle'
@@ -78,25 +78,30 @@ def login_required(func):
 def once_in_interval(interval_seconds):
     def decorator(func):
         last_execution_time = datetime.min
-
         @wraps(func)
         def wrapper(*args, **kwargs):
             nonlocal last_execution_time
-
             current_time = datetime.now()
-
             if current_time - last_execution_time >= timedelta(seconds=interval_seconds):
                 # Execute the function
                 result = func(*args, **kwargs)
-
                 # Update the last execution time
                 last_execution_time = datetime.now()
-
                 return result
             else:
                 # Function was not executed due to repeated attempt
-                log.warning(f"Function '{func.__name__}' was not executed due to a repeated attempt within {interval_seconds} seconds.")
+                log.warning(f"{func.__name__!r} wasn\'t executed due to a repeated attempt within {interval_seconds} seconds.")
 
         return wrapper
-
     return decorator
+
+
+def not_on_debug(func):
+    """Once decorate a func, avoid his execution
+     when the DEBUG env var is True"""
+    @wraps(func)
+    def wrapper(*fargs, **fkwargs):
+        if not DEBUG:
+            return func(*fargs, **fkwargs)
+
+    return wrapper
