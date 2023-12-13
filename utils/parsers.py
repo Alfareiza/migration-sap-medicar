@@ -174,7 +174,7 @@ class Parser:
             try:
                 csv_reader = self.input.read_csv_file_by_id(file['id'])
                 for proc in self.pipeline:
-                    log.info(file['name'], 'objeto csv_to_dict pesa ', sys.getsizeof(csv_to_dict), 'bytes')
+                    log.info(f"{file['name']} objeto csv_to_dict pesa {sys.getsizeof(csv_to_dict)} bytes")
                     proc().run(csv_to_dict=csv_to_dict, reader=csv_reader,
                                parser=self, sap=sap, file=file,
                                name_folder=name_folder)

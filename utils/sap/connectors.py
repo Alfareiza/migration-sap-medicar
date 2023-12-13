@@ -1,3 +1,4 @@
+import sys
 from concurrent.futures import ThreadPoolExecutor
 
 from core.settings import logger as log
@@ -24,6 +25,8 @@ class SAPConnect(SAP):
 
     @logtime('MASSIVE POSTS')
     def register(self, method):
+        log.info(f"{self} pesa {sys.getsizeof(SAPConnect)} bytes")
+        get_highest_ram_process()
         with ThreadPoolExecutor(max_workers=12) as executor:
             _ = [executor.submit(
                 self.request_info,  # func
@@ -53,6 +56,7 @@ class SAPConnect(SAP):
         :param url: 'https://vm-hbt-hm34.heinsohncloud.com.co:50000/b1s/v2/DeliveryNotes'
         :return: None
         """
+        log.info(f"{self} pesa {sys.getsizeof(SAPConnect)} bytes")
         res = method(item, url)
         if value_err := res.get('ERROR'):
             self.info.errs.add(key)
@@ -84,3 +88,34 @@ class SAPConnect(SAP):
         for k, v in self.module.series.items():
             if v == self.info.data[key]['json']['Series']:
                 return self.module.url[k]
+
+
+import subprocess
+
+def get_highest_ram_process():
+    try:
+        # Run the ps command to get process information
+        ps_output = subprocess.check_output(["ps", "-eo", "pid,%mem,cmd", "--sort=-%mem"]).decode("utf-8")
+
+        # Get the first line (header) and the second line (process with highest memory usage)
+        lines = ps_output.strip().split('\n')
+        header = lines[0]
+        highest_ram_process = lines[1]
+
+        # Extract relevant information from the header and highest_ram_process
+        header_fields = header.split()
+        process_info = highest_ram_process.split()
+
+        # Print information about the process with the highest memory usage
+        pid_index = header_fields.index("PID")
+        mem_index = header_fields.index("%MEM")
+        cmd_index = header_fields.index("CMD")
+
+        pid = process_info[pid_index]
+        mem_usage = process_info[mem_index]
+        cmd = process_info[cmd_index]
+
+        log.info(f"Process -> PID: {pid}, RAM Usage: {mem_usage}%, Command: {cmd}")
+    except subprocess.CalledProcessError as e:
+        log.errord(f"Error: {e}")
+
