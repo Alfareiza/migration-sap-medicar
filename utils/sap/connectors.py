@@ -1,3 +1,4 @@
+import datetime
 import sys
 from concurrent.futures import ThreadPoolExecutor
 
@@ -25,9 +26,8 @@ class SAPConnect(SAP):
 
     @logtime('MASSIVE POSTS')
     def register(self, method):
-        log.info(f"{self} pesa {sys.getsizeof(SAPConnect)} bytes")
-        get_highest_ram_process()
-        with ThreadPoolExecutor(max_workers=12) as executor:
+        log.info(f"Antes de comenzar {self.__name__} pesa {sys.getsizeof(SAPConnect)} bytes")
+        with ThreadPoolExecutor(max_workers=8) as executor:
             _ = [executor.submit(
                 self.request_info,  # func
                 method, key, self.info.data[key]['json'], self.build_url(key)  # args
@@ -38,6 +38,10 @@ class SAPConnect(SAP):
         for i, key in enumerate(list(self.info.succss), 1):
             log.info(f'{method.__name__}ing {i} {key}')
             self.request_info(method, key, self.info.data[key]['json'], self.build_url(key))
+            a, b = divmod(i, 20)
+            if b == 0:
+                get_highest_ram_process()
+                log.info(f"{self.__name__}: {sys.getsizeof(SAPConnect)} bytes")
 
     def request_info(self, method, key, item, url):
         """
@@ -56,7 +60,12 @@ class SAPConnect(SAP):
         :param url: 'https://vm-hbt-hm34.heinsohncloud.com.co:50000/b1s/v2/DeliveryNotes'
         :return: None
         """
-        log.info(f"{self} pesa {sys.getsizeof(SAPConnect)} bytes")
+
+        a, b = divmod(datetime.datetime.now().minute, 10)
+        if b == 0:
+            get_highest_ram_process()
+            log.info(f"{self.__name__}: {sys.getsizeof(SAPConnect)} bytes")
+
         res = method(item, url)
         if value_err := res.get('ERROR'):
             self.info.errs.add(key)

@@ -70,7 +70,8 @@ class Command(BaseCommand):
                 migracion_id=self.migracion.id
             )
         else:
-            self.main(*options['modulos'], migracion_id=self.migracion.id,
+            self.main(*options['modulos'],
+                      migracion_id=self.migracion.id,
                       filepath=options['filepath'][0] if options.get('filepath') else None)
 
         log.info(f"{' FINALIZANDO MIGRACIÓN {} ':▲^70}".format(pid))

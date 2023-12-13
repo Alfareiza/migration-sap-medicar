@@ -25,17 +25,23 @@ class EmailError:
         self.bcc: List = bcc
         self.subject: str = subject
         self.content = body
-        self.email = EmailMessage()
 
         if isinstance(body, dict):
             self.template = get_template(template)
             self.content = self.template.render(body)
+            self.email = EmailMessage(
+                self.subject, self.content, to=self.to, bcc=self.bcc,
+                from_email=f"Logs de Migración <{settings.EMAIL_HOST_USER}>"
+            )
             self.email.content_subtype = "html"
 
-        self.email = EmailMessage(
-            self.subject, self.content, to=self.to, bcc=self.bcc,
-            from_email=f"Logs de Migración <{settings.EMAIL_HOST_USER}>"
-        )
+        elif isinstance(body, str):
+            self.email = EmailMessage(
+                self.subject, self.content, to=self.to, bcc=self.bcc,
+                from_email=f"Logs de Migración <{settings.EMAIL_HOST_USER}>"
+            )
+
+
 
     def render_locally(self, html_name=None):
         if not html_name:
@@ -171,6 +177,7 @@ def send_mail_due_to_general_error_in_file(filename, title_error, body_error, cu
                        'current_step_name': current_step_name,
                        'steps': steps,
                        },
+                      to=[],
                       template=BASE_DIR / "base/templates/notifiers/error_in_module.html")
-    mail.send()
-    # mail.render_locally(html_name='sample.html')
+    # mail.send()
+    mail.render_locally(html_name='sample.html')

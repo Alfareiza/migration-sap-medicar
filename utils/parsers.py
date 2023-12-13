@@ -196,7 +196,7 @@ class Parser:
         """
         match proc_name:
             case 'Validate':
-                ...
+                update_estado_error(self.module.migracion_id)
             case 'ProcessCSV':
                 ...
             case 'ProcessSAP':
