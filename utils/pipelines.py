@@ -3,15 +3,26 @@ import json
 import pickle
 from dataclasses import dataclass
 
-from base.exceptions import ArchivoExcedeCantidadDocumentos
-from core.settings import DISPENSACION_HEADER, FACTURACION_HEADER, NOTAS_CREDITO_HEADER, AJUSTES_ENTRADA_HEADER, \
-    AJUSTES_SALIDA_HEADER, TRASLADOS_HEADER, logger as log, DISPENSACIONES_ANULADAS_HEADER, COMPRAS_HEADER, \
-    AJUSTE_LOTE_HEADER, PAGOS_RECIBIDOS_HEADER, BASE_DIR, AJUSTES_ENTRADA_PRUEBA_HEADER
+from core.settings import (
+    BASE_DIR,
+    logger as log,
+    COMPRAS_HEADER,
+    AJUSTES_ENTRADA_PRUEBA_HEADER,
+    TRASLADOS_HEADER,
+    AJUSTES_ENTRADA_HEADER,
+    AJUSTES_SALIDA_HEADER,
+    AJUSTE_LOTE_HEADER,
+    DISPENSACION_HEADER,
+    DISPENSACIONES_ANULADAS_HEADER,
+    FACTURACION_HEADER,
+    NOTAS_CREDITO_HEADER,
+    PAGOS_RECIBIDOS_HEADER
+)
 from utils.converters import Csv2Dict
 from utils.decorators import once_in_interval
 from utils.gdrive.handler_api import GDriveHandler
+from utils.mail import EmailModule
 from utils.resources import set_filename
-from utils.mail import EmailModule, send_mail_due_to_many_documents
 
 
 class Validate:
@@ -22,44 +33,52 @@ class Validate:
     def run(self, **kwargs):
         self.validate_header(kwargs['parser'].module.name, kwargs['reader'].fieldnames)
 
-    def validate_header(self, module_name, fieldnames):
+    @staticmethod
+    def validate_header(module_name, fieldnames):
         """Valida que os campos do modulo estejam como é esperado"""
         match module_name:
+            case 'compras':
+                fields = COMPRAS_HEADER
+            case 'traslados':
+                fields = TRASLADOS_HEADER
+            case 'ajustes_entrada_prueba':
+                fields = AJUSTES_ENTRADA_PRUEBA_HEADER
+            case 'ajustes_entrada':
+                fields = AJUSTES_ENTRADA_HEADER
+            case 'ajustes_salida':
+                fields = AJUSTES_SALIDA_HEADER
+            case 'ajustes_vencimiento_lote':
+                fields = AJUSTE_LOTE_HEADER
             case 'dispensacion':
                 fields = DISPENSACION_HEADER
+            case 'dispensaciones_anuladas':
+                fields = DISPENSACIONES_ANULADAS_HEADER
             case 'facturacion':
                 fields = FACTURACION_HEADER
             case 'notas_credito':
                 fields = NOTAS_CREDITO_HEADER
-            case 'ajustes_entrada':
-                fields = AJUSTES_ENTRADA_HEADER
-            case 'dispensaciones_anuladas':
-                fields = DISPENSACIONES_ANULADAS_HEADER
-            case 'ajustes_salida':
-                fields = AJUSTES_SALIDA_HEADER
-            case 'traslados':
-                fields = TRASLADOS_HEADER
-            case 'compras':
-                fields = COMPRAS_HEADER
-            case 'ajustes_vencimiento_lote':
-                fields = AJUSTE_LOTE_HEADER
             case 'pagos_recibidos':
                 fields = PAGOS_RECIBIDOS_HEADER
-            case 'ajustes_entrada_prueba':
-                fields = AJUSTES_ENTRADA_PRUEBA_HEADER
             case _:
                 fields = {}
 
         if diff := fields.difference(set(fieldnames)):
-            raise Exception(f"Hacen falta los siguientes campos: {', '.join(diff)}")
+            len_diff = len(diff)
+            raise Exception("{} falta {} {} {}: {}".format(
+                'Hacen' if len_diff > 1 else 'Hace',
+                'los' if len_diff > 1 else 'el',
+                'siguientes' if len_diff > 1 else 'siguiente',
+                'campos' if len_diff > 1 else 'campo',
+                ', '.join(diff)
+            ))
 
 
 class ProcessCSV:
     def __str__(self):
         return "Procesamiento de CSV"
 
-    def run(self, **kwargs):
-        # csv_to_dict.process(csv_reader)
+    @staticmethod
+    def run(**kwargs):
         kwargs['csv_to_dict'].process(kwargs['reader'])
 
 
@@ -73,18 +92,18 @@ class ProcessSAP:
         """Ejecuta SAPConnect.process()"""
         if csvtodict := kwargs['csv_to_dict']:
             if csvtodict.succss:
-                # if len(csvtodict.succss) > 3000:
-                #     raise ArchivoExcedeCantidadDocumentos
-                # else:
                 kwargs['sap'].process(kwargs['csv_to_dict'])
             else:
                 log.info(f'{csvtodict.name} por no haber payloads, no se harán las peticiones en SAP')
 
-            self.post_run(csvtodict)
+        self.post_run(csvtodict)
 
     def post_run(self, csvtodict) -> None:
-        # todo agregar columna llamada json con el json de aquel elemento
-        ...
+        """Crea columna json de la petición a SAP"""
+        for key, v in csvtodict.data.items():
+            for line in v['csv']:
+                line.update(json=v['json'])
+
 
 
 class Export:
@@ -139,10 +158,14 @@ class Export:
             Export.file_errors = fp.make_csv(f"{kwargs['parser'].output_filepath}_only_errors.csv", only_error=True)
             Export.file_processed = fp.make_csv(f"{kwargs['parser'].output_filepath}_processed_all.csv")
             # Archivo .json es muy pesado y el e-mail no es enviado por causa de esto
+
             # Export.json_file = fp.make_json(f"{kwargs['parser'].output_filepath}.json")
-            Export.pkl_module = fp.make_pkl(kwargs['parser'].module,
-                                            filename=f"{kwargs['parser'].module.name}_module.pkl")
-            Export.pkl_data = fp.make_pkl(kwargs['csv_to_dict'], filename=f"{kwargs['parser'].module.name}_data.pkl")
+
+            # Export.pkl_module = fp.make_pkl(kwargs['parser'].module,
+            #                                 filename=f"{kwargs['parser'].module.name}_module.pkl")
+
+            Export.pkl_data = fp.make_pkl(kwargs['csv_to_dict'],
+                                          filename=f"{kwargs.get('filename', kwargs['parser'].module.name)}.pkl")
 
 
 class Mail:
@@ -150,7 +173,8 @@ class Mail:
     def __str__(self):
         return "Reporte por Email"
 
-    def run(self, **kwargs):
+    @staticmethod
+    def run(**kwargs):
         """
         Envia correo definiendo el contexto y los adjuntos.
         """

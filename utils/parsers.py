@@ -2,6 +2,7 @@ import csv
 import sys
 import traceback
 from dataclasses import dataclass, field
+from io import TextIOWrapper
 from pathlib import Path, PosixPath
 from typing import Optional
 
@@ -120,10 +121,7 @@ class Parser:
     input: str or GDriveHandler
     export: bool = False
     output_filepath: str = ''
-    pipeline = list = [Validate, ProcessCSV,
-                       Export,
-                       Mail
-                       ]
+    pipeline = list = []
 
     def __post_init__(self):
         if self.export:
@@ -140,12 +138,12 @@ class Parser:
         """
         csv_to_dict = Csv2Dict(self.module.name, self.module.pk, self.module.series, self.module.sap)
         if isinstance(self.input, (str, PosixPath)):
+            self.pipeline = [Validate, ProcessCSV, Export, Mail]
             self.run_filepath(csv_to_dict)
 
         elif isinstance(self.input, GDriveHandler):
             self.export = True
-            # PARA VALIDACION DE CSVS DEL DRIVE SIN PROCESAMIENTO EN SAP, COMENTAR ESTA LINEA
-            self.pipeline.insert(-2, ProcessSAP)
+            self.pipeline = [Validate, ProcessCSV, ProcessSAP, Export, Mail]
             self.run_drive(csv_to_dict)
 
         return csv_to_dict
@@ -155,11 +153,12 @@ class Parser:
         with open(self.input, encoding='utf-8-sig') as csvf:
             csv_reader = csv.DictReader(csvf, delimiter=';')
             try:
+                filename = self.detect_name(csvf.name)
                 for proc in self.pipeline:
-                    proc().run(csv_to_dict=csv_to_dict, reader=csv_reader, parser=self)
+                    proc().run(csv_to_dict=csv_to_dict, reader=csv_reader, parser=self, filename=filename)
             except Exception as e:
                 update_estado_error(self.module.migracion_id)
-                send_mail_due_to_general_error_in_file('archivo202311062330.csv', e, traceback.format_exc(),
+                send_mail_due_to_general_error_in_file(f"{filename}.csv", e, traceback.format_exc(),
                                                        self.pipeline.index(proc) + 1, proc or '', list(self.pipeline))
                 raise
             # log.error(f"{proc.__str__(proc)} > {e}")
@@ -177,7 +176,7 @@ class Parser:
                     log.info(f"{file['name']} objeto csv_to_dict pesa {sys.getsizeof(csv_to_dict)} bytes")
                     proc().run(csv_to_dict=csv_to_dict, reader=csv_reader,
                                parser=self, sap=sap, file=file,
-                               name_folder=name_folder)
+                               name_folder=name_folder, filename=file['name'][:-4])
 
                 csv_to_dict.data.clear()
                 csv_to_dict.errs.clear()
@@ -227,3 +226,10 @@ class Parser:
         words = self.module.name.split('_')
         base_word = ' '.join(words).title().replace(' ', '')
         return f"{base_word}Medicar"
+
+    def detect_name(self, fp: TextIOWrapper) -> str:
+        """
+        Con el archivo dentro de un administrador de contexto,
+        lee el nombre y lo devuelve sin la extensión
+        """
+        return Path(fp).stem
