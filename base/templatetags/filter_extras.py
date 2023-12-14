@@ -134,6 +134,9 @@ def sum_up_errs(txt: str) -> str:
     elif 'No fue encontrado AbsEntry' in txt:
         return "No fue encontrado AbsEntry en lote."
 
+    elif 'No fue encontrado BinEntry' in txt:
+        return "No fue encontrado BinEntry."
+
     return txt
 
 @register.filter
