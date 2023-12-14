@@ -5,7 +5,7 @@ import sys
 from django.core.management import BaseCommand
 
 from base.models import RegistroMigracion
-from core.settings import logger as log
+from core.settings import logger as log, DEBUG
 from utils.decorators import logtime, not_on_debug
 from utils.gdrive.handler_api import GDriveHandler
 from utils.interactor_db import crea_registro_migracion, update_estado_finalizado
@@ -32,12 +32,6 @@ class Command(BaseCommand):
     def update_estado_para_finalizado(self):
         update_estado_finalizado(self.migracion.id)
 
-    @not_on_debug
-    def can_i_proceed(self):
-        if not self.migration_proceed():
-            log.info(f"{'Migración en ejecución':*^30}")
-            return
-
     @staticmethod
     def migration_proceed():
         last_migration = RegistroMigracion.objects.last()
@@ -61,7 +55,9 @@ class Command(BaseCommand):
         pid = os.getpid()
         signal.signal(signal.SIGTERM, self.handle_sigterm)
 
-        self.can_i_proceed()
+        if not DEBUG and not self.migration_proceed():
+            log.info(f"{' migración en ejecución ':*^40}")
+            return
 
         log.info(f"{' INICIANDO MIGRACIÓN {} ':▼^70}".format(pid))
         self.create_migracion()
