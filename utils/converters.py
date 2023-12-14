@@ -163,7 +163,7 @@ class Csv2Dict:
             if not costing_code:
                 raise Exception()
         except Exception:
-            txt = f"[CSV] CECO no reconocido {row['CECO']!r}"
+            txt = f"[CSV] CECO no reconocido {ceco!r}"
             log.error(f"{self.pk} {row[f'{self.pk}']}. {txt}")
             self.reg_error(row, txt)
         else:
