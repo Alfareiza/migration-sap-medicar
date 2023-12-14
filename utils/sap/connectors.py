@@ -26,7 +26,7 @@ class SAPConnect(SAP):
 
     @logtime('MASSIVE POSTS')
     def register(self, method):
-        log.info(f"Antes de comenzar {self.__name__} pesa {sys.getsizeof(SAPConnect)} bytes")
+        log.info(f"Antes de comenzar SAPConnect pesa {sys.getsizeof(SAPConnect)} bytes")
         with ThreadPoolExecutor(max_workers=8) as executor:
             _ = [executor.submit(
                 self.request_info,  # func
@@ -41,7 +41,7 @@ class SAPConnect(SAP):
             a, b = divmod(i, 20)
             if b == 0:
                 get_highest_ram_process()
-                log.info(f"{self.__name__}: {sys.getsizeof(SAPConnect)} bytes")
+                log.info(f"SAPConnect: {sys.getsizeof(SAPConnect)} bytes")
 
     def request_info(self, method, key, item, url):
         """
@@ -64,7 +64,7 @@ class SAPConnect(SAP):
         a, b = divmod(datetime.datetime.now().minute, 10)
         if b == 0:
             get_highest_ram_process()
-            log.info(f"{self.__name__}: {sys.getsizeof(SAPConnect)} bytes")
+            log.info(f"SAPConnect: {sys.getsizeof(SAPConnect)} bytes")
 
         res = method(item, url)
         if value_err := res.get('ERROR'):
