@@ -209,7 +209,8 @@ class Csv2Dict:
         except Exception:
             log.error(f"{self.pk} {row[f'{self.pk}']}. Fecha '{dt}' no pudo ser transformada. "
                       f'Se esperaba el formato "2022-12-31 18:36:00" y se recibió {dt}')
-            self.reg_error(row, f'[CSV] Formato inesperado en {column_name} se espera este formato -> 2022-12-31 18:36:00')
+            self.reg_error(row, f'[CSV] Formato inesperado en {column_name} '
+                                f'se espera este formato -> 2022-12-31 18:36:00')
         else:
             return f"{anho}{mes}{dia}"
 
@@ -298,16 +299,15 @@ class Csv2Dict:
     def get_doc_entry_factura(self, row):
         """Busca el doc entry de la factura correspondiente."""
         try:
-            if dentry := self.sap.get_docentry_factura(row[self.pk]):
-                res = list(filter(lambda v: v['ItemCode'] == row['Plu'], dentry))
-            else:
+            dentry = self.sap.get_docentry_factura(row[self.pk])
+            if not dentry:
                 raise Exception()
         except Exception:
-            txt = f"[CSV] No se encontraron facturas para SSC {row[self.pk]}"
+            txt = f"[CSV] No se encontró dispensación para SSC {row[self.pk]!r}"
             log.error(f"{self.pk} {row[f'{self.pk}']}. {txt}")
             self.reg_error(row, txt)
         else:
-            return res[0]['DocEntry']
+            return dentry
 
     def get_info_sap_entrega(self, row, to_reach):
         """
@@ -372,7 +372,8 @@ class Csv2Dict:
                 res_api = int(info[0]['NumInBuy'])
                 residuo, cociente = divmod(qty, res_api)
                 if cociente:
-                    raise Exception(f"Plu {row['Plu']} presenta incosistencia con cantidad {qty} siendo {res_api} su embalaje")
+                    raise Exception(f"Plu {row['Plu']} presenta incosistencia "
+                                    f"con cantidad {qty} siendo {res_api} su embalaje")
                 res = residuo
             if not info:
                 raise Exception(f"No se encontraron embalajes para el Plu {row['Plu']!r}")
@@ -469,7 +470,8 @@ class Csv2Dict:
                     Quantity=self.make_int(row, "CantidadDispensada"),
                     Price=self.make_float(row, "Precio"),
                     BaseType="15",
-                    BaseEntry=self.get_info_sap_entrega(row, 'DocEntry'),
+                    # BaseEntry=self.get_info_sap_dispensado(row, 'DocEntry'),
+                    BaseEntry=self.get_doc_entry_factura(row),
                     BaseLine=0,  # TODO: Preguntar a Marlay?, o probar con varios Articles
                     CostingCode=self.get_costing_code(row),
                     CostingCode3=self.get_contrato(row),
@@ -878,13 +880,14 @@ class Csv2Dict:
             log.info(f'{i} [{self.name.capitalize()}] Leyendo {self.pk} {key}')
             row['Status'] = ''
             if key in self.data:
-                if self.name in ('facturacion', 'notas_credito', 'dispensacion', 'compras', 'ajustes_entrada_prueba', 'ajustes_entrada', 'ajustes_salida'):
+                if self.name in ('facturacion', 'notas_credito', 'dispensacion', 'compras',
+                                 'ajustes_entrada_prueba', 'ajustes_entrada', 'ajustes_salida'):
                     self.add_article(key, self.build_document_lines(row))
                     self.data[key]['csv'].append(row)
                 if self.name in ('traslados',):
                     self.add_article(key, self.build_stock_transfer_lines(row))
                     self.data[key]['csv'].append(row)
-                if self.name in ('pagos_recibidos', ):
+                if self.name in ('pagos_recibidos',):
                     self.data[key]["PaymentInvoices"].append(self.build_payment_invoices(row))
             elif key != '':
                 # Entra aquí la primera vez que itera sobre el pk

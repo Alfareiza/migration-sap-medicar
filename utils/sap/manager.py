@@ -117,8 +117,12 @@ class SAP:
 
 class SAPData(SAP):
     BASE_URL = SAP_URL
-    SUCURSAL = '/sml.svc/SucursalQuery'
+    SUCURSAL = '/sml.svc/SucursalV2Query'
     ABSENTRY = '/sml.svc/InfoUbicacionQuery'
+    EMBALAJE = '/sml.svc/InfoEmbalajeV2Query'
+    LOTE = '/sml.svc/InfoLoteV2Query'
+    FACTURA = '/sml.svc/InfoFacturaV2Query'
+    DISPENSADO = '/sml.svc/InfoDispensadoV2Query'
 
     def __init__(self, module=None):
         super().__init__(module)
@@ -128,6 +132,8 @@ class SAPData(SAP):
         self.entregas_loaded = False
         self.abs_entries = {}
         self.abs_entries_loaded = False
+        self.dispensados = {}
+        self.dispensados_loaded = False
 
     # Se podria agregar un post_init que de manera asíncrona
     # ejecute load_sucursales y load_abs_entries
@@ -213,13 +219,68 @@ class SAPData(SAP):
         if bodegas := self.get_all(self.ABSENTRY):
             for bod in bodegas:
                 # bod = {'AbsEntry': 91, 'BinCode': '100-SYSTEM-BIN-LOCATION', 'WhsCode': '100', 'id__': 1}
-                if bod['WhsCode'] not in self.sucursales:
+                if bod['WhsCode'] not in self.abs_entries:
                     self.abs_entries[bod['WhsCode']] = {}
                 self.abs_entries[bod['WhsCode']][bod['BinCode']] = bod['AbsEntry']
         else:
             log.warning(f'No se encontraron ABSENTRIES en {self.ABSENTRY}.')
         # log.info('Proceso de cargar sucursales finalizado.')
         self.abs_entries_loaded = True
+
+    @login_required
+    def load_dispensados(self):
+        """
+        Carga en la variable self.dispensados, las dispensaciones
+        realizadas según información obtenida en SAP.
+        Usado para módulo facturacion
+        De esta manera a partir de una lista de diccionarios
+        como la siguiente:
+        [
+            {
+                'CardCode': 'CL1045',
+                'DocEntry': 10,
+                'U_LF_Autorizacion': '5F5SDFDDDD5F',
+                'U_LF_Formula': '4D65D55536d',
+                'U_LF_IDSSC': None,
+                'id__': 1
+            }
+            {...}
+        ]
+        Le asigna el valor a self.dispensados con lo siguiente:
+        {
+            '4D65D55536d': {'CardCode': 'CL1045', 'DocEntry': 10, 'U_LF_Autorizacion': '5F5SDFDDDD5F',
+                            'U_LF_Formula': '4D65D55536d', 'U_LF_IDSSC': None, 'id__': 1},
+            ...
+        }
+        Siendo cada llave del diccionario es un ssc o conocido dentro de SAP como U_LF_Formula.
+        """
+        log.info('Cargando todos los dispensados.')
+        if dispensados := self.get_all(self.DISPENSADO):
+            for dispensado in dispensados:
+                if dispensado['U_LF_Formula'] not in self.dispensados:
+                    self.dispensados[dispensado['U_LF_Formula']] = {}
+                self.dispensados[dispensado['U_LF_Formula']] = dispensado
+        else:
+            log.warning(f'No se encontraron dispensaciones en {self.DISPENSADO}.')
+        # log.info('Proceso de cargar sucursales finalizado.')
+        self.dispensados_loaded = True
+
+    @login_required
+    def load_info_ssc(self, ssc: str):
+        """
+        Carga en la variable self.entregas, las entregas
+        correspondientes a un ssc según información obtenida
+        en SAP.
+        """
+        # log.info(f'Cargando todas las entregas de {ssc}.')
+        res = self.get(self.BASE_URL + f"{self.FACTURA}?$filter=U_LF_Formula eq '{ssc}'")
+        if not res.get('ERROR'):
+            if entregas := res.get('value'):
+                self.entregas[ssc] = entregas
+            else:
+                log.warning(f'No se encontraron entregas en {ssc}.')
+        # log.info('Proceso de cargar entregas finalizado.')
+        self.entregas_loaded = True
 
     def get_costing_code_from_sucursal(self, ceco: str) -> str:
         """
@@ -236,24 +297,6 @@ class SAPData(SAP):
         else:
             return ''
 
-    @login_required
-    def load_info_ssc(self, ssc: str):
-        """
-        Carga en la variable self.entregas, las entregas
-        correspondientes a un ssc según información obtenida
-        en SAP.
-        """
-        # log.info(f'Cargando todas las entregas de {ssc}.')
-        qry = f"/sml.svc/InfoFacturaQuery?$filter=U_LF_Formula eq '{ssc}'"
-        res = self.get(self.BASE_URL + qry)
-        if not res.get('ERROR'):
-            if entregas := res.get('value'):
-                self.entregas[ssc] = entregas
-            else:
-                log.warning(f'No se encontraron entregas en {ssc}.')
-        # log.info('Proceso de cargar entregas finalizado.')
-        self.entregas_loaded = True
-
     def get_info_ssc(self, value: str) -> list:
         """
         Busca en la vista de SAP las entregas que tuvo un SSC
@@ -267,6 +310,19 @@ class SAPData(SAP):
             return self.get_info_ssc(value)
         else:
             return []
+
+    def get_docentry_factura(self, ssc: str) -> str:
+        """
+        A partir de un número de ssc, consigue el DocEntry,
+        caso contrario retorna un ''
+        """
+        if res := self.dispensados.get(ssc):
+            return str(res['DocEntry'])
+        elif not self.dispensados and not self.dispensados_loaded:
+            self.load_dispensados()
+            return self.get_docentry_factura(ssc)
+        else:
+            return ''
 
     def get_bin_abs_entry_from_ceco(self, ceco: str) -> int:
         """
@@ -301,7 +357,7 @@ class SAPData(SAP):
                     }
                 ]
         """
-        if embalaje_info := self.get_all(f"/sml.svc/InfoEmbalajeQuery?$filter=ItemCode eq '{plu}'"):
+        if embalaje_info := self.get_all(f"{self.EMBALAJE}?$filter=ItemCode eq '{plu}'"):
             return embalaje_info
         log.warning(f'No se encontró info de embalaje para el plu {plu!r}.')
         return []
@@ -325,7 +381,7 @@ class SAPData(SAP):
         :return: Caso encontrar el AbsEntry del value, retorna
                  el valor encontrado.
         """
-        if lote_info := self.get_all(f"/sml.svc/InfoLoteQuery?$filter=DistNumber eq '{lote}'"):
+        if lote_info := self.get_all(f"{self.LOTE}?$filter=DistNumber eq '{lote}'"):
             return lote_info[0]['AbsEntry']
         log.warning(f'No se encontró info del lote {lote!r} en SAP.')
         return 0
@@ -334,9 +390,7 @@ class SAPData(SAP):
 if __name__ == '__main__':
     client = SAPData()
     # client.get_costing_code_from_sucursal('1001')
-    client.load_abs_entries()
+    # client.load_abs_entries()
     # client.load_sucursales()
-    for i in range(10):
-        # print(f'result {i} -> ', client.get_costing_code_from_sucursal('817'))
-        re = client.get_all('/sml.svc/SucursalQuery')
-        print(f'result {i} -> {len(re)}')
+    # client.load_dispensados()
+    client.get_docentry_factura('4694768')
