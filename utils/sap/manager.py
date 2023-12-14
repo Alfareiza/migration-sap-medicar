@@ -117,7 +117,7 @@ class SAP:
 
 class SAPData(SAP):
     BASE_URL = SAP_URL
-    SUCURSAL = '/sml.svc/SucursalV2Query'
+    SUCURSAL = '/sml.svc/InfoSucursalV2Query'
     ABSENTRY = '/sml.svc/InfoUbicacionQuery'
     EMBALAJE = '/sml.svc/InfoEmbalajeV2Query'
     LOTE = '/sml.svc/InfoLoteV2Query'
