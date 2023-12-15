@@ -36,17 +36,20 @@ class Command(BaseCommand):
          'pythonpath': None, 'traceback': False, 'no_color': False,
          'force_color': False, 'skip_checks': False, 'modulos': ['foo']}
         """
-        if not self.migration_proceed():
-            log.info('No se puede hacer migración, estoy ocupado')
-            return
+        # if not self.migration_proceed():
+        #     log.info('No se puede hacer migración, estoy ocupado')
+        #     return
+        hora_inicio = f"{datetime.now():%T}"
 
-        log.info(f"{' INICIANDO PRUEBAS {} ':▼^70}".format(f"{datetime.now():%T}"))
-        self.migracion = crea_registro_migracion()
+        log.info(f"{' INICIANDO PRUEBAS {} ':▼^70}".format(hora_inicio))
+        # self.migracion = crea_registro_migracion()
         log.info(f"{datetime.now():%T}")
 
         import time
-        time.sleep(15 * 60)
+        for i in range(1, 7):
+            time.sleep(600)
+            log.info(f'... van {i}0 minutos')
 
-        log.info(f"{' FINALIZANDO PRUEBAS {} ':▲^70}".format(f"{datetime.now():%T}"))
-        update_estado_finalizado(self.migracion.id)
+        log.info(f"{' FINALIZANDO PRUEBAS INICIADAS A LAS {} ':▲^70}".format(hora_inicio))
+        # update_estado_finalizado(self.migracion.id)
         return
