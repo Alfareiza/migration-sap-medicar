@@ -46,7 +46,7 @@ class Command(BaseCommand):
         log.info(f"{datetime.now():%T}")
 
         import time
-        for i in range(1, 7):
+        for i in range(1, 8):
             time.sleep(600)
             log.info(f'... van {i}0 minutos')
 
