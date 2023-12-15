@@ -1,4 +1,6 @@
 import os
+import signal
+import sys
 from datetime import datetime
 
 from decouple import config
@@ -36,6 +38,7 @@ class Command(BaseCommand):
          'pythonpath': None, 'traceback': False, 'no_color': False,
          'force_color': False, 'skip_checks': False, 'modulos': ['foo']}
         """
+        signal.signal(signal.SIGTERM, self.handle_sigterm)
         if not self.migration_proceed():
             log.info('No se puede hacer migración, estoy ocupado')
             return
@@ -46,10 +49,16 @@ class Command(BaseCommand):
         log.info(f"{datetime.now():%T}")
 
         import time
-        for i in range(1, 8):
+        for self.i in range(1, 8):
             time.sleep(600)
-            log.info(f'... van {i}0 minutos')
+            log.info(f'... van {self.i}0 minutos')
 
         log.info(f"{' FINALIZANDO PRUEBAS INICIADAS A LAS {} ':▲^70}".format(hora_inicio))
         update_estado_finalizado(self.migracion.id)
         return
+
+    def handle_sigterm(self, signum, frame):
+        log.warning(f'Abortando pruebas  con {signum=}. Iban {self.i}0 minutos')
+        update_estado_finalizado(self.migracion.id)
+        sys.exit(1)
+
