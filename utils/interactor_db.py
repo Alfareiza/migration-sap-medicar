@@ -26,6 +26,11 @@ def update_estado_error_drive(migracion_id: int) -> None:
     migracion = RegistroMigracion.objects.get(id=migracion_id)
     update_estado(migracion, 'error drive')
 
+@not_on_debug
+def update_estado_error_sap(migracion_id: int) -> None:
+    migracion = RegistroMigracion.objects.get(id=migracion_id)
+    update_estado(migracion, 'error sap')
+
 
 @not_on_debug
 def update_estado_finalizado(migracion_id: int) -> None:

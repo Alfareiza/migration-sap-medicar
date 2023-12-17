@@ -14,7 +14,7 @@ from core.settings import logger as log, BASE_DIR, SAP_URL
 from utils.converters import Csv2Dict
 from utils.decorators import logtime
 from utils.gdrive.handler_api import GDriveHandler
-from utils.interactor_db import update_estado_error, update_estado_error_drive
+from utils.interactor_db import update_estado_error, update_estado_error_drive, update_estado_error_sap
 from utils.mail import EmailError, send_mail_due_to_many_documents, send_mail_due_to_general_error_in_file, \
     send_mail_due_to_impossible_discover_files
 from utils.pipelines import Validate, ProcessCSV, Export, ProcessSAP, Mail
@@ -175,7 +175,6 @@ class Parser:
             try:
                 csv_reader = self.input.read_csv_file_by_id(file['id'])
                 for proc in self.pipeline:
-                    log.info(f"{file['name']} objeto csv_to_dict pesa {sys.getsizeof(csv_to_dict)} bytes")
                     proc().run(csv_to_dict=csv_to_dict, reader=csv_reader,
                                parser=self, sap=sap, file=file,
                                name_folder=name_folder, filename=file['name'][:-4])
@@ -201,7 +200,7 @@ class Parser:
             case 'ProcessCSV':
                 ...
             case 'ProcessSAP':
-                update_estado_error(self.module.migracion_id)
+                update_estado_error_sap(self.module.migracion_id)
             case 'Export':
                 update_estado_error(self.module.migracion_id)
             case 'Mail':

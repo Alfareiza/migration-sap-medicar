@@ -85,7 +85,7 @@ class GDriveHandler:
 
     @ignore_unhashable
     @lru_cache()
-    @logtime('')
+    # @logtime('')
     def get_files_in_folder_by_name(self, folder_name, ext=None) -> list:
         """
         Reach the files of a folder given a folder name.

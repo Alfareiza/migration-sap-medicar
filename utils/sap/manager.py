@@ -29,7 +29,7 @@ class SAP:
                                         timeout=120)
             response.raise_for_status()
         except Timeout:
-            log.error(txt := "No hubo respuesta de la API 2 min.")
+            log.error(txt := "No hubo respuesta de la API 2 en min.")
             # TODO ENVIAR CORREO NOTIFICANDO PROBLEMA
             res = {"ERROR": txt}
         except HTTPError as e:

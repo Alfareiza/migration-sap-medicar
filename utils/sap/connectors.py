@@ -19,14 +19,10 @@ class SAPConnect(SAP):
         method = self.post if self.info.name != 'ajustes_vencimiento_lote' else self.patch
         self.register(method)
         # self.register_sync(method)
-        log.info(f"{self.info.name} {len(self.info.succss)} {method.__name__}s realizados a API"
-                 f" de SAP NO tuvieron error.")
-        log.info(f"{self.info.name} {len(self.info.errs)} {method.__name__}s realizados a API"
-                 f" de SAP fueron rechazados")
+        log.info(f"{self.info.name} {len(self.info.succss)} {method.__name__}s exitosos y {len(self.info.errs)} con error.")
 
     @logtime('MASSIVE POSTS')
     def register(self, method):
-        log.info(f"Antes de comenzar SAPConnect pesa {sys.getsizeof(SAPConnect)} bytes")
         with ThreadPoolExecutor(max_workers=8) as executor:
             _ = [executor.submit(
                 self.request_info,  # func
@@ -38,10 +34,6 @@ class SAPConnect(SAP):
         for i, key in enumerate(list(self.info.succss), 1):
             log.info(f'{method.__name__}ing {i} {key}')
             self.request_info(method, key, self.info.data[key]['json'], self.build_url(key))
-            a, b = divmod(i, 20)
-            if b == 0:
-                get_highest_ram_process()
-                log.info(f"SAPConnect: {sys.getsizeof(SAPConnect)} bytes")
 
     def request_info(self, method, key, item, url):
         """
@@ -60,12 +52,6 @@ class SAPConnect(SAP):
         :param url: 'https://vm-hbt-hm34.heinsohncloud.com.co:50000/b1s/v2/DeliveryNotes'
         :return: None
         """
-
-        a, b = divmod(datetime.datetime.now().minute, 10)
-        if b == 0:
-            get_highest_ram_process()
-            log.info(f"SAPConnect: {sys.getsizeof(SAPConnect)} bytes")
-
         res = method(item, url)
         if value_err := res.get('ERROR'):
             self.info.errs.add(key)
