@@ -1,3 +1,3 @@
 release: python manage.py migrate --noinput;
 web: gunicorn core.wsgi --log-file - --workers 1
-clock: python base/management/commands/pruebas.py
+clock: python base/management/commands/migrasap.py
