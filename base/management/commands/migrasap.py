@@ -122,7 +122,7 @@ class Command:
 sched = BlockingScheduler()
 
 
-@sched.scheduled_job('interval', seconds=10)
+@sched.scheduled_job('interval', minutes=10)
 def timed_job():
     c = Command()
     c.handle(modulos=['todos'])
