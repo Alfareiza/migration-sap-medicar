@@ -1,3 +1,4 @@
+import traceback
 from pathlib import Path
 from smtplib import SMTPSenderRefused
 from typing import List
@@ -40,8 +41,6 @@ class EmailError:
                 self.subject, self.content, to=self.to, bcc=self.bcc,
                 from_email=f"Logs de Migración <{settings.EMAIL_HOST_USER}>"
             )
-
-
 
     def render_locally(self, html_name=None):
         if not html_name:
@@ -161,7 +160,8 @@ def send_mail_due_to_many_documents(filename, lines, length):
     mail.send()
 
 
-def send_mail_due_to_general_error_in_file(filename, title_error, body_error, current_step_number, current_step_name, steps):
+def send_mail_due_to_general_error_in_file(filename, title_error, body_error, current_step_number, current_step_name,
+                                           steps):
     """
     Envia un e-mail cuando hay un error no detectado en la
     ejecución del pipeline.
@@ -180,3 +180,9 @@ def send_mail_due_to_general_error_in_file(filename, title_error, body_error, cu
                       template=BASE_DIR / "base/templates/notifiers/error_in_module.html")
     mail.send()
     # mail.render_locally(html_name='sample.html')
+
+
+def send_mail_due_to_impossible_discover_files(name_folder, body_error):
+    mail = EmailError(f"No fue posible leer carpeta {name_folder}",
+                      f"Al intentar leer carpeta {name_folder!r} surgió el siguiente error:\n{traceback.format_exc()}")
+    mail.send()

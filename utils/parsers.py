@@ -7,14 +7,16 @@ from pathlib import Path, PosixPath
 from typing import Optional
 
 from django.utils.safestring import mark_safe
+from googleapiclient.errors import HttpError
 
 from base.exceptions import ArchivoExcedeCantidadDocumentos
 from core.settings import logger as log, BASE_DIR, SAP_URL
 from utils.converters import Csv2Dict
 from utils.decorators import logtime
 from utils.gdrive.handler_api import GDriveHandler
-from utils.interactor_db import update_estado_error
-from utils.mail import EmailError, send_mail_due_to_many_documents, send_mail_due_to_general_error_in_file
+from utils.interactor_db import update_estado_error, update_estado_error_drive
+from utils.mail import EmailError, send_mail_due_to_many_documents, send_mail_due_to_general_error_in_file, \
+    send_mail_due_to_impossible_discover_files
 from utils.pipelines import Validate, ProcessCSV, Export, ProcessSAP, Mail
 from utils.resources import moment, datetime_str
 from utils.sap.connectors import SAPConnect
@@ -210,13 +212,19 @@ class Parser:
         en la variable self.input.files. Siendo esta una lista de diccionarios
         donde cada diccionario representa un archivo. El primero de la lista
         es el archivo más viejo"""
-        files = self.input.get_files_in_folder_by_name(name_folder, ext='csv')
-        if not files:
-            log.warning(f'No se encontraron archivos en carpeta {name_folder!r}')
+        try:
+            files = self.input.get_files_in_folder_by_name(name_folder, ext='csv')
+        except HttpError as e:
+            log.warning(f'Error {e} al buscar archivos en carpeta {name_folder!r}')
+            send_mail_due_to_impossible_discover_files(name_folder)
+            update_estado_error_drive(self.module.migracion_id)
         else:
-            log.info(f"Archivos reconocidos en carpeta {name_folder!r}:  "
-                     f"{', '.join(list(map(lambda f: f['name'], files)))}")
-        self.input.files = files
+            if not files:
+                log.warning(f'No se encontraron archivos en carpeta {name_folder!r}')
+            else:
+                log.info(f"Archivos reconocidos en carpeta {name_folder!r}:  "
+                         f"{', '.join(list(map(lambda f: f['name'], files)))}")
+            self.input.files = files
 
     def folder_to_check(self) -> str:
         if self.module.name not in ('ajustes_entrada', 'ajustes_entrada_prueba', 'ajustes_salida', 'notas_credito',
