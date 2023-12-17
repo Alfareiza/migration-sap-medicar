@@ -216,7 +216,6 @@ class Parser:
         except HttpError as e:
             log.warning(f'Error {e} al buscar archivos en carpeta {name_folder!r}')
             send_mail_due_to_impossible_discover_files(name_folder)
-            update_estado_error_drive(self.module.migracion_id)
         else:
             if not files:
                 log.warning(f'No se encontraron archivos en carpeta {name_folder!r}')
