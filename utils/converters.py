@@ -879,6 +879,7 @@ class Csv2Dict:
 
             log.info(f'{i} [{self.name.capitalize()}] Leyendo {self.pk} {key}')
             row['Status'] = ''
+            row['json'] = ''
             if key in self.data:
                 if self.name in ('facturacion', 'notas_credito', 'dispensacion', 'compras',
                                  'ajustes_entrada_prueba', 'ajustes_entrada', 'ajustes_salida'):
