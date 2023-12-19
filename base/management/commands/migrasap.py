@@ -114,9 +114,11 @@ class Command:
             data = mdl.exec_migration(export=True)
             log.info(f'\t{module.upper():=^70}')
 
-    def handle_sigterm(self, signum, frame):
-        log.warning(f'Abortando migración # {self.migracion.id} con {signum=}')
-        sys.exit(1)
+
+def handle_sigterm(self, signum, frame):
+    log.warning(f'Abortando migración con {signum=}')
+    update_estado_finalizado()
+    sys.exit(1)
 
 
 sched = BlockingScheduler()
@@ -124,6 +126,7 @@ sched = BlockingScheduler()
 
 @sched.scheduled_job('interval', minutes=10)
 def timed_job():
+    signal.signal(signal.SIGTERM, handle_sigterm)
     c = Command()
     c.handle(modulos=['todos'])
 
