@@ -29,20 +29,21 @@ class SAP:
                                         timeout=120)
             response.raise_for_status()
         except Timeout:
-            log.error(txt := "No hubo respuesta de la API 2 en min.")
-            # TODO ENVIAR CORREO NOTIFICANDO PROBLEMA
+            txt = "No hubo respuesta de la API 2 en min."
+            # log.error(txt)
             res = {"ERROR": txt}
         except HTTPError as e:
             if 'application/json' in e.response.headers['Content-Type']:
                 err = e.response.json()
             else:
                 err = e.response.content
-            extra_txt = payload['U_LF_Formula'] if 'U_LF_Formula' in payload else ''
-            tag = f'[{self.module.name}] ' if self.module else ''
-            log.error(f"{tag}{err['error']['message']} [{extra_txt}]")
+            # extra_txt = payload['U_LF_Formula'] if 'U_LF_Formula' in payload else ''
+            # tag = f'[{self.module.name}] ' if self.module else ''
+            # log.error(f"{tag}{err['error']['message']} [{extra_txt}]")
             res = {"ERROR": clean_text(err['error']['message'])}
         except Exception as e:
-            log.error(txt := f"{str(e)}")
+            txt = f"{str(e)}"
+            # log.error(txt)
             res = {"ERROR": txt}
         else:
             if response.text:
@@ -118,7 +119,7 @@ class SAP:
 class SAPData(SAP):
     BASE_URL = SAP_URL
     SUCURSAL = '/sml.svc/InfoSucursalV2Query'
-    ABSENTRY = '/sml.svc/InfoUbicacionQuery'
+    ABSENTRY = '/sml.svc/InfoUbicacionV2Query'
     EMBALAJE = '/sml.svc/InfoEmbalajeV2Query'
     LOTE = '/sml.svc/InfoLoteV2Query'
     FACTURA = '/sml.svc/InfoFacturaV2Query'

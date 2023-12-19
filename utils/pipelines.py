@@ -224,7 +224,7 @@ class File:
             return jsonfilepath
 
     def make_csv(self, csvfilepath: str, only_error=False, only_success=False) -> str:
-        log.info(f'Creando csv {only_error=}, {only_success=}')
+        # log.info(f'Creando csv {only_error=}, {only_success=}')
         rows = self.filter_csv_status(only_error, only_success)
         try:
             if rows:
@@ -236,7 +236,7 @@ class File:
                 log.info(f"Archivo creado -> {csvfilepath}")
                 return csvfilepath
             else:
-                log.info("No fue creado CSV localmente porque no hubo información a procesar.")
+                log.info(f"No fue creado CSV segun filtro {only_error=} y {only_success=}")
         except Exception as e:
             log.error(f"Creando csv para {self.module_name.capitalize()} al ser procesado: {e}")
         return ''

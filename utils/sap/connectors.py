@@ -1,6 +1,8 @@
 import datetime
 import sys
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+from tqdm import tqdm
 
 from core.settings import logger as log
 from utils.decorators import logtime, login_required, once_in_interval
@@ -23,12 +25,14 @@ class SAPConnect(SAP):
 
     @logtime('MASSIVE POSTS')
     def register(self, method):
-        with ThreadPoolExecutor(max_workers=8) as executor:
-            _ = [executor.submit(
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            results = [executor.submit(
                 self.request_info,  # func
                 method, key, self.info.data[key]['json'], self.build_url(key)  # args
             )
                 for key in list(self.info.succss)]
+            for _ in tqdm(as_completed(results), total=len(results), ncols=100, desc=f'{method.__name__}ing... '):
+                ...
 
     def register_sync(self, method):
         for i, key in enumerate(list(self.info.succss), 1):
@@ -65,7 +69,7 @@ class SAPConnect(SAP):
             # Si NO hubo ERROR al hacer el POST o PATCH
             for csv_item in self.info.data[key]['csv']:
                 csv_item['Status'] = f"DocEntry: {res.get('DocEntry')}"
-            log.info(f"[{self.info.name}] {method.__name__.upper()} Realizado con exito! {key}. DocEntry: {res.get('DocEntry')}")
+            # log.info(f"[{self.info.name}] {method.__name__.upper()} Realizado con exito! {key}. DocEntry: {res.get('DocEntry')}")
 
     def build_url(self, key):
         """Contruye la url a la cual se realizará la petición a la API de SAP."""

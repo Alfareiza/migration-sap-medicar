@@ -24,5 +24,5 @@ def get_json_from_pkl(pklpath, jsonfilepath=None):
 
 
 if __name__ == '__main__':
-    pathfile = '/Users/alfonso/Projects/migration-sap-medicar/dispensacion_data.pkl'
+    pathfile = '/Users/alfonso/Downloads/dispensacion_module-2.pkl'
     get_json_from_pkl(pathfile)

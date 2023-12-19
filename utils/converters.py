@@ -401,8 +401,7 @@ class Csv2Dict:
     def process(self, csv_reader):
         log.info(f"[{self.name}] Comenzando procesamiendo de CSV.")
         self.process_module(csv_reader)
-        log.info(f"[{self.name}] CSV procesado con éxito.")
-        log.info(f"[{self.name}] {len(self.succss)} Payloads creados!!.")
+        log.info(f"[{self.name}] CSV procesado con éxito, {len(self.succss)} Payloads creados!!.")
         log.error(f"CSV {self.name} con error {len(self.errs)}: {' '.join(self.errs) if self.errs else ''}")
 
     def build_payment_invoices(self, row):
@@ -877,7 +876,7 @@ class Csv2Dict:
         for i, row in enumerate(csv_reader, 1):
             key = row[self.pk]
 
-            log.info(f'{i} [{self.name.capitalize()}] Leyendo {self.pk} {key}')
+            log.info(f'Línea {i} [{self.name.capitalize()}] Leyendo {self.pk} {key}')
             row['Status'] = ''
             row['json'] = ''
             if key in self.data:
