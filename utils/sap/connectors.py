@@ -26,13 +26,17 @@ class SAPConnect(SAP):
     @logtime('MASSIVE POSTS')
     def register(self, method):
         with ThreadPoolExecutor(max_workers=4) as executor:
-            results = [executor.submit(
+            futures = [executor.submit(
                 self.request_info,  # func
                 method, key, self.info.data[key]['json'], self.build_url(key)  # args
             )
                 for key in list(self.info.succss)]
-            for _ in tqdm(as_completed(results), total=len(results), ncols=100, desc=f'{method.__name__}ing... '):
-                ...
+
+            counter = 0
+            length = len(futures)
+            for future in as_completed(futures):
+                counter += 1
+                log.info(f'{counter} de {length} {future.result()}')
 
     def register_sync(self, method):
         for i, key in enumerate(list(self.info.succss), 1):
@@ -63,13 +67,16 @@ class SAPConnect(SAP):
                 self.info.succss.remove(key)
             except Exception:
                 ...
+            msg = value_err
             for csv_item in self.info.data[key]['csv']:
                 csv_item['Status'] = f"[SAP] {value_err}"
         else:
             # Si NO hubo ERROR al hacer el POST o PATCH
+            msg = f"DocEntry: {res.get('DocEntry')}"
             for csv_item in self.info.data[key]['csv']:
-                csv_item['Status'] = f"DocEntry: {res.get('DocEntry')}"
+                csv_item['Status'] = msg
             # log.info(f"[{self.info.name}] {method.__name__.upper()} Realizado con exito! {key}. DocEntry: {res.get('DocEntry')}")
+        return f"({key}): {msg}"
 
     def build_url(self, key):
         """Contruye la url a la cual se realizará la petición a la API de SAP."""

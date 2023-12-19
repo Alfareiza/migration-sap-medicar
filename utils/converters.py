@@ -876,7 +876,7 @@ class Csv2Dict:
         for i, row in enumerate(csv_reader, 1):
             key = row[self.pk]
 
-            log.info(f'Línea {i} [{self.name.capitalize()}] Leyendo {self.pk} {key}')
+            log.info(f'LN {i} [{self.name}] Leyendo {self.pk} {key}')
             row['Status'] = ''
             row['json'] = ''
             if key in self.data:

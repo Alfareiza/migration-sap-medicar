@@ -105,7 +105,7 @@ class Command:
         client = GDriveHandler()
         manager_sap = SAPData()
         for module in args:
-            log.info(f'\n{module.upper():=^70}')
+            log.info(f'{module.upper():=^70}')
             if dir := kwargs.get('filepath'):
                 # Caso sea local
                 mdl = Module(name=module, filepath=dir, sap=manager_sap, migracion_id=migracion_id)
