@@ -118,7 +118,8 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 
 def handle_sigterm(self, *args):
     # log.warning(f'Abortando migración con {signum=}')
-    print(f"Abortando migración con estos parametros recibidos {' '.join(args)}")
+    print(f"Abortando migración con estos parametros recibidos")
+    [print(arg) for arg in args]
     # update_estado_finalizado()
     sys.exit(1)
 
