@@ -24,6 +24,7 @@ class SAP:
     def request_api(self, method, url, headers, payload={}) -> dict:
         # sourcery skip: raise-specific-error
         try:
+            res = {"ERROR": ""}
             response = requests.request(method, url, headers=headers,
                                         data=json.dumps(payload),
                                         timeout=120)
@@ -39,8 +40,12 @@ class SAP:
                 err = e.response.content
             # extra_txt = payload['U_LF_Formula'] if 'U_LF_Formula' in payload else ''
             # tag = f'[{self.module.name}] ' if self.module else ''
-            # log.error(f"{tag}{err['error']['message']} [{extra_txt}]")
-            res = {"ERROR": clean_text(err['error']['message'])}
+            # log.error(f"{tag}{err['error']['message']} [{extra_txt}]"
+            if 'error' in err and err.get('error'):
+                msg = err['error']['message']
+            else:
+                msg = str(err)
+            res = {"ERROR": clean_text(msg)}
         except Exception as e:
             txt = f"{str(e)}"
             # log.error(txt)
