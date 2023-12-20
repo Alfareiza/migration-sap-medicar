@@ -36,7 +36,7 @@ class SAPConnect(SAP):
             length = len(futures)
             for future in as_completed(futures):
                 counter += 1
-                log.info(f'{counter} de {length} {future.result()}')
+                log.info(f'[{self.info.name}] {counter} de {length} {future.result()}')
 
     def register_sync(self, method):
         for i, key in enumerate(list(self.info.succss), 1):
