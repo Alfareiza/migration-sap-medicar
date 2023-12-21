@@ -2,7 +2,6 @@ import datetime
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from tqdm import tqdm
 
 from core.settings import logger as log
 from utils.decorators import logtime, login_required, once_in_interval
