@@ -117,9 +117,7 @@ class Command:
 
 
 def handle_sigterm(self, *args):
-    # log.warning(f'Abortando migración con {signum=}')
-    log.warning(f"Abortando migración con estos parametros recibidos")
-    [log.warning(arg) for arg in args]
+    [log.warning(f"Abortando migración con arg {i}->{arg}") for i, arg in enumerate(args, 1)]
     # update_estado_finalizado(migracion_id)
     sys.exit(1)
 
