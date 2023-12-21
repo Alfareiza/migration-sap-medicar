@@ -622,7 +622,7 @@ class Csv2Dict:
         base_dct = {
             # "Comments": row.get("Observaciones"),
             "Comments": load_comments(row, 'NroDocumento'),  # Agregar Nro Documento en traslados, notas_credito...
-            "U_LF_IdAfiliado": row.get("Nro Documento", ''),
+            "U_LF_IdAfiliado": row.get("NroDocumento", ''),
             "U_LF_Formula": key,
             "U_LF_Mipres": row.get("Mipres", ''),
             "U_LF_Usuario": row.get("UsuarioDispensa", '')
@@ -635,7 +635,6 @@ class Csv2Dict:
                     TaxDate=self.transform_date(row, "FechaFactura"),
                     NumAtCard=row["Factura"],
                     CardCode=self.get_codigo_tercero(row),
-                    U_LF_IdAfiliado=row.get("Nro Documento", ''),
                     U_HBT_Tercero=self.get_codigo_tercero(row),
                     U_LF_Plan=self.get_plan(row),
                     U_LF_NivelAfiliado=self.make_int(row, "Categoria"),
