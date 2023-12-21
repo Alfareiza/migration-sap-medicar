@@ -6,6 +6,7 @@ from tqdm import tqdm
 
 from core.settings import logger as log
 from utils.decorators import logtime, login_required, once_in_interval
+from utils.resources import format_number
 from utils.sap.manager import SAP
 
 
@@ -36,7 +37,11 @@ class SAPConnect(SAP):
             length = len(futures)
             for future in as_completed(futures):
                 counter += 1
-                log.info(f'[{self.info.name}] {counter} de {length} {future.result()}')
+                # Ex.: [dispensacion] 11.44% 20.615 de 53.050 (4700162): DocEntry: 752066
+                # Ex.: [dispensacion] 11.41% 20.341 de 53.050 (4751883): 10001153 - Cantidad insuficiente
+                #      para el artículo 7893884158011 con el lote 123456 en el almacén
+                log.info(f'[{self.info.name}] {round((counter / length) * 100, 2)}% {format_number(counter)} de '
+                         f'{format_number(length)} {future.result()}')
 
     def register_sync(self, method):
         for i, key in enumerate(list(self.info.succss), 1):

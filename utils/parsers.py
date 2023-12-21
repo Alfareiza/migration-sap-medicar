@@ -170,7 +170,7 @@ class Parser:
         name_folder = self.folder_to_check()
         self.discover_files(name_folder)
         sap = SAPConnect(self.module)
-        for i, file in enumerate(self.input.files[:1], 1):
+        for i, file in enumerate(self.input.files, 1):
             log.info(f"[CSV] Leyendo {i} de {len(self.input.files)} {file['name']!r}")
             try:
                 csv_reader = self.input.read_csv_file_by_id(file['id'])

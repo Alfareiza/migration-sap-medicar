@@ -65,3 +65,16 @@ def load_comments(row, column_name=None) -> str:
 def beautify_name(name):
     new_name = name.split('_')
     return ' '.join(new_name).title()
+
+
+def format_number(num: int) -> str:
+    """
+    Format a number with points
+    >>> format_number(10)
+    '10'
+    >>> format_number(1000)
+    '1.000'
+    >>> format_number(1000000)
+    '1.000.000'
+    """
+    return f"{num:,.0f}".replace(',', '.')
