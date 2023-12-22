@@ -133,4 +133,5 @@ def timed_job():
 
 if __name__ == '__main__':
     signal.signal(signal.SIGTERM, handle_sigterm)
+    signal.signal(signal.SIGKILL, handle_sigterm)
     sched.start()
