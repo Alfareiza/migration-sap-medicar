@@ -18,8 +18,8 @@ class SAPConnect(SAP):
     def process(self, csv_to_dict):
         self.info = csv_to_dict
         method = self.post if self.info.name != 'ajustes_vencimiento_lote' else self.patch
-        self.register(method)
-        # self.register_sync(method)
+        # self.register(method)
+        self.register_sync(method)
         log.info(f"{self.info.name} {len(self.info.succss)} {method.__name__}s "
                  f"exitosos y {len(self.info.errs)} con error.")
 
@@ -45,7 +45,7 @@ class SAPConnect(SAP):
 
     def register_sync(self, method):
         for i, key in enumerate(list(self.info.succss), 1):
-            log.info(f'{method.__name__}ing {i} {key}')
+            # log.info(f'{method.__name__}ing {i} {key}')
             self.request_info(method, key, self.info.data[key]['json'], self.build_url(key))
 
     def request_info(self, method, key, item, url):
