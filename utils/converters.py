@@ -644,7 +644,8 @@ class Csv2Dict:
                     WithholdingTaxDataCollection=[
                         {
                             "WTCode": "RFEV",
-                            "Rate": 100
+                            "Rate": 100,
+                            "U_HBT_Retencion": 1  # Pendiente de implementar 21/Dic/23
                         }
                     ],
                     Comments=load_comments(row, 'Factura')
@@ -664,6 +665,7 @@ class Csv2Dict:
                     U_LF_Mipres=row.get("MiPres", ''),
                     DocumentLines=[self.build_document_lines(row)],
                 )
+            # No se está usando factura_eventos 21/Dic/23
             case 'factura_eventos':  # 1.2  [Pendiente en probar con csv (puede ser que se mezcle con el de arriba)]
                 # TODO Preguntar a Marlay, de donde se va a tomar el CardCode y U_HBT_Tercero (código del cliente?)
                 base_dct.update(
@@ -877,7 +879,7 @@ class Csv2Dict:
 
             log.info(f'LN {i} [{self.name}] Leyendo {self.pk} {key}')
             row['Status'] = ''
-            row['json'] = ''
+            # row['json'] = ''
             if key in self.data:
                 if self.name in ('facturacion', 'notas_credito', 'dispensacion', 'compras',
                                  'ajustes_entrada_prueba', 'ajustes_entrada', 'ajustes_salida'):
