@@ -2,7 +2,6 @@ import datetime
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-
 from core.settings import logger as log
 from utils.decorators import logtime, login_required, once_in_interval
 from utils.resources import format_number
@@ -21,7 +20,8 @@ class SAPConnect(SAP):
         method = self.post if self.info.name != 'ajustes_vencimiento_lote' else self.patch
         self.register(method)
         # self.register_sync(method)
-        log.info(f"{self.info.name} {len(self.info.succss)} {method.__name__}s exitosos y {len(self.info.errs)} con error.")
+        log.info(f"{self.info.name} {len(self.info.succss)} {method.__name__}s "
+                 f"exitosos y {len(self.info.errs)} con error.")
 
     @logtime('MASSIVE POSTS')
     def register(self, method):
@@ -39,8 +39,10 @@ class SAPConnect(SAP):
                 # Ex.: [dispensacion] 11.44% 20.615 de 53.050 (4700162): DocEntry: 752066
                 # Ex.: [dispensacion] 11.41% 20.341 de 53.050 (4751883): 10001153 - Cantidad insuficiente
                 #      para el artículo 7893884158011 con el lote 123456 en el almacén
-                log.info(f'[{self.info.name}] {round((counter / length) * 100, 2)}% {format_number(counter)} de '
+                log.info(f'[{self.info.name}] {round((counter / length) * 100, 2)}% '
+                         f'{format_number(counter)} de '
                          f'{format_number(length)} {future.result()}')
+                futures.pop(future)
 
     def register_sync(self, method):
         for i, key in enumerate(list(self.info.succss), 1):
@@ -98,34 +100,3 @@ class SAPConnect(SAP):
         for k, v in self.module.series.items():
             if v == self.info.data[key]['json']['Series']:
                 return self.module.url[k]
-
-
-import subprocess
-
-def get_highest_ram_process():
-    try:
-        # Run the ps command to get process information
-        ps_output = subprocess.check_output(["ps", "-eo", "pid,%mem,cmd", "--sort=-%mem"]).decode("utf-8")
-
-        # Get the first line (header) and the second line (process with highest memory usage)
-        lines = ps_output.strip().split('\n')
-        header = lines[0]
-        highest_ram_process = lines[1]
-
-        # Extract relevant information from the header and highest_ram_process
-        header_fields = header.split()
-        process_info = highest_ram_process.split()
-
-        # Print information about the process with the highest memory usage
-        pid_index = header_fields.index("PID")
-        mem_index = header_fields.index("%MEM")
-        cmd_index = header_fields.index("CMD")
-
-        pid = process_info[pid_index]
-        mem_usage = process_info[mem_index]
-        cmd = process_info[cmd_index]
-
-        log.info(f"Process -> PID: {pid}, RAM Usage: {mem_usage}%, Command: {cmd}")
-    except subprocess.CalledProcessError as e:
-        log.errord(f"Error: {e}")
-
