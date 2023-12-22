@@ -137,6 +137,9 @@ def sum_up_errs(txt: str) -> str:
     elif 'No fue encontrado BinEntry' in txt:
         return "No fue encontrado BinEntry."
 
+    elif 'No se encontró dispensación para SSC' in txt:
+        return "No se encontró dispensación para SSC."
+
     return txt
 
 @register.filter
