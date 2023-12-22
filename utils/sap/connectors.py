@@ -45,7 +45,7 @@ class SAPConnect(SAP):
 
     def register_sync(self, method):
         for i, key in enumerate(list(self.info.succss), 1):
-            # log.info(f'{method.__name__}ing {i} {key}')
+            log.info(f'{method.__name__}ing {i} {key}')
             self.request_info(method, key, self.info.data[key]['json'], self.build_url(key))
 
     def request_info(self, method, key, item, url):
@@ -67,6 +67,7 @@ class SAPConnect(SAP):
         """
         res = method(item, url)
         if value_err := res.get('ERROR'):
+            log.info(f'\tregistrando {key} en errores')
             self.info.errs.add(key)
             try:
                 self.info.succss.remove(key)
@@ -76,6 +77,7 @@ class SAPConnect(SAP):
             for csv_item in self.info.data[key]['csv']:
                 csv_item['Status'] = f"[SAP] {value_err}"
         else:
+            log.info(f'\tregistrando {key} en success')
             # Si NO hubo ERROR al hacer el POST o PATCH
             msg = f"DocEntry: {res.get('DocEntry')}"
             for csv_item in self.info.data[key]['csv']:

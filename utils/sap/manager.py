@@ -8,7 +8,7 @@ from requests import HTTPError, Timeout
 
 from core.settings import BASE_DIR, SAP_COMPANY, SAP_USER, SAP_PASS, SAP_URL
 from core.settings import logger as log
-from utils.decorators import login_required
+from utils.decorators import login_required, logtime
 from utils.resources import clean_text, moment
 
 login_pkl = BASE_DIR / 'login.pickle'
@@ -20,18 +20,18 @@ class SAP:
         self.sess_id = ''
         self.sess_timeout = None
 
-    # @logtime('API')
+    @logtime('API')
     def request_api(self, method, url, headers, payload={}) -> dict:
         # sourcery skip: raise-specific-error
+        res = {"ERROR": ""}
         try:
-            res = {"ERROR": ""}
+            log.info('making request to SAP')
             response = requests.request(method, url, headers=headers,
                                         data=json.dumps(payload),
                                         timeout=120)
             response.raise_for_status()
         except Timeout:
-            txt = "No hubo respuesta de la API 2 en min."
-            log.error(txt)
+            log.error(txt := "No hubo respuesta de la API 2 en min.")
             res = {"ERROR": txt}
         except HTTPError as e:
             if 'application/json' in e.response.headers['Content-Type']:
@@ -48,8 +48,7 @@ class SAP:
             log.error(f"{tag} {msg} [{extra_txt}]")
             res = {"ERROR": clean_text(msg)}
         except Exception as e:
-            txt = f"{str(e)}"
-            log.error(txt)
+            log.error(txt := f"{str(e)}")
             res = {"ERROR": txt}
         else:
             if response.text:
@@ -57,6 +56,7 @@ class SAP:
             else:
                 res = {'DocEntry': 'Sin DocEntry'}
         finally:
+            log.info('request finalizado')
             return res
 
     def login(self) -> bool:
