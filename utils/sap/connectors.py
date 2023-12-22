@@ -26,15 +26,15 @@ class SAPConnect(SAP):
     @logtime('MASSIVE POSTS')
     def register(self, method):
         with ThreadPoolExecutor(max_workers=4) as executor:
-            futures = [executor.submit(
+            futures_result = [executor.submit(
                 self.request_info,  # func
                 method, key, self.info.data[key]['json'], self.build_url(key)  # args
             )
                 for key in list(self.info.succss)]
 
             counter = 0
-            length = len(futures)
-            for future in as_completed(futures):
+            length = len(futures_result)
+            for future in as_completed(futures_result):
                 counter += 1
                 # Ex.: [dispensacion] 11.44% 20.615 de 53.050 (4700162): DocEntry: 752066
                 # Ex.: [dispensacion] 11.41% 20.341 de 53.050 (4751883): 10001153 - Cantidad insuficiente
@@ -42,7 +42,7 @@ class SAPConnect(SAP):
                 log.info(f'[{self.info.name}] {round((counter / length) * 100, 2)}% '
                          f'{format_number(counter)} de '
                          f'{format_number(length)} {future.result()}')
-                futures.pop(future)
+                futures_result.pop(future)
 
     def register_sync(self, method):
         for i, key in enumerate(list(self.info.succss), 1):
