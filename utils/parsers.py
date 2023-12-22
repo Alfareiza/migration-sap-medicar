@@ -1,24 +1,20 @@
 import csv
-import sys
 import traceback
 from dataclasses import dataclass, field
 from io import TextIOWrapper
 from pathlib import Path, PosixPath
 from typing import Optional
 
-from django.utils.safestring import mark_safe
 from googleapiclient.errors import HttpError
 
-from base.exceptions import ArchivoExcedeCantidadDocumentos
 from core.settings import logger as log, BASE_DIR, SAP_URL
 from utils.converters import Csv2Dict
 from utils.decorators import logtime
 from utils.gdrive.handler_api import GDriveHandler
-from utils.interactor_db import update_estado_error, update_estado_error_drive, update_estado_error_sap
-from utils.mail import EmailError, send_mail_due_to_many_documents, send_mail_due_to_general_error_in_file, \
-    send_mail_due_to_impossible_discover_files
-from utils.pipelines import Validate, ProcessCSV, Export, ProcessSAP, Mail
-from utils.resources import moment, datetime_str
+from utils.interactor_db import update_estado_error, update_estado_error_sap
+from utils.mail import (send_mail_due_to_general_error_in_file,
+                        send_mail_due_to_impossible_discover_files)
+from utils.pipelines import Validate, ProcessCSV, Export, ProcessSAP, Mail, SaveInBD
 from utils.sap.connectors import SAPConnect
 from utils.sap.manager import SAPData
 
@@ -26,7 +22,7 @@ from utils.sap.manager import SAPData
 @dataclass
 class Module:
     name: str  # 'dispensacion', 'factura', 'notas_credito', etc.
-    migracion_id: int  # 'dispensacion', 'factura', 'notas_credito', etc.
+    migracion_id: int  # 344, 345, 346.
     filepath: Optional[str] = None  # Ruta del archivo csv con el origen de la información
     drive: Optional[GDriveHandler] = None
     sap: Optional[SAPData] = None
@@ -123,7 +119,7 @@ class Parser:
     input: str or GDriveHandler
     export: bool = False
     output_filepath: str = ''
-    pipeline = list = []
+    pipeline = list = []  # Todo, se está creando una variable llamada list
 
     def __post_init__(self):
         if self.export:
@@ -140,7 +136,7 @@ class Parser:
         """
         csv_to_dict = Csv2Dict(self.module.name, self.module.pk, self.module.series, self.module.sap)
         if isinstance(self.input, (str, PosixPath)):
-            self.pipeline = [Validate, ProcessCSV, Export, Mail]
+            self.pipeline = [Validate, ProcessCSV, SaveInBD, Export, Mail]
             self.run_filepath(csv_to_dict)
 
         elif isinstance(self.input, GDriveHandler):
@@ -233,9 +229,8 @@ class Parser:
         base_word = ' '.join(words).title().replace(' ', '')
         return f"{base_word}Medicar"
 
-    def detect_name(self, fp: TextIOWrapper) -> str:
-        """
-        Con el archivo dentro de un administrador de contexto,
-        lee el nombre y lo devuelve sin la extensión
-        """
+    @staticmethod
+    def detect_name(fp: TextIOWrapper) -> str:
+        """ Con el archivo dentro de un administrador de contexto,
+        lee el nombre y lo devuelve sin la extensión. """
         return Path(fp).stem
