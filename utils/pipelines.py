@@ -21,6 +21,7 @@ from core.settings import (
 from utils.converters import Csv2Dict
 from utils.decorators import once_in_interval
 from utils.gdrive.handler_api import GDriveHandler
+from utils.interactor_db import DBHandler
 from utils.mail import EmailModule
 from utils.resources import set_filename
 
@@ -82,6 +83,19 @@ class ProcessCSV:
         kwargs['csv_to_dict'].process(kwargs['reader'])
 
 
+class SaveInBD:
+
+    def __str__(self):
+        return "Guardando en BD"
+
+    @staticmethod
+    def run(**kwargs):
+        db = DBHandler(kwargs['parser'].module.migracion_id,
+                       kwargs['filename'], kwargs['csv_to_dict'].name,
+                       kwargs['csv_to_dict'].pk)
+        db.process(kwargs['csv_to_dict'])
+
+
 class ProcessSAP:
 
     def __str__(self):
@@ -96,14 +110,14 @@ class ProcessSAP:
             else:
                 log.info(f'{csvtodict.name} por no haber payloads, no se harán las peticiones en SAP')
 
-        self.post_run(csvtodict)
+        # self.post_run(csvtodict)
 
-    def post_run(self, csvtodict) -> None:
+    @staticmethod
+    def post_run(csvtodict) -> None:
         """Crea columna json de la petición a SAP"""
         for key, v in csvtodict.data.items():
             for line in v['csv']:
                 line.update(json=v['json'])
-
 
 
 class Export:
