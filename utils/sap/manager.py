@@ -20,35 +20,36 @@ class SAP:
         self.sess_id = ''
         self.sess_timeout = None
 
-    @logtime('API')
+    # @logtime('API')
     def request_api(self, method, url, headers, payload={}) -> dict:
         # sourcery skip: raise-specific-error
         res = {"ERROR": ""}
         try:
-            log.info('making request to SAP')
             response = requests.request(method, url, headers=headers,
                                         data=json.dumps(payload),
                                         timeout=120)
             response.raise_for_status()
         except Timeout:
-            log.error(txt := "No hubo respuesta de la API 2 en min.")
+            txt = "No hubo respuesta de la API 2 en min."
+            log.error(txt)
             res = {"ERROR": txt}
         except HTTPError as e:
             if 'application/json' in e.response.headers['Content-Type']:
                 err = e.response.json()
             else:
                 err = e.response.content
-            extra_txt = payload['U_LF_Formula'] if 'U_LF_Formula' in payload else ''
-            tag = f'[{self.module.name}]' if self.module else ''
+            # extra_txt = payload['U_LF_Formula'] if 'U_LF_Formula' in payload else ''
+            # tag = f'[{self.module.name}]' if self.module else ''
             # log.error(f"{tag}{err['error']['message']} [{extra_txt}]"
             if 'error' in err and err.get('error'):
                 msg = err['error']['message']
             else:
                 msg = str(err)
-            log.error(f"{tag} {msg} [{extra_txt}]")
+            # log.error(f"{tag} {msg} [{extra_txt}]")
             res = {"ERROR": clean_text(msg)}
         except Exception as e:
-            log.error(txt := f"{str(e)}")
+            txt = f"{str(e)}"
+            log.error(txt)
             res = {"ERROR": txt}
         else:
             if response.text:
@@ -56,7 +57,6 @@ class SAP:
             else:
                 res = {'DocEntry': 'Sin DocEntry'}
         finally:
-            log.info('request finalizado')
             return res
 
     def login(self) -> bool:

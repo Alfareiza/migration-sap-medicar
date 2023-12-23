@@ -44,9 +44,12 @@ class SAPConnect(SAP):
             #     futures_result.pop(future)
 
     def register_sync(self, method):
+        length = len(self.info.succss)
         for i, key in enumerate(list(self.info.succss), 1):
-            log.info(f'{method.__name__}ing {i} {key}')
-            self.request_info(method, key, self.info.data[key]['json'], self.build_url(key))
+            res = self.request_info(method, key, self.info.data[key]['json'], self.build_url(key))
+            log.info(f'[{self.info.name}] {round((i / length) * 100, 2)}% '
+                     f'{format_number(i)} de '
+                     f'{format_number(length)} {res}')
 
     def request_info(self, method, key, item, url):
         """
@@ -67,7 +70,6 @@ class SAPConnect(SAP):
         """
         res = method(item, url)
         if value_err := res.get('ERROR'):
-            log.info(f'\tregistrando {key} en errores')
             self.info.errs.add(key)
             try:
                 self.info.succss.remove(key)
@@ -77,13 +79,13 @@ class SAPConnect(SAP):
             for csv_item in self.info.data[key]['csv']:
                 csv_item['Status'] = f"[SAP] {value_err}"
         else:
-            log.info(f'\tregistrando {key} en success')
             # Si NO hubo ERROR al hacer el POST o PATCH
             msg = f"DocEntry: {res.get('DocEntry')}"
             for csv_item in self.info.data[key]['csv']:
                 csv_item['Status'] = msg
-            log.info(f"[{self.info.name}] {method.__name__.upper()} Realizado con "
-                     f"exito! {key}. DocEntry: {res.get('DocEntry')}")
+            # log.info(f"[{self.info.name}] {method.__name__.upper()} Realizado con "
+            #          f"exito! {key}. DocEntry: {res.get('DocEntry')}")
+        return f"({key}): {msg}"
 
     def build_url(self, key):
         """Contruye la url a la cual se realizará la petición a la API de SAP."""
