@@ -211,7 +211,7 @@ class Parser:
             files = self.input.get_files_in_folder_by_name(name_folder, ext='csv')
         except HttpError as e:
             log.warning(f'Error {e} al buscar archivos en carpeta {name_folder!r}')
-            send_mail_due_to_impossible_discover_files(name_folder)
+            send_mail_due_to_impossible_discover_files(name_folder, traceback.format_exc())
         else:
             if not files:
                 log.warning(f'No se encontraron archivos en carpeta {name_folder!r}')
