@@ -226,7 +226,7 @@ class Csv2Dict:
         nro_ssc = row.get(self.pk, '')
         if not nro_ssc and not doc_date:
             log.error(f"{self.pk} {nro_ssc}. No reconocido")
-            self.reg_error(nro_ssc, f"[CSV] No fue posible crear el IDSSC")
+            self.reg_error(nro_ssc, "[CSV] No fue posible crear el IDSSC")
 
         return f"{doc_date}{nro_ssc}"
 
@@ -641,15 +641,16 @@ class Csv2Dict:
                     U_LF_NombreAfiliado=self.get_nombre_afiliado(row),
                     U_LF_Autorizacion=self.get_num_aut(row),
                     DocumentLines=[self.build_document_lines(row)],
-                    WithholdingTaxDataCollection=[
-                        {
-                            "WTCode": "RFEV",
-                            "Rate": 100,
-                            "U_HBT_Retencion": 1  # Pendiente de implementar 21/Dic/23
-                        }
-                    ],
                     Comments=load_comments(row, 'Factura')
                 )
+                base_dct.update(WithholdingTaxDataCollection=[
+                    {
+                        "WTCode": "RFEV",
+                        "Rate": 100,
+                        "U_HBT_Retencion": (base_dct['DocumentLines'][0]['Quantity'] *
+                                            base_dct['DocumentLines'][0]['Price'])
+                    }
+                ], )
             case 'notas_credito':
                 base_dct.update(
                     Series=self.series,
@@ -872,6 +873,8 @@ class Csv2Dict:
                         'Quantity'] += article['Quantity']
             case 'facturacion':
                 self.data[key]['json']["DocumentLines"].append(article)
+                self.data[key]['json']["WithholdingTaxDataCollection"][0]['U_HBT_Retencion'] += (article['Quantity']
+                                                                                                 * article['Price'])
 
     def process_module(self, csv_reader):
         for i, row in enumerate(csv_reader, 1):
