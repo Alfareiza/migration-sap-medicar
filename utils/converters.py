@@ -428,6 +428,13 @@ class Csv2Dict:
                 }
             ],
             "StockTransferLinesBinAllocations": [
+                {  # Bodega Destino
+                    "BinAbsEntry": self.get_bin_abs_entry(row, 'CentroDestino'),
+                    "Quantity": self.make_int(row, 'Cantidad'),
+                    "BaseLineNumber": 0,
+                    "BinActionType": "batToWarehouse",
+                    "SerialAndBatchNumbersBaseLine": 0
+                },
                 {  # Bodega Origen
                     "BinAbsEntry": self.get_bin_abs_entry(row, 'CentroOrigen'),
                     "Quantity": self.make_int(row, 'Cantidad'),
@@ -435,13 +442,6 @@ class Csv2Dict:
                     "BinActionType": "batFromWarehouse",
                     "SerialAndBatchNumbersBaseLine": 0
                 },
-                {  # Bodega Destino
-                    "BinAbsEntry": self.get_bin_abs_entry(row, 'CentroDestino'),
-                    "Quantity": self.make_int(row, 'Cantidad'),
-                    "BaseLineNumber": 0,
-                    "BinActionType": "batToWarehouse",
-                    "SerialAndBatchNumbersBaseLine": 0
-                }
             ]
         }
 
@@ -865,12 +865,15 @@ class Csv2Dict:
                         article.update(LineNum=last_line_num + 1)
                     self.data[key]['json']["StockTransferLines"].append(article)
                 else:
+                    self.data[key]['json']["StockTransferLines"][idx]['LineNum'] += 1
+
                     self.data[key]['json']["StockTransferLines"][idx]['BatchNumbers'].extend(article['BatchNumbers'])
                     self.data[key]['json']["StockTransferLines"][idx]['Quantity'] += article['Quantity']
-                    self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][0][
-                        'Quantity'] += article['Quantity']
-                    self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][1][
-                        'Quantity'] += article['Quantity']
+                    self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][0]['Quantity'] += article['Quantity']
+                    self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][1]['Quantity'] += article['Quantity']
+
+                    self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][0]['BaseLineNumber'] += 1
+                    self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][1]['BaseLineNumber'] += 1
             case 'facturacion':
                 self.data[key]['json']["DocumentLines"].append(article)
                 self.data[key]['json']["WithholdingTaxDataCollection"][0]['U_HBT_Retencion'] += (article['Quantity']
