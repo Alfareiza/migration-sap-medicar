@@ -876,7 +876,7 @@ class Csv2Dict:
                     self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][0]['BaseLineNumber'] = self.data[key]['json']["StockTransferLines"][idx]['LineNum']
                     self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][1]['BaseLineNumber'] = self.data[key]['json']["StockTransferLines"][idx]['LineNum']
             case 'facturacion':
-                article['BaseLine'] += 1
+                article['BaseLine'] = self.data[key]['json']["DocumentLines"][-1]['BaseLine'] + 1
                 self.data[key]['json']["DocumentLines"].append(article)
                 self.data[key]['json']["WithholdingTaxDataCollection"][0]['U_HBT_Retencion'] += (article['Quantity']
                                                                                                  * article['Price'])
