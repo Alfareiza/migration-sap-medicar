@@ -267,7 +267,7 @@ class Csv2Dict:
         else:
             return vlr
 
-    def make_int(self, row, colum_name):
+    def make_int(self, row, colum_name) -> int:
         """ Intenta conviertir valor a decimal."""
         try:
             num = int(float(row[colum_name]))  # En dispensacion este valor llega así: '9.'0
@@ -469,9 +469,8 @@ class Csv2Dict:
                     Quantity=self.make_int(row, "CantidadDispensada"),
                     Price=self.make_float(row, "Precio"),
                     BaseType="15",
-                    # BaseEntry=self.get_info_sap_dispensado(row, 'DocEntry'),
                     BaseEntry=self.get_doc_entry_factura(row),
-                    BaseLine=0,  # TODO: Preguntar a Marlay?, o probar con varios Articles
+                    BaseLine=0,
                     CostingCode=self.get_costing_code(row),
                     CostingCode3=self.get_contrato(row),
                 )
@@ -798,7 +797,7 @@ class Csv2Dict:
                     U_LF_Plan=self.get_plan(row),
                     U_LF_NombreAfiliado=self.get_nombre_afiliado(row),
                     U_LF_NivelAfiliado=self.make_int(row, "CategoriaActual"),
-                    U_LF_Autorizacion=self.make_int(row, 'NroAutorizacion'),
+                    U_LF_Autorizacion=self.make_int(row, 'NroAutorizacion') if row.get("NroAutorizacion") else '',
                     DocumentLines=[self.build_document_lines(row)],
                 )
             case 'ajustes_vencimiento_lote':
@@ -877,6 +876,7 @@ class Csv2Dict:
                     self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][0]['BaseLineNumber'] = self.data[key]['json']["StockTransferLines"][idx]['LineNum']
                     self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][1]['BaseLineNumber'] = self.data[key]['json']["StockTransferLines"][idx]['LineNum']
             case 'facturacion':
+                article['DocumentLines']['BaseLine'] += 1
                 self.data[key]['json']["DocumentLines"].append(article)
                 self.data[key]['json']["WithholdingTaxDataCollection"][0]['U_HBT_Retencion'] += (article['Quantity']
                                                                                                  * article['Price'])
