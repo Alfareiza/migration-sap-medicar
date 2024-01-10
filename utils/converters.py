@@ -445,7 +445,7 @@ class Csv2Dict:
             ]
         }
 
-    def build_document_lines(self, row):
+    def build_document_lines(self, row) -> dict:
         # document_lines tiene los valores que son iguales para todos los modulos
         document_lines = {
             # "ItemCode": self.get_plu(row),
@@ -876,7 +876,7 @@ class Csv2Dict:
                     self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][0]['BaseLineNumber'] = self.data[key]['json']["StockTransferLines"][idx]['LineNum']
                     self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][1]['BaseLineNumber'] = self.data[key]['json']["StockTransferLines"][idx]['LineNum']
             case 'facturacion':
-                article['DocumentLines']['BaseLine'] += 1
+                article['BaseLine'] += 1
                 self.data[key]['json']["DocumentLines"].append(article)
                 self.data[key]['json']["WithholdingTaxDataCollection"][0]['U_HBT_Retencion'] += (article['Quantity']
                                                                                                  * article['Price'])
