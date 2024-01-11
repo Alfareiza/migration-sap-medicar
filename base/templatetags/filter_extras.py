@@ -140,6 +140,9 @@ def sum_up_errs(txt: str) -> str:
     elif 'No se encontró dispensación para SSC' in txt:
         return "No se encontró dispensación para SSC."
 
+    elif 'completamente asignado a la ubicación' in txt:
+        'Artículo no está completamente asignado a ubicación.'
+
     return txt
 
 @register.filter
