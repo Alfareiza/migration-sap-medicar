@@ -1,5 +1,7 @@
 from dataclasses import dataclass, field
+from typing import List
 
+from base.models import PayloadMigracion
 from base.templatetags.filter_extras import make_text_status
 from core.settings import logger as log
 from utils.decorators import logtime
@@ -22,6 +24,22 @@ class Csv2Dict:
         return f"Csv2Dict(name='{self.name}', " \
                f"pk='{self.pk}', series={self.series}, " \
                f"data={len(self.data.values())})"
+
+    def load_data_from_db(self, records: List[PayloadMigracion]) -> None:
+        for record in records:
+            self.data[record.valor_documento] = {'json': {}, 'csv': []}
+            self.data[record.valor_documento]['json'] = record.payload
+            self.data[record.valor_documento]['csv'] = eval(record.lineas)
+            self.csv_lines += record.cantidad_lineas_documento
+            if record.status == '' or 'DocEntry' in record.status:
+                self.succss.add(record.valor_documento)
+            else:
+                self.errs.add(record.valor_documento)
+
+    def clear_data(self):
+        self.data.clear()
+        self.errs.clear()
+        self.csv_lines = 0
 
     def group_by_type_of_errors(self):
         """
@@ -428,18 +446,18 @@ class Csv2Dict:
                 }
             ],
             "StockTransferLinesBinAllocations": [
-                {  # Bodega Destino
-                    "BinAbsEntry": self.get_bin_abs_entry(row, 'CentroDestino'),
-                    "Quantity": self.make_int(row, 'Cantidad'),
-                    "BaseLineNumber": 0,
-                    "BinActionType": "batToWarehouse",
-                    "SerialAndBatchNumbersBaseLine": 0
-                },
                 {  # Bodega Origen
                     "BinAbsEntry": self.get_bin_abs_entry(row, 'CentroOrigen'),
                     "Quantity": self.make_int(row, 'Cantidad'),
                     "BaseLineNumber": 0,
                     "BinActionType": "batFromWarehouse",
+                    "SerialAndBatchNumbersBaseLine": 0
+                },
+                {  # Bodega Destino
+                    "BinAbsEntry": self.get_bin_abs_entry(row, 'CentroDestino'),
+                    "Quantity": self.make_int(row, 'Cantidad'),
+                    "BaseLineNumber": 0,
+                    "BinActionType": "batToWarehouse",
                     "SerialAndBatchNumbersBaseLine": 0
                 },
             ]
