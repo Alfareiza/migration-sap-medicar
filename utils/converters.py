@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List
 
-from base.models import PayloadMigracion
+# from base.models import PayloadMigracion
 from base.templatetags.filter_extras import make_text_status
 from core.settings import logger as log
 from utils.decorators import logtime
@@ -25,7 +25,7 @@ class Csv2Dict:
                f"pk='{self.pk}', series={self.series}, " \
                f"data={len(self.data.values())})"
 
-    def load_data_from_db(self, records: List[PayloadMigracion]) -> None:
+    def load_data_from_db(self, records) -> None:
         for record in records:
             self.data[record.valor_documento] = {'json': {}, 'csv': []}
             self.data[record.valor_documento]['json'] = record.payload
