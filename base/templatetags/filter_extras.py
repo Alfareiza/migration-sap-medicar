@@ -185,6 +185,6 @@ def extract_date(filename: str) -> str:
         try:
             return f"{match[0][:4]}-{match[0][4:6]}-{match[0][6:8]}"
         except Exception:
-            return ''
-    return ''
+            return ' '
+    return '-'
 
