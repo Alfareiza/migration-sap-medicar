@@ -6,6 +6,7 @@
 #   * Remove `managed = False` lines if you wish to allow Django to create, modify, and delete the table
 # Feel free to rename the models, but don't rename db_table values or field names.
 from django.db import models
+from django.db.models import ForeignKey, CASCADE
 
 
 class RegistroMigracion(models.Model):
@@ -18,6 +19,31 @@ class RegistroMigracion(models.Model):
 
     def __str__(self):
         return f"{self.id} - {self.estado}"
+
+
+class PayloadMigracion(models.Model):
+    registrado = models.DateTimeField(auto_now_add=True)
+    actualizado = models.DateTimeField(auto_now=True, blank=True, null=True)
+    enviado_a_sap = models.BooleanField(default=False)
+    status = models.TextField()
+    migracion_id = ForeignKey(RegistroMigracion, blank=False, on_delete=CASCADE)
+    modulo = models.CharField(max_length=64)
+
+    ref_documento = models.CharField(max_length=32)
+    valor_documento = models.CharField(max_length=32)
+
+    nombre_archivo = models.CharField(max_length=128)
+    cantidad_lineas_documento = models.IntegerField()
+    payload = models.JSONField()
+    lineas = models.TextField()
+
+    class Meta:
+        db_table = 'sap_payloads_en_migracion'
+        unique_together = ('valor_documento', 'nombre_archivo')
+
+    def __str__(self):
+        return (f"<PayloadMigracionId:{self.id} {self.ref_documento}={self.valor_documento} "
+                f"archivo={self.nombre_archivo} enviado_a_sap={self.enviado_a_sap}>")
 
 
 class AuthGroup(models.Model):
