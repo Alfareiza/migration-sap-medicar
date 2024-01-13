@@ -157,6 +157,8 @@ class Csv2Dict:
                     return "7165950301"
                 elif tipo_ajuste == 'entrada':
                     return "7165950302"
+            case "AVERIAS":
+                return "5310350102"
             case "SALIDA POR DONACION":
                 return "7165950303"
             case "VENCIDOS":
