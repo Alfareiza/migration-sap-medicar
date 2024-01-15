@@ -76,7 +76,7 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 default_db_url = 'sqlite:///' + join(BASE_DIR, 'db.sqlite3')
-parse_database = partial(parse, conn_max_age=600)
+parse_database = partial(parse, conn_max_age=600, conn_health_checks=True)
 DATABASES = {
     'default': config('DATABASE_URL', default=default_db_url,
                       cast=parse_database)
