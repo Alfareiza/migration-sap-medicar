@@ -3,6 +3,7 @@ import json
 import pickle
 from dataclasses import dataclass
 
+from base.models import PayloadMigracion
 from core.settings import (
     BASE_DIR,
     logger as log,
@@ -21,9 +22,8 @@ from core.settings import (
 from utils.converters import Csv2Dict
 from utils.decorators import once_in_interval
 from utils.gdrive.handler_api import GDriveHandler
-from utils.interactor_db import DBHandler
 from utils.mail import EmailModule
-from utils.resources import set_filename
+from utils.resources import set_filename, format_number as fn
 
 
 class Validate:
@@ -90,10 +90,7 @@ class SaveInBD:
 
     @staticmethod
     def run(**kwargs):
-        db = DBHandler(kwargs['parser'].module.migracion_id,
-                       kwargs['filename'], kwargs['csv_to_dict'].name,
-                       kwargs['csv_to_dict'].pk)
-        db.process(kwargs['csv_to_dict'])
+        kwargs['db'].process(kwargs['csv_to_dict'])
 
 
 class ProcessSAP:
@@ -106,10 +103,12 @@ class ProcessSAP:
         """Ejecuta SAPConnect.process()"""
         if csvtodict := kwargs['csv_to_dict']:
             if csvtodict.succss:
-                kwargs['sap'].process(kwargs['csv_to_dict'])
+                kwargs['sap'].process(kwargs['csv_to_dict'], kwargs['db'].registros)
             else:
-                log.info(f'{csvtodict.name} por no haber payloads, no se harán las peticiones en SAP')
+                log.info(f'[{csvtodict.name}] No hay payloads que enviar a sap')
 
+        if kwargs.get('payloads_previously_sent'):
+            kwargs['csv_to_dict'].load_data_from_db(kwargs['payloads_previously_sent'])
         # self.post_run(csvtodict)
 
     @staticmethod
@@ -121,6 +120,10 @@ class ProcessSAP:
 
 
 class Export:
+    """
+    Crea archivos locales con información de la clase Csv2Dict y
+    si Parser.input es de tipo GDriveHandler los envia al Google Drive.
+    """
     # Estas variables guardan las rutas donde están los archivos.
     json_file = None
     file_processed = None
@@ -166,7 +169,8 @@ class Export:
             # Mueve archivo a carpeta
             kwargs['parser'].input.move_file(kwargs['file'], f"{kwargs['name_folder']}_BackUp")
 
-    def local_export(self, **kwargs):
+    @staticmethod
+    def local_export(**kwargs):
         if kwargs['parser'].export:
             fp = File(kwargs['csv_to_dict'], kwargs['parser'].module.name)
             Export.file_errors = fp.make_csv(f"{kwargs['parser'].output_filepath}_only_errors.csv", only_error=True)
@@ -195,20 +199,31 @@ class Mail:
         module = kwargs['parser'].module
         data = kwargs['csv_to_dict']
         if module.filepath and '/' in module.filepath:
-            module.filepath = module.filepath.split('/')[0]
+            module.filepath = kwargs['parser'].input.name
         else:
             module.filepath = kwargs['file']['name']
 
         # Accessa a clase Export para traer paths de archivos exportados
-        attachs = kwargs['parser'].pipeline[-2].class_variables()
+        idx_export = kwargs['parser'].pipeline.index(Export)
+        attachs = kwargs['parser'].pipeline[idx_export].class_variables()
 
         # Se definen los archivos adjuntos al correo.
         # En caso no se deseen todos los mencionados en class_variables()
         # se pueden filtrar aqui.
         e = EmailModule(module, data, attachs)
 
-        e.send()
+        # e.send()
+        e.render_local_html('alfonso')
 
+
+class ExcludeFromDB:
+    @staticmethod
+    def run(**kwargs):
+        records = PayloadMigracion.objects.filter(nombre_archivo=kwargs['filename'],
+                                                  modulo=kwargs['csv_to_dict'].name)
+        len_records = len(records)
+        records.delete()
+        log.info(f"{fn(len_records)} Registros excluidos de db referentes a archivo {kwargs['filename']!r}")
 
 @dataclass
 class File:
