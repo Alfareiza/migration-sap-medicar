@@ -85,8 +85,8 @@ class SAPConnect(SAP):
         :param url: 'https://url-api-sap.com.co:10001/b1s/v8/DeliveryNotes'
         :return: None
         """
-        # res = method(item, url)
-        res = self.fake_sapapi_response()
+        res = method(item, url)
+        # res = self.fake_sapapi_response()
         if value_err := res.get('ERROR'):
             self.info.errs.add(key)
             try:
