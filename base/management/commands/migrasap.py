@@ -116,7 +116,7 @@ class Command:
             log.info(f'{module.upper():=^70}')
 
 
-def handle_sigterm(self, *args):
+def handle_sigterm(*args):
     [log.warning(f"Abortando migración con arg {i}->{arg}") for i, arg in enumerate(args, 1)]
     # update_estado_finalizado(migracion_id)
     sys.exit(1)
