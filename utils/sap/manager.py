@@ -1,6 +1,7 @@
 import datetime
 import json
 import pickle
+import random
 from typing import List
 
 import requests
@@ -27,11 +28,10 @@ class SAP:
         try:
             response = requests.request(method, url, headers=headers,
                                         data=json.dumps(payload),
-                                        timeout=120)
+                                        timeout=1_800)
             response.raise_for_status()
         except Timeout:
-            txt = "No hubo respuesta de la API 2 en min."
-            log.error(txt)
+            log.error(txt := "No hubo respuesta de la API en 30 min.")
             res = {"ERROR": txt}
         except HTTPError as e:
             if 'application/json' in e.response.headers['Content-Type']:
@@ -48,8 +48,7 @@ class SAP:
             # log.error(f"{tag} {msg} [{extra_txt}]")
             res = {"ERROR": clean_text(msg)}
         except Exception as e:
-            txt = f"{str(e)}"
-            log.error(txt)
+            log.error(txt := f"{str(e)}")
             res = {"ERROR": txt}
         else:
             if response.text:
@@ -120,6 +119,11 @@ class SAP:
         headers = self.set_header()
         return self.request_api('PATCH', url,
                                 headers=headers, payload=item)
+
+    @staticmethod
+    def fake_sapapi_response():
+        title = random.choice(('DocEntry', 'ERROR'))
+        return {title: 'fake error' if title == 'ERROR' else f'DocEntry {random.randint(123, 999)}'}
 
 
 class SAPData(SAP):
