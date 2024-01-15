@@ -1,20 +1,21 @@
 import csv
 import traceback
 from dataclasses import dataclass, field
-from io import TextIOWrapper
 from pathlib import Path, PosixPath
 from typing import Optional
 
 from googleapiclient.errors import HttpError
 
+from base.models import PayloadMigracion
 from core.settings import logger as log, BASE_DIR, SAP_URL
 from utils.converters import Csv2Dict
 from utils.decorators import logtime
 from utils.gdrive.handler_api import GDriveHandler
-from utils.interactor_db import update_estado_error, update_estado_error_sap
+from utils.interactor_db import update_estado_error, update_estado_error_sap, DBHandler, update_estado_error_drive, \
+    update_estado_error_export, update_estado_error_mail
 from utils.mail import (send_mail_due_to_general_error_in_file,
                         send_mail_due_to_impossible_discover_files)
-from utils.pipelines import Validate, ProcessCSV, Export, ProcessSAP, Mail, SaveInBD
+from utils.pipelines import Validate, ProcessCSV, Export, ProcessSAP, Mail, SaveInBD, ExcludeFromDB
 from utils.sap.connectors import SAPConnect
 from utils.sap.manager import SAPData
 
@@ -135,54 +136,87 @@ class Parser:
         :return: Instance de Csv2Dict luego de haber sido procesado
         """
         csv_to_dict = Csv2Dict(self.module.name, self.module.pk, self.module.series, self.module.sap)
+        db = DBHandler(self.module.migracion_id, csv_to_dict.name, csv_to_dict.pk)
+        sap = SAPConnect(self.module)
         if isinstance(self.input, (str, PosixPath)):
-            self.pipeline = [Validate, ProcessCSV, SaveInBD, Export, Mail]
-            self.run_filepath(csv_to_dict)
+            self.input = Path(self.input) if isinstance(self.input, str) else self.input
+            db.fname = self.input.stem
+            self.pipeline = [Validate, ProcessCSV, SaveInBD, ProcessSAP, Export, Mail, ExcludeFromDB]
+            self.run_filepath(csv_to_dict, db, sap)
 
         elif isinstance(self.input, GDriveHandler):
             self.export = True
-            self.pipeline = [Validate, ProcessCSV, ProcessSAP, Export, Mail]
-            self.run_drive(csv_to_dict)
+            self.pipeline = [Validate, ProcessCSV, SaveInBD, ProcessSAP, Export, Mail, ExcludeFromDB]
+            self.run_drive(csv_to_dict, db, sap)
 
         return csv_to_dict
 
-    def run_filepath(self, csv_to_dict):
+    def run_filepath(self, csv_to_dict, db, sap):
         """Procesa el archivo cuando se recibe un csv local."""
-        with open(self.input, encoding='utf-8-sig') as csvf:
-            csv_reader = csv.DictReader(csvf, delimiter=';')
-            try:
-                filename = self.detect_name(csvf.name)
-                for proc in self.pipeline:
-                    proc().run(csv_to_dict=csv_to_dict, reader=csv_reader, parser=self, filename=filename)
-            except Exception as e:
-                update_estado_error(self.module.migracion_id)
-                send_mail_due_to_general_error_in_file(f"{filename}.csv", e, traceback.format_exc(),
-                                                       self.pipeline.index(proc) + 1, proc or '', list(self.pipeline))
-                raise
-            # log.error(f"{proc.__str__(proc)} > {e}")
+        try:
+            records = PayloadMigracion.objects.filter(nombre_archivo=self.input.stem, modulo=self.module.name)
+            if not records:
+                with open(self.input, encoding='utf-8-sig') as csvf:
+                    csv_reader = csv.DictReader(csvf, delimiter=';')
+                    for self.proc in self.pipeline:
+                        self.proc().run(csv_to_dict=csv_to_dict, reader=csv_reader, db=db,
+                                        parser=self, filename=db.fname, sap=sap)
+            else:
+                self.strategy_records_already_exists(records, csv_to_dict, sap, db)
 
-    def run_drive(self, csv_to_dict):
+        except Exception as e:
+            update_estado_error(self.module.migracion_id)
+            send_mail_due_to_general_error_in_file(f"{db.fname}.csv", e,
+                                                   traceback.format_exc(),
+                                                   self.pipeline.index(self.proc) + 1,
+                                                   self.proc or '',
+                                                   list(self.pipeline)
+                                                   )
+            raise
+
+    def run_drive(self, csv_to_dict, db, sap):
         """Procesa el archivo cuando se recibe un GDriveHandler."""
         name_folder = self.folder_to_check()
         self.discover_files(name_folder)
-        sap = SAPConnect(self.module)
         for i, file in enumerate(self.input.files, 1):
-            log.info(f"[CSV] Leyendo {i} de {len(self.input.files)} {file['name']!r}")
             try:
-                csv_reader = self.input.read_csv_file_by_id(file['id'])
-                for proc in self.pipeline:
-                    proc().run(csv_to_dict=csv_to_dict, reader=csv_reader,
-                               parser=self, sap=sap, file=file,
-                               name_folder=name_folder, filename=file['name'][:-4])
+                records = PayloadMigracion.objects.filter(nombre_archivo=file['name'][:-4],
+                                                          modulo=self.module.name)
+                db.fname = file['name'][:-4]
+                if not records:
+                    log.info(f"[CSV] Leyendo {i} de {len(self.input.files)} {file['name']!r}")
+                    csv_reader = self.input.read_csv_file_by_id(file['id'])
+                    for self.proc in self.pipeline:
+                        self.proc().run(csv_to_dict=csv_to_dict, reader=csv_reader,
+                                        parser=self, sap=sap, file=file, db=db,
+                                        name_folder=name_folder, filename=db.fname)
 
-                csv_to_dict.data.clear()
-                csv_to_dict.errs.clear()
-                csv_to_dict.succss.clear()
+                    csv_to_dict.clear_data()
+                else:
+                    self.strategy_records_already_exists(records, csv_to_dict, sap, db,
+                                                         file=file, name_folder=name_folder)
             except Exception as e:
                 send_mail_due_to_general_error_in_file(file['name'], e, traceback.format_exc(),
-                                                       self.pipeline.index(proc) + 1, proc or '', list(self.pipeline))
-                self.strategy_post_error(proc.__name__)
+                                                       self.pipeline.index(self.proc) + 1,
+                                                       self.proc or '',
+                                                       list(self.pipeline))
+                self.strategy_post_error(self.proc.__name__)
                 raise
+
+    def strategy_records_already_exists(self, records, csv_to_dict, sap, db, file=None, name_folder=None):
+        db.registros = records.filter(enviado_a_sap=False)
+        csv_to_dict.load_data_from_db(db.registros)
+        payloads = records.filter(enviado_a_sap=True)
+
+        log.info(f'[{csv_to_dict.name}] {len(records)} Migraciones encontradas. {len(payloads)}'
+                 f' fueron enviados a sap y {len(csv_to_dict.data)} no')
+
+        # Ejecutará el pipeline desde el paso después de SaveInBD
+        for self.proc in self.pipeline[self.pipeline.index(SaveInBD) + 1:]:
+            self.proc().run(csv_to_dict=csv_to_dict, db=db, file=file, name_folder=name_folder,
+                            parser=self, filename=db.fname, sap=sap,
+                            payloads_previously_sent=payloads)
+        csv_to_dict.clear_data()
 
     def strategy_post_error(self, proc_name):
         """
@@ -198,9 +232,9 @@ class Parser:
             case 'ProcessSAP':
                 update_estado_error_sap(self.module.migracion_id)
             case 'Export':
-                update_estado_error(self.module.migracion_id)
+                update_estado_error_export(self.module.migracion_id)
             case 'Mail':
-                update_estado_error(self.module.migracion_id)
+                update_estado_error_mail(self.module.migracion_id)
 
     def discover_files(self, name_folder: str) -> None:
         """Busca los archivos en la carpeta {Modulo}Medicar y los carga
@@ -212,6 +246,7 @@ class Parser:
         except HttpError as e:
             log.warning(f'Error {e} al buscar archivos en carpeta {name_folder!r}')
             send_mail_due_to_impossible_discover_files(name_folder, traceback.format_exc())
+            update_estado_error_drive(self.module.migracion_id)
         else:
             if not files:
                 log.warning(f'No se encontraron archivos en carpeta {name_folder!r}')
@@ -228,9 +263,3 @@ class Parser:
         words = self.module.name.split('_')
         base_word = ' '.join(words).title().replace(' ', '')
         return f"{base_word}Medicar"
-
-    @staticmethod
-    def detect_name(fp: TextIOWrapper) -> str:
-        """ Con el archivo dentro de un administrador de contexto,
-        lee el nombre y lo devuelve sin la extensión. """
-        return Path(fp).stem
