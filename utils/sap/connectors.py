@@ -1,6 +1,4 @@
-import datetime
-import sys
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 
 from core.settings import logger as log
 from utils.decorators import logtime, login_required, once_in_interval
@@ -12,10 +10,14 @@ class SAPConnect(SAP):
     def __init__(self, module):
         super().__init__(module)
         self.info = None  # Instancia de clase Csv2Dict
+        self.registros = None  # QuerySet con registros insertados en db
 
     @once_in_interval(2)
     @login_required
-    def process(self, csv_to_dict):
+    def process(self, csv_to_dict, registros):
+        """ Llamado desde pipeline se encarga de definir el tipo de petición
+        y ejecutar las peticiones con actualización en DB """
+        self.registros = registros
         self.info = csv_to_dict
         method = self.post if self.info.name != 'ajustes_vencimiento_lote' else self.patch
         # self.register(method)
@@ -44,16 +46,31 @@ class SAPConnect(SAP):
             #     futures_result.pop(future)
 
     def register_sync(self, method):
+        """ Ejecuta función request_and_update para todas los payloads """
         length = len(self.info.succss)
         for i, key in enumerate(list(self.info.succss), 1):
-            res = self.request_info(method, key, self.info.data[key]['json'], self.build_url(key))
+            res = self.request_and_update(method, key, self.info.data[key]['json'], self.build_url(key))
             log.info(f'[{self.info.name}] {round((i / length) * 100, 2)}% '
                      f'{format_number(i)} de '
                      f'{format_number(length)} {res}')
 
-    def request_info(self, method, key, item, url):
+    def request_and_update(self, method, key, item, url):
+        """Hace petición a API y actualiza resultado en BD """
+        res = self.request_info(method, key, item, url)
+        self.update_payloadmigracion(key)
+        return res
+
+    def update_payloadmigracion(self, valor_doc: str) -> None:
+        """ Actualiza PayloadMigración en BD con base en respuesta después de petición """
+        payload = self.registros.get(valor_documento=valor_doc)
+        payload.enviado_a_sap = True
+        payload.status = self.info.data[valor_doc]['csv'][0]['Status']
+        payload.save()
+
+    def request_info(self, method: callable, key: str, item: dict, url: str) -> str:
         """
         Realiza un post guarda el registro de si fue exitoso o no.
+        :param method: Método a ser llamado en peticiones. Ej. self.post o self.patch
         :param key: '1127507'
         :param item: {'Series': 81, 'U_HBT_Tercero': 'CL901543211',
                     'Comments': 'Escenario Dispensación Medicar', 'U_LF_Plan': 'S',
@@ -65,10 +82,11 @@ class SAPConnect(SAP):
                     'JournalMemo': 'Escenario dispensación medicar',
                     'DocDate': '20220131', 'DocumentLines':
                      [{'ItemCode': '7707141301494', 'WarehouseCode': '400', 'AccountCode': '7165950201', 'CostingCode': '4', 'CostingCode2': '400', 'CostingCode3': 'EVPBSSUB', 'BatchNumbers': [{'BatchNumber': 'SE20GH5', 'Quantity': 4}], 'Quantity': 4}]}
-        :param url: 'https://vm-hbt-hm34.heinsohncloud.com.co:50000/b1s/v2/DeliveryNotes'
+        :param url: 'https://url-api-sap.com.co:10001/b1s/v8/DeliveryNotes'
         :return: None
         """
-        res = method(item, url)
+        # res = method(item, url)
+        res = self.fake_sapapi_response()
         if value_err := res.get('ERROR'):
             self.info.errs.add(key)
             try:
@@ -88,7 +106,7 @@ class SAPConnect(SAP):
         return f"({key}): {msg}"
 
     def build_url(self, key):
-        """Contruye la url a la cual se realizará la petición a la API de SAP."""
+        """Construye la url a la cual se realizará la petición a la API de SAP."""
         if not isinstance(self.module.series, dict):
             if self.module.name == 'ajustes_vencimiento_lote':
                 try:
