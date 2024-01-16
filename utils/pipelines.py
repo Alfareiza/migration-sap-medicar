@@ -212,8 +212,8 @@ class Mail:
         # se pueden filtrar aqui.
         e = EmailModule(module, data, attachs)
 
-        # e.send()
-        e.render_local_html('alfonso')
+        e.send()
+        # e.render_local_html('example_output')
 
 
 class ExcludeFromDB:
