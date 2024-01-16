@@ -39,6 +39,7 @@ class Csv2Dict:
     def clear_data(self):
         self.data.clear()
         self.errs.clear()
+        self.succss.clear()
         self.csv_lines = 0
 
     def group_by_type_of_errors(self):
