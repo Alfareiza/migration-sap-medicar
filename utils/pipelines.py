@@ -217,6 +217,10 @@ class Mail:
 
 
 class ExcludeFromDB:
+
+    def __str__(self):
+        return "Eliminando registros de BD"
+
     @staticmethod
     def run(**kwargs):
         records = PayloadMigracion.objects.filter(nombre_archivo=kwargs['filename'],
