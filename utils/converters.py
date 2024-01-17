@@ -514,6 +514,8 @@ class Csv2Dict:
                     ]
                 )
             case 'dispensacion':  # 4 y 5
+                if row[self.pk] in self.data and self.data[row[self.pk]]['json']:
+                    self.single_serie = self.data[row[self.pk]]['json']['Series']
                 if self.single_serie == self.series['CAPITA']:  # 4
                     document_lines.update(
                         ItemCode=self.get_plu(row),
@@ -534,22 +536,6 @@ class Csv2Dict:
                         ItemCode=self.get_plu(row),
                         Quantity=self.make_int(row, "CantidadDispensada"),
                         Price=self.make_float(row, "Precio"),
-                        CostingCode=self.get_costing_code(row),
-                        CostingCode3=self.get_contrato(row),
-                        BatchNumbers=[
-                            {
-                                "BatchNumber": row.get("Lote", ''),
-                                "Quantity": self.make_int(row, "CantidadDispensada"),
-                            }
-                        ]
-                    )
-                else:
-                    # Entraria aqui cuando no haya sido posible definir el single_serie
-                    # predeterminado que podría ser o 77 o 81
-                    document_lines.update(
-                        ItemCode=self.get_plu(row),
-                        AccountCode=self.get_centro_de_costo(row, 'SubPlan'),
-                        Quantity=self.make_int(row, "CantidadDispensada"),
                         CostingCode=self.get_costing_code(row),
                         CostingCode3=self.get_contrato(row),
                         BatchNumbers=[
@@ -864,7 +850,8 @@ class Csv2Dict:
         :return:
         """
         match self.name:
-            case 'dispensacion' | 'ajustes_entrada' | 'ajustes_salida' | 'notas_credito' | 'compras':
+            case 'dispensacion' | 'ajustes_entrada' | 'ajustes_salida' \
+                 | 'notas_credito' | 'compras' | 'ajustes_entrada_prueba':
                 lst_item_codes = [code['ItemCode'] for code in self.data[key]['json']["DocumentLines"]]
                 try:
                     idx = lst_item_codes.index(article['ItemCode'])
@@ -908,8 +895,6 @@ class Csv2Dict:
 
             log.info(f'LN {i} [{self.name}] Leyendo {self.pk} {key}')
             row['Status'] = ''
-            if 'json' in row:
-                row['json'] = ''
             if key in self.data:
                 if self.name in ('facturacion', 'notas_credito', 'dispensacion', 'compras',
                                  'ajustes_entrada_prueba', 'ajustes_entrada', 'ajustes_salida'):
