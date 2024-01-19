@@ -65,6 +65,10 @@ class SAPConnect(SAP):
         payload = self.registros.get(valor_documento=valor_doc)
         payload.enviado_a_sap = True
         payload.status = self.info.data[valor_doc]['csv'][0]['Status']
+        csv_lines = eval(payload.lineas)
+        for line in csv_lines:
+            line['Status'] = payload.status
+        payload.lineas = csv_lines
         payload.save()
 
     def request_info(self, method: callable, key: str, item: dict, url: str) -> str:
@@ -85,8 +89,8 @@ class SAPConnect(SAP):
         :param url: 'https://url-api-sap.com.co:10001/b1s/v8/DeliveryNotes'
         :return: None
         """
-        res = method(item, url)
-        # res = self.fake_sapapi_response()
+        # res = method(item, url)
+        res = self.fake_sapapi_response()
         if value_err := res.get('ERROR'):
             self.info.errs.add(key)
             try:
