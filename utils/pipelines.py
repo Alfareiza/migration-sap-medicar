@@ -103,20 +103,27 @@ class ProcessSAP:
         """Ejecuta SAPConnect.process()"""
         if csvtodict := kwargs['csv_to_dict']:
             if csvtodict.succss:
-                kwargs['sap'].process(kwargs['csv_to_dict'], kwargs['db'].registros)
+                # Estos son los pendientes por enviar
+                # que vienen de haber filtrado los que enviado_a_sap=False
+                kwargs['sap'].process(csvtodict, kwargs['db'].records)
             else:
-                log.info(f'[{csvtodict.name}] No hay payloads que enviar a sap')
+                if kwargs['parser'].tanda == 'primera':
+                    log.info(f'[{csvtodict.name}] No hay payloads que enviar a sap')
 
         if kwargs.get('payloads_previously_sent'):
             kwargs['csv_to_dict'].load_data_from_db(kwargs['payloads_previously_sent'])
-        # self.post_run(csvtodict)
+            if kwargs['parser'].tanda == 'segunda':
+                to_process = kwargs['payloads_previously_sent'].filter(status__icontains='[SAP]')
 
-    @staticmethod
-    def post_run(csvtodict) -> None:
-        """Crea columna json de la petición a SAP"""
-        for key, v in csvtodict.data.items():
-            for line in v['csv']:
-                line.update(json=v['json'])
+                # Solamente serán enviados a sap de nuevo los que tuvieron error en la primera tanda
+                kwargs['csv_to_dict'].succss = set(to_process.values_list('valor_documento', flat=True))
+                kwargs['csv_to_dict'].errs.clear()
+
+                kwargs['sap'].process(kwargs['csv_to_dict'], to_process)
+
+                csvtodict.clear_data()
+                kwargs['csv_to_dict'].load_data_from_db(kwargs['db'].records)
+                kwargs['csv_to_dict'].load_data_from_db(kwargs['payloads_previously_sent'])
 
 
 class Export:
@@ -150,40 +157,46 @@ class Export:
         """
         self.local_export(**kwargs)
         if isinstance(kwargs['parser'].input, GDriveHandler):
+            self.create_csv_errs(kwargs)
+            self.create_csv_processed(kwargs)
+            self.move_csv(kwargs)
+            ...
 
-            # Crea archivo en Drive con todos los errores
-            if kwargs['csv_to_dict'].errs:
-                kwargs['parser'].input.prepare_and_send_csv(
-                    self.file_errors,
-                    set_filename(kwargs['file']['name'], reason='errores'),
-                    f"{kwargs['name_folder']}_Error"
-                )
+    def move_csv(self, kwargs):
+        # Mueve archivo a carpeta
+        kwargs['parser'].input.move_file(kwargs['file'], f"{kwargs['name_folder']}_BackUp")
 
-            # Crea archivo en Drive con todos los procesados
+    def create_csv_processed(self, kwargs):
+        # Crea archivo en Drive con todos los procesados
+        kwargs['parser'].input.prepare_and_send_csv(
+            self.file_processed,
+            set_filename(kwargs['file']['name'], reason='procesados'),
+            f"{kwargs['name_folder']}_Procesado"
+        )
+
+    def create_csv_errs(self, kwargs):
+        # Crea archivo en Drive con todos los errores
+        if kwargs['csv_to_dict'].errs:
             kwargs['parser'].input.prepare_and_send_csv(
-                self.file_processed,
-                set_filename(kwargs['file']['name'], reason='procesados'),
-                f"{kwargs['name_folder']}_Procesado"
+                self.file_errors,
+                set_filename(kwargs['file']['name'], reason='errores'),
+                f"{kwargs['name_folder']}_Error"
             )
-
-            # Mueve archivo a carpeta
-            kwargs['parser'].input.move_file(kwargs['file'], f"{kwargs['name_folder']}_BackUp")
 
     @staticmethod
     def local_export(**kwargs):
-        if kwargs['parser'].export:
-            fp = File(kwargs['csv_to_dict'], kwargs['parser'].module.name)
-            Export.file_errors = fp.make_csv(f"{kwargs['parser'].output_filepath}_only_errors.csv", only_error=True)
-            Export.file_processed = fp.make_csv(f"{kwargs['parser'].output_filepath}_processed_all.csv")
-            # Archivo .json es muy pesado y el e-mail no es enviado por causa de esto
+        fp = File(kwargs['csv_to_dict'], kwargs['parser'].module.name)
+        Export.file_errors = fp.make_csv(f"{kwargs['parser'].output_filepath}_only_errors.csv", only_error=True)
+        Export.file_processed = fp.make_csv(f"{kwargs['parser'].output_filepath}_processed_all.csv")
+        # Archivo .json es muy pesado y el e-mail no es enviado por causa de esto
 
-            # Export.json_file = fp.make_json(f"{kwargs['parser'].output_filepath}.json")
+        # Export.json_file = fp.make_json(f"{kwargs['parser'].output_filepath}.json")
 
-            # Export.pkl_module = fp.make_pkl(kwargs['parser'].module,
-            #                                 filename=f"{kwargs['parser'].module.name}_module.pkl")
+        # Export.pkl_module = fp.make_pkl(kwargs['parser'].module,
+        #                                 filename=f"{kwargs['parser'].module.name}_module.pkl")
 
-            Export.pkl_data = fp.make_pkl(kwargs['csv_to_dict'],
-                                          filename=f"{kwargs.get('filename', kwargs['parser'].module.name)}.pkl")
+        Export.pkl_data = fp.make_pkl(kwargs['csv_to_dict'],
+                                      filename=f"{kwargs.get('filename', kwargs['parser'].module.name)}.pkl")
 
 
 class Mail:
@@ -228,6 +241,7 @@ class ExcludeFromDB:
         len_records = len(records)
         records.delete()
         log.info(f"{fn(len_records)} Registros excluidos de db referentes a archivo {kwargs['filename']!r}")
+
 
 @dataclass
 class File:
