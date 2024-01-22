@@ -60,19 +60,17 @@ class Command:
          'force_color': False, 'skip_checks': False, 'modulos': ['foo']}
         """
 
-        pid = os.getpid()
-
         if not DEBUG and not self.migration_proceed():
             log.info(f"{' migración en ejecución ':*^40}")
             return
 
+        self.create_migracion()
+
         tanda = options['tanda'] if options['tanda'] else ''
 
-        log.info(f"{' INICIANDO MIGRACIÓN {} ':▼^70}".format('1234'))
+        log.info(f"{' INICIANDO MIGRACIÓN {} ':▼^70}".format(self.migracion.id))
         log.info(f"▶︎{' {} ':^59}◀︎".format(f'{tanda.upper()} TANDA' if tanda else ''))
         log.info(f"{'':▲^73}︎")
-
-        self.create_migracion()
 
         if options['modulos'] == ['todos']:
             self.main(
@@ -96,8 +94,7 @@ class Command:
 
         log.info(f"{'':▼^73}")
         log.info(f"▶{' {} ': ^59}◀︎".format(f'{tanda.upper()} TANDA' if tanda else ''))
-        log.info(f"{' FINALIZANDO MIGRACIÓN {} ':▲^70}".format('1234'))
-
+        log.info(f"{' FINALIZANDO MIGRACIÓN {} ':▲^70}".format(self.migracion.id))
 
         self.update_estado_para_finalizado()
         return
