@@ -22,7 +22,7 @@ class SAPConnect(SAP):
         method = self.post if self.info.name != 'ajustes_vencimiento_lote' else self.patch
         # self.register(method)
         self.register_sync(method)
-        log.info(f"{self.info.name} {len(self.info.succss)} {method.__name__}s "
+        log.info(f"[{self.info.name}] {len(self.info.succss)} {method.__name__}s "
                  f"exitosos y {len(self.info.errs)} con error.")
 
     @logtime('MASSIVE POSTS')
@@ -89,8 +89,8 @@ class SAPConnect(SAP):
         :param url: 'https://url-api-sap.com.co:10001/b1s/v8/DeliveryNotes'
         :return: None
         """
-        # res = method(item, url)
-        res = self.fake_sapapi_response()
+        res = method(item, url)
+        # res = self.fake_sapapi_response()
         if value_err := res.get('ERROR'):
             self.info.errs.add(key)
             try:
