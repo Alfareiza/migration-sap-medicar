@@ -63,7 +63,7 @@ class EmailError:
 
 
 class EmailModule:
-    def __init__(self, module, data, attachs=None):
+    def __init__(self, module, data, attachs=[]):
         self.module = module
         self.template = BASE_DIR / "base/templates/notifiers/index.html"
         self.email = None
@@ -111,8 +111,6 @@ class EmailModule:
             logger.warning(f'E-mail no enviado porque {e}')
         except Exception as e:
             logger.warning(f'E-mail no enviado. Error={e}')
-        finally:
-            print(20 * ' ')
 
     def attach_file(self, filepath):
         self.email.attach_file(str(filepath))
@@ -138,7 +136,12 @@ class EmailModule:
         ]
 
     def set_subject(self):
-        self.subject = f"Migración de {beautify_name(self.module.name)} ejecutada {datetime_str(moment())}"
+        self.subject = "Migración de {} {} ejecutada {} {}".format(
+            beautify_name(self.module.name),
+            'con errores' if self.info_email.errs else 'sin errores',
+            datetime_str(moment()),
+            f"[{self.module.migracion_id}] " if self.module.migracion_id else '',
+        ).strip()
 
     def render_local_html(self, name: str = None) -> None:
         """Crea archivo html local que es el mismo
