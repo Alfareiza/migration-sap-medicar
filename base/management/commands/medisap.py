@@ -23,6 +23,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("modulos", nargs="+", type=str)
         parser.add_argument("--filepath", nargs="+", type=str)
+        parser.add_argument("--tanda", nargs="+", type=str)
 
     @not_on_debug
     def create_migracion(self):
@@ -35,7 +36,7 @@ class Command(BaseCommand):
     @staticmethod
     def migration_proceed():
         last_migration = RegistroMigracion.objects.last()
-        return last_migration.estado in ('finalizado',) if last_migration else True
+        return last_migration.estado in ('finalizado', 'en ejecucion') if last_migration else True
 
     @logtime('MIGRATION BOT')
     def handle(self, *args, **options):
@@ -59,7 +60,9 @@ class Command(BaseCommand):
             log.info(f"{' migración en ejecución ':*^40}")
             return
 
-        log.info(f"{' INICIANDO MIGRACIÓN {} ':▼^70}".format(pid))
+        tanda = options['tanda'][0] if options['tanda'] else ''
+
+        log.info(f"{' INICIANDO MIGRACIÓN {} {} ':▼^70}".format(pid, f'{tanda.upper()} Tanda' if tanda else ''))
         self.create_migracion()
 
         if options['modulos'] == ['todos']:
@@ -75,12 +78,14 @@ class Command(BaseCommand):
                 'facturacion',
                 'notas_credito',
                 'pagos_recibidos',
+                tanda=tanda
             )
         else:
             self.main(*options['modulos'],
-                      filepath=options['filepath'][0] if options.get('filepath') else None)
+                      filepath=options['filepath'][0] if options.get('filepath') else None,
+                      tanda=tanda)
 
-        log.info(f"{' FINALIZANDO MIGRACIÓN {} ':▲^70}".format(pid))
+        log.info(f"{' FINALIZANDO MIGRACIÓN {} {} ':▲^70}".format(pid, f'{tanda.upper()} Tanda' if tanda else ''))
         self.update_estado_para_finalizado()
         return
 
@@ -105,7 +110,7 @@ class Command(BaseCommand):
             else:
                 # Caso sea del drive
                 mdl = Module(name=module, drive=client, sap=manager_sap, migracion_id=migracion_id)
-            data = mdl.exec_migration(export=True)
+            data = mdl.exec_migration(tanda=kwargs.get('tanda'))
             log.info(f'\t===== {module.upper()}  ====')
 
     def handle_sigterm(self, signum, frame):

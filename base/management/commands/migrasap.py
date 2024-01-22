@@ -2,12 +2,10 @@ import os
 import signal
 import sys
 
-import os
-
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 os.environ['DJANGO_SETTINGS_MODULE'] = 'core.settings'
-import django;
+import django
 
 django.setup()
 from base.models import RegistroMigracion
@@ -19,6 +17,8 @@ from utils.parsers import Module
 from utils.sap.manager import SAPData
 
 global migracion_id
+
+
 class Command:
     help = 'Realiza la migración de determinado modulo'
 
@@ -66,7 +66,9 @@ class Command:
             log.info(f"{' migración en ejecución ':*^40}")
             return
 
-        log.info(f"{' INICIANDO MIGRACIÓN {} ':▼^70}".format(pid))
+        tanda = options['tanda'] if options['tanda'] else ''
+
+        log.info(f"{' INICIANDO MIGRACIÓN {} {} ':▼^70}".format(pid, f'{tanda.upper()} Tanda' if tanda else ''))
         self.create_migracion()
 
         if options['modulos'] == ['todos']:
@@ -82,12 +84,14 @@ class Command:
                 'facturacion',
                 'notas_credito',
                 'pagos_recibidos',
+                tanda=tanda
             )
         else:
             self.main(*options['modulos'],
-                      filepath=options['filepath'][0] if options.get('filepath') else None)
+                      filepath=options['filepath'][0] if options.get('filepath') else None,
+                      tanda=tanda)
 
-        log.info(f"{' FINALIZANDO MIGRACIÓN {} ':▲^70}".format(pid))
+        log.info(f"{' FINALIZANDO MIGRACIÓN {} {} ':▲^70}".format(pid, f'{tanda.upper()} Tanda' if tanda else ''))
         self.update_estado_para_finalizado()
         return
 
@@ -105,15 +109,15 @@ class Command:
         client = GDriveHandler()
         manager_sap = SAPData()
         for module in args:
-            log.info(f'{module.upper():=^70}')
+            log.info(f'{module.upper():=^60}')
             if dir := kwargs.get('filepath'):
                 # Caso sea local
                 mdl = Module(name=module, filepath=dir, sap=manager_sap, migracion_id=migracion_id)
             else:
                 # Caso sea del drive
                 mdl = Module(name=module, drive=client, sap=manager_sap, migracion_id=migracion_id)
-            data = mdl.exec_migration(export=True)
-            log.info(f'{module.upper():=^70}')
+            data = mdl.exec_migration(tanda=kwargs.get('tanda'))
+            log.info(f'{module.upper():=^60}')
 
 
 def handle_sigterm(*args):
@@ -128,7 +132,8 @@ sched = BlockingScheduler()
 @sched.scheduled_job('interval', minutes=10)
 def timed_job():
     c = Command()
-    c.handle(modulos=['todos'])
+    c.handle(modulos=['todos'], tanda='primera')
+    c.handle(modulos=['todos'], tanda='segunda')
 
 
 if __name__ == '__main__':

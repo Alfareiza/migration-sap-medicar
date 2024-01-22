@@ -2,7 +2,7 @@ import csv
 import traceback
 from dataclasses import dataclass, field
 from pathlib import Path, PosixPath
-from typing import Optional
+from typing import Optional, List
 
 from googleapiclient.errors import HttpError
 
@@ -10,6 +10,7 @@ from base.models import PayloadMigracion
 from core.settings import logger as log, BASE_DIR, SAP_URL
 from utils.converters import Csv2Dict
 from utils.decorators import logtime
+from utils.resources import format_number as fn
 from utils.gdrive.handler_api import GDriveHandler
 from utils.interactor_db import update_estado_error, update_estado_error_sap, DBHandler, update_estado_error_drive, \
     update_estado_error_export, update_estado_error_mail
@@ -95,7 +96,7 @@ class Module:
                 self.series = None
                 self.pk = 'Lote'
 
-    def exec_migration(self, export: bool = False) -> Csv2Dict:
+    def exec_migration(self, tanda: str = '') -> Csv2Dict:
         """
         Crea Parser que es responsable por:
             - Detecta archivos a procesar
@@ -105,12 +106,11 @@ class Module:
                 - Crea jsons internamente (payloads).
                 - Crea archivo con todos los logs en carpeta del drive.
                 - Crea archivo con errores en carpeta del drive.
-                - (opcional) exporta localmente el mismo csv con errores.
-        :param export: Define si habrá exportación local o no de la info
-                       procesada en json y csv.
+        :param tanda: Indica cual es la tanda de ejecución del programa
+                 Ej.: 'primera' o 'segunda'
         :return: Objeto Csv2Dict con la información procesada.
         """
-        parser = Parser(self, self.filepath or self.drive, export=export)
+        parser = Parser(self, self.filepath or self.drive, tanda)
         return parser.run()
 
 
@@ -118,35 +118,45 @@ class Module:
 class Parser:
     module: Module
     input: str or GDriveHandler
-    export: bool = False
+    tanda: str
     output_filepath: str = ''
-    pipeline = list = []  # Todo, se está creando una variable llamada list
 
     def __post_init__(self):
-        if self.export:
-            self.output_filepath = BASE_DIR / f"{self.module.name}"
-        elif isinstance(self.input, (str, PosixPath)):
-            # Si no se exportan los archivos, entonces no se debe enviar correo
-            del self.pipeline[-1]
+        self.pipeline = []
+        self.output_filepath = BASE_DIR / f"{self.module.name}"
+        self.set_pipeline()
+
+        # Deprecated 20/Jan/24
+        # elif isinstance(self.input, (str, PosixPath)):
+        # Si no se exportan los archivos, entonces no se debe enviar correo
+        # del self.pipeline[-1]
+
+    def set_pipeline(self):
+        """ Define cual va a ser el pipelien con base en param. """
+        if self.tanda == 'primera':
+            self.pipeline = (Validate, ProcessCSV, SaveInBD, ProcessSAP)
+        elif self.tanda == 'segunda':
+            self.pipeline = (ProcessSAP, Export, Mail, ExcludeFromDB)
+        else:
+            raise Exception(f'Tanda no ha sido definida.')
 
     @logtime('')
     def run(self):
         """
-        Procesa el csv o bien sea de module.filepath o module.drive
+        Procesa el csv o bien sea de module.filepath o module.drive.
+        Teniendo en cuenta la tanda, ejecuta un pipeline dado para esa tanda.
         :return: Instance de Csv2Dict luego de haber sido procesado
         """
         csv_to_dict = Csv2Dict(self.module.name, self.module.pk, self.module.series, self.module.sap)
         db = DBHandler(self.module.migracion_id, csv_to_dict.name, csv_to_dict.pk)
         sap = SAPConnect(self.module)
+
         if isinstance(self.input, (str, PosixPath)):
             self.input = Path(self.input) if isinstance(self.input, str) else self.input
             db.fname = self.input.stem
-            self.pipeline = [Validate, ProcessCSV, SaveInBD, ProcessSAP, Export, Mail, ExcludeFromDB]
             self.run_filepath(csv_to_dict, db, sap)
 
         elif isinstance(self.input, GDriveHandler):
-            self.export = True
-            self.pipeline = [Validate, ProcessCSV, SaveInBD, ProcessSAP, Export, Mail, ExcludeFromDB]
             self.run_drive(csv_to_dict, db, sap)
 
         return csv_to_dict
@@ -162,7 +172,7 @@ class Parser:
                         self.proc().run(csv_to_dict=csv_to_dict, reader=csv_reader, db=db,
                                         parser=self, filename=db.fname, sap=sap)
             else:
-                self.strategy_records_already_exists(records, csv_to_dict, sap, db)
+                self.existing_records(records, csv_to_dict, sap, db)
 
         except Exception as e:
             update_estado_error(self.module.migracion_id)
@@ -183,7 +193,7 @@ class Parser:
                 records = PayloadMigracion.objects.filter(nombre_archivo=file['name'][:-4],
                                                           modulo=self.module.name)
                 db.fname = file['name'][:-4]
-                if not records:
+                if not records and self.tanda == 'primera':
                     log.info(f"[CSV] Leyendo {i} de {len(self.input.files)} {file['name']!r}")
                     csv_reader = self.input.read_csv_file_by_id(file['id'])
                     for self.proc in self.pipeline:
@@ -192,9 +202,12 @@ class Parser:
                                         name_folder=name_folder, filename=db.fname)
 
                     csv_to_dict.clear_data()
+                elif records:
+                    self.existing_records(records, csv_to_dict, sap, db,
+                                          file=file, name_folder=name_folder)
                 else:
-                    self.strategy_records_already_exists(records, csv_to_dict, sap, db,
-                                                         file=file, name_folder=name_folder)
+                    log.info(f"[{self.module.name}] archivo {db.fname} creado durante ejecución de"
+                             f" primera tanda, se puede procesar en segunda tanda")
             except Exception as e:
                 send_mail_due_to_general_error_in_file(file['name'], e, traceback.format_exc(),
                                                        self.pipeline.index(self.proc) + 1,
@@ -203,19 +216,37 @@ class Parser:
                 self.strategy_post_error(self.proc.__name__)
                 raise
 
-    def strategy_records_already_exists(self, records, csv_to_dict, sap, db, file=None, name_folder=None):
-        db.registros = records.filter(enviado_a_sap=False)
-        csv_to_dict.load_data_from_db(db.registros)
-        payloads = records.filter(enviado_a_sap=True)
+    def existing_records(self, records, csv_to_dict, sap, db, file=None, name_folder=None):
+        # Si hay records del archivo y algunos no se han enviado a sap, entonces
+        # Es por que se cayó la última migración
+        db.records = records.filter(enviado_a_sap=False)
 
-        log.info(f'[{csv_to_dict.name}] {len(records)} Migraciones encontradas. {len(payloads)}'
-                 f' fueron enviados a sap y {len(csv_to_dict.data)} no')
+        # Esos registros que no han sido enviado a sap, los monta en el csv_to_dict
+        # Porque cuando llegue el paso de procesar la base de datos
+        # el va a enviar a sap los que tenga que enviar (succss)
+        csv_to_dict.load_data_from_db(db.records)
+
+        already_sent = records.filter(enviado_a_sap=True)
+        if self.tanda == 'primera':
+            self.pipeline = (ProcessSAP,)
+
+        log.info("[{}] Archivo {}.csv. {} Migraciones encontradas. "
+                 "Enviadas a SAP: {}, Por enviar: {}."
+                 " De las cuales {} tienen error mientras que {} no tienen error."
+                 .format(csv_to_dict.name, db.fname,
+                         fn(len(records)),
+                         fn(len(already_sent)),
+                         fn(len(csv_to_dict.data)),
+                         fn(len(csv_to_dict.errs)),
+                         fn(len(csv_to_dict.succss))
+                         )
+                 )
 
         # Ejecutará el pipeline desde el paso después de SaveInBD
-        for self.proc in self.pipeline[self.pipeline.index(SaveInBD) + 1:]:
+        for self.proc in self.pipeline:
             self.proc().run(csv_to_dict=csv_to_dict, db=db, file=file, name_folder=name_folder,
                             parser=self, filename=db.fname, sap=sap,
-                            payloads_previously_sent=payloads)
+                            payloads_previously_sent=already_sent)
         csv_to_dict.clear_data()
 
     def strategy_post_error(self, proc_name):
@@ -256,10 +287,11 @@ class Parser:
             self.input.files = files
 
     def folder_to_check(self) -> str:
+        """Crea el nombre de la carpeta a ser buscada en Google Drive"""
         if self.module.name not in ('ajustes_entrada', 'ajustes_entrada_prueba', 'ajustes_salida', 'notas_credito',
                                     'ajustes_vencimiento_lote', 'pagos_recibidos', 'pagos_recibidos',
                                     'dispensaciones_anuladas'):
-            return f"{self.module.name.capitalize()}Medicar"
+            return f"{self.module.name.capitalize()}Medicar"  # Compras
         words = self.module.name.split('_')
         base_word = ' '.join(words).title().replace(' ', '')
         return f"{base_word}Medicar"
