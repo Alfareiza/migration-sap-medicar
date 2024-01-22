@@ -21,9 +21,9 @@ class Csv2Dict:
     csv_lines: int = 0
 
     def __repr__(self):
-        return f"Csv2Dict(name='{self.name}', " \
-               f"pk='{self.pk}', series={self.series}, " \
-               f"data={len(self.data.values())})"
+        return (f"Csv2Dict(name='{self.name}', " 
+               f"{self.pk}={len(self.data.values())} series={self.series} "
+               f"csv_lines={self.csv_lines})")
 
     def load_data_from_db(self, records) -> None:
         for record in records:
@@ -423,7 +423,7 @@ class Csv2Dict:
         log.info(f"[{self.name}] Comenzando procesamiendo de CSV.")
         self.process_module(csv_reader)
         log.info(f"[{self.name}] CSV procesado con éxito, {len(self.succss)} Payloads creados!!.")
-        log.error(f"CSV {self.name} con error {len(self.errs)}: {' '.join(self.errs) if self.errs else ''}")
+        log.error(f"[{self.name}] con error en CSV {len(self.errs)}: {' '.join(self.errs) if self.errs else ''}")
 
     def build_payment_invoices(self, row):
         # El DocEntry se rellena haciendo una consulta
