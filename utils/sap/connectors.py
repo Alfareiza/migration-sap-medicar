@@ -1,3 +1,4 @@
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 from core.settings import logger as log
@@ -53,6 +54,7 @@ class SAPConnect(SAP):
             log.info(f'[{self.info.name}] {round((i / length) * 100, 2)}% '
                      f'{format_number(i)} de '
                      f'{format_number(length)} {res}')
+        time.sleep(3)
 
     def request_and_update(self, method, key, item, url):
         """Hace petición a API y actualiza resultado en BD """
