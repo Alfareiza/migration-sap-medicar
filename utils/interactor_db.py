@@ -12,18 +12,18 @@ class DBHandler:
         self.mname = module_name
         self.ref = pk
         self.fname = ''
-        self.registros = None  # QuerySet
+        self.records = None  # QuerySet
 
     def process(self, csvtodict: Csv2Dict):
         log.info(f'[{self.mname}] guardando {len(csvtodict.data)} payloads en db')
         objs = self.create_objects(csvtodict)
         try:
             PayloadMigracion.objects.bulk_create(objs)
-            self.registros = PayloadMigracion.objects.filter(id__in=[p.id for p in objs])
+            self.records = PayloadMigracion.objects.filter(id__in=[p.id for p in objs])
         except Exception as e:
             log.error(f"Error {e} al guardar en db")
         else:
-            log.info(f'[{self.mname}] {len(self.registros)} payloads de archivo {self.mname} guardados en db')
+            log.info(f'[{self.mname}] {len(self.records)} payloads de archivo {self.mname} guardados en db')
 
     def create_objects(self, info: Csv2Dict) -> List[PayloadMigracion]:
         """Crea los PayloadMigracion con base en los payloads
