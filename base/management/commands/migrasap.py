@@ -68,7 +68,10 @@ class Command:
 
         tanda = options['tanda'] if options['tanda'] else ''
 
-        log.info(f"{' INICIANDO MIGRACIÓN {} {} ':▼^70}".format(pid, f'{tanda.upper()} Tanda' if tanda else ''))
+        log.info(f"{' INICIANDO MIGRACIÓN {} ':▼^70}".format('1234'))
+        log.info(f"▶︎{' {} ':^59}◀︎".format(f'{tanda.upper()} TANDA' if tanda else ''))
+        log.info(f"{'':▲^73}︎")
+
         self.create_migracion()
 
         if options['modulos'] == ['todos']:
@@ -91,7 +94,11 @@ class Command:
                       filepath=options['filepath'][0] if options.get('filepath') else None,
                       tanda=tanda)
 
-        log.info(f"{' FINALIZANDO MIGRACIÓN {} {} ':▲^70}".format(pid, f'{tanda.upper()} Tanda' if tanda else ''))
+        log.info(f"{'':▼^73}")
+        log.info(f"▶{' {} ': ^59}◀︎".format(f'{tanda.upper()} TANDA' if tanda else ''))
+        log.info(f"{' FINALIZANDO MIGRACIÓN {} ':▲^70}".format('1234'))
+
+
         self.update_estado_para_finalizado()
         return
 
@@ -133,6 +140,8 @@ sched = BlockingScheduler()
 def timed_job():
     c = Command()
     c.handle(modulos=['todos'], tanda='primera')
+    log.info(10 * '  ')
+    log.info(10 * '  ')
     c.handle(modulos=['todos'], tanda='segunda')
 
 
