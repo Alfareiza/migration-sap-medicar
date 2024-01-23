@@ -1,11 +1,9 @@
 from dataclasses import dataclass, field
-from typing import List
 
-# from base.models import PayloadMigracion
 from base.templatetags.filter_extras import make_text_status
 from core.settings import logger as log
 from utils.decorators import logtime
-from utils.resources import load_comments
+from utils.resources import load_comments, format_number as fn
 from utils.sap.manager import SAPData
 
 
@@ -21,7 +19,7 @@ class Csv2Dict:
     csv_lines: int = 0
 
     def __repr__(self):
-        return (f"Csv2Dict(name='{self.name}', " 
+        return (f"Csv2Dict(name='{self.name}', "
                f"{self.pk}={len(self.data.values())} series={self.series} "
                f"csv_lines={self.csv_lines})")
 
@@ -422,8 +420,8 @@ class Csv2Dict:
     def process(self, csv_reader):
         log.info(f"[{self.name}] Comenzando procesamiendo de CSV.")
         self.process_module(csv_reader)
-        log.info(f"[{self.name}] CSV procesado con éxito, {len(self.succss)} Payloads creados!!.")
-        log.error(f"[{self.name}] con error en CSV {len(self.errs)}: {' '.join(self.errs) if self.errs else ''}")
+        log.info(f"[{self.name}] CSV procesado con éxito, {fn(self.csv_lines)} líneas leidas,"
+                 f" {fn(len(self.succss))} payloads creados y {fn(len(self.errs))} Errores de CSV.")
 
     def build_payment_invoices(self, row):
         # El DocEntry se rellena haciendo una consulta

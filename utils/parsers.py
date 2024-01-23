@@ -107,7 +107,7 @@ class Module:
                 - Crea archivo con todos los logs en carpeta del drive.
                 - Crea archivo con errores en carpeta del drive.
         :param tanda: Indica cual es la tanda de ejecución del programa
-                 Ej.: 'primera' o 'segunda'
+                 Ej.: '1RA' o '2DA'
         :return: Objeto Csv2Dict con la información procesada.
         """
         parser = Parser(self, self.filepath or self.drive, tanda)
@@ -133,9 +133,9 @@ class Parser:
 
     def set_pipeline(self):
         """ Define cual va a ser el pipelien con base en param. """
-        if self.tanda == 'primera':
+        if self.tanda == '1RA':
             self.pipeline = (Validate, ProcessCSV, SaveInBD, ProcessSAP)
-        elif self.tanda == 'segunda':
+        elif self.tanda == '2DA':
             self.pipeline = (ProcessSAP, Export, Mail, ExcludeFromDB)
         else:
             raise Exception(f'Tanda no ha sido definida.')
@@ -193,7 +193,7 @@ class Parser:
                 records = PayloadMigracion.objects.filter(nombre_archivo=file['name'][:-4],
                                                           modulo=self.module.name)
                 db.fname = file['name'][:-4]
-                if not records and self.tanda == 'primera':
+                if not records and self.tanda == '1RA':
                     log.info(f"[CSV] Leyendo {i} de {len(self.input.files)} {file['name']!r}")
                     csv_reader = self.input.read_csv_file_by_id(file['id'])
                     for self.proc in self.pipeline:
@@ -227,7 +227,7 @@ class Parser:
         csv_to_dict.load_data_from_db(db.records)
 
         already_sent = records.filter(enviado_a_sap=True)
-        if self.tanda == 'primera':
+        if self.tanda == '1RA':
             self.pipeline = (ProcessSAP,)
 
         log.info("[{}] Archivo {}.csv. {} Migraciones encontradas. "

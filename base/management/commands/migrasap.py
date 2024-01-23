@@ -24,7 +24,8 @@ class Command:
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.migracion = None  # Solamente es creado en producción
+        self.tanda = None
+        self.migracion = None
 
     def add_arguments(self, parser):
         parser.add_argument("modulos", nargs="+", type=str)
@@ -66,10 +67,10 @@ class Command:
 
         self.create_migracion()
 
-        tanda = options['tanda'] if options['tanda'] else ''
+        self.tanda = options['tanda'] if options['tanda'] else ''
 
         log.info(f"{' INICIANDO MIGRACIÓN {} ':▼^70}".format(self.migracion.id))
-        log.info(f"▶︎{' {} ':^59}◀︎".format(f'{tanda.upper()} TANDA' if tanda else ''))
+        log.info(f"▶︎{' {} ':^59}◀︎".format(f'{self.tanda.upper()} TANDA' if self.tanda else ''))
         log.info(f"{'':▲^73}︎")
 
         if options['modulos'] == ['todos']:
@@ -85,15 +86,15 @@ class Command:
                 'facturacion',
                 'notas_credito',
                 'pagos_recibidos',
-                tanda=tanda
+                tanda=self.tanda
             )
         else:
             self.main(*options['modulos'],
                       filepath=options['filepath'][0] if options.get('filepath') else None,
-                      tanda=tanda)
+                      tanda=self.tanda)
 
         log.info(f"{'':▼^73}")
-        log.info(f"▶{' {} ': ^59}◀︎".format(f'{tanda.upper()} TANDA' if tanda else ''))
+        log.info(f"▶{' {} ': ^59}◀︎".format(f'{self.tanda.upper()} TANDA' if self.tanda else ''))
         log.info(f"{' FINALIZANDO MIGRACIÓN {} ':▲^70}".format(self.migracion.id))
 
         self.update_estado_para_finalizado()
@@ -113,7 +114,7 @@ class Command:
         client = GDriveHandler()
         manager_sap = SAPData()
         for module in args:
-            log.info(f'{module.upper():=^60}')
+            log.info(f'{f" INICIO {module.upper()} {self.tanda} TANDA ":=^60}')
             if dir := kwargs.get('filepath'):
                 # Caso sea local
                 mdl = Module(name=module, filepath=dir, sap=manager_sap, migracion_id=migracion_id)
@@ -121,7 +122,7 @@ class Command:
                 # Caso sea del drive
                 mdl = Module(name=module, drive=client, sap=manager_sap, migracion_id=migracion_id)
             data = mdl.exec_migration(tanda=kwargs.get('tanda'))
-            log.info(f'{module.upper():=^60}')
+            log.info(f'{f" FIN {module.upper()} {self.tanda} TANDA ":=^60}')
 
 
 def handle_sigterm(*args):
@@ -136,10 +137,10 @@ sched = BlockingScheduler()
 @sched.scheduled_job('interval', minutes=10)
 def timed_job():
     c = Command()
-    c.handle(modulos=['todos'], tanda='primera')
+    c.handle(modulos=['todos'], tanda='1RA')
     log.info(10 * '  ')
     log.info(10 * '  ')
-    c.handle(modulos=['todos'], tanda='segunda')
+    c.handle(modulos=['todos'], tanda='2DA')
 
 
 if __name__ == '__main__':

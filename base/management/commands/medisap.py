@@ -60,9 +60,9 @@ class Command(BaseCommand):
             log.info(f"{' migración en ejecución ':*^40}")
             return
 
-        tanda = options['tanda'][0] if options['tanda'] else ''
+        self.tanda = options['tanda'][0] if options['tanda'] else ''
 
-        log.info(f"{' INICIANDO MIGRACIÓN {} {} ':▼^70}".format(pid, f'{tanda.upper()} Tanda' if tanda else ''))
+        log.info(f"{' INICIANDO MIGRACIÓN {} {} ':▼^70}".format(pid, f'{self.tanda.upper()} Tanda' if self.tanda else ''))
         self.create_migracion()
 
         if options['modulos'] == ['todos']:
@@ -78,14 +78,14 @@ class Command(BaseCommand):
                 'facturacion',
                 'notas_credito',
                 'pagos_recibidos',
-                tanda=tanda
+                tanda=self.tanda
             )
         else:
             self.main(*options['modulos'],
                       filepath=options['filepath'][0] if options.get('filepath') else None,
-                      tanda=tanda)
+                      tanda=self.tanda)
 
-        log.info(f"{' FINALIZANDO MIGRACIÓN {} {} ':▲^70}".format(pid, f'{tanda.upper()} Tanda' if tanda else ''))
+        log.info(f"{' FINALIZANDO MIGRACIÓN {} {} ':▲^70}".format(pid, f'{self.tanda.upper()} Tanda' if self.tanda else ''))
         self.update_estado_para_finalizado()
         return
 
@@ -103,7 +103,7 @@ class Command(BaseCommand):
         client = GDriveHandler()
         manager_sap = SAPData()
         for module in args:
-            log.info(f'\t===== {module.upper()} ====')
+            log.info(f'{f" INICIO {module.upper()} {self.tanda} TANDA ":=^60}')
             if dir := kwargs.get('filepath'):
                 # Caso sea local
                 mdl = Module(name=module, filepath=dir, sap=manager_sap, migracion_id=migracion_id)
@@ -111,8 +111,8 @@ class Command(BaseCommand):
                 # Caso sea del drive
                 mdl = Module(name=module, drive=client, sap=manager_sap, migracion_id=migracion_id)
             data = mdl.exec_migration(tanda=kwargs.get('tanda'))
-            log.info(f'\t===== {module.upper()}  ====')
+            log.info(f'{f" FIN {module.upper()} {self.tanda} TANDA ":=^60}')
 
     def handle_sigterm(self, signum, frame):
-        log.warning(f'Abortando migración # {self.migracion.id} con {signum=}')
+        log.warning(f'Abortando migración # {self.migracion.id} {self.tanda} con {signum=}')
         sys.exit(1)

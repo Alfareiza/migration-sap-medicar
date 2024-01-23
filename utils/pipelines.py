@@ -107,12 +107,12 @@ class ProcessSAP:
                 # que vienen de haber filtrado los que enviado_a_sap=False
                 kwargs['sap'].process(csvtodict, kwargs['db'].records)
             else:
-                if kwargs['parser'].tanda == 'primera':
+                if kwargs['parser'].tanda == '1RA':
                     log.info(f'[{csvtodict.name}] No hay payloads que enviar a sap')
 
         if kwargs.get('payloads_previously_sent'):
             kwargs['csv_to_dict'].load_data_from_db(kwargs['payloads_previously_sent'])
-            if kwargs['parser'].tanda == 'segunda':
+            if kwargs['parser'].tanda == '2DA':
                 to_process = kwargs['payloads_previously_sent'].filter(status__icontains='[SAP]')
 
                 # Solamente serán enviados a sap de nuevo los que tuvieron error en la primera tanda
