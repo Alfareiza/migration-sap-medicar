@@ -104,7 +104,12 @@ class SAPConnect(SAP):
                 csv_item['Status'] = f"[SAP] {value_err}"
         else:
             # Si NO hubo ERROR al hacer el POST o PATCH
-            msg = f"DocEntry: {res.get('DocEntry')}"
+            if dentry := res.get('DocEntry'):
+                ...
+            else:
+                log.warning(f'{key} No se encontró DocEntry en {res!r}')
+
+            msg = f"DocEntry: {dentry}"
             for csv_item in self.info.data[key]['csv']:
                 csv_item['Status'] = msg
             # log.info(f"[{self.info.name}] {method.__name__.upper()} Realizado con "

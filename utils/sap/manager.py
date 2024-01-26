@@ -9,7 +9,7 @@ from requests import HTTPError, Timeout
 
 from core.settings import BASE_DIR, SAP_COMPANY, SAP_USER, SAP_PASS, SAP_URL
 from core.settings import logger as log
-from utils.decorators import login_required, logtime
+from utils.decorators import login_required
 from utils.resources import clean_text, moment
 
 login_pkl = BASE_DIR / 'login.pickle'
@@ -48,13 +48,10 @@ class SAP:
             # log.error(f"{tag} {msg} [{extra_txt}]")
             res = {"ERROR": clean_text(msg)}
         except Exception as e:
-            log.error(txt := f"{str(e)}")
+            log.error(txt := f"{e.response.status_code} {str(e)}")
             res = {"ERROR": txt}
         else:
-            if response.text:
-                res = response.json()
-            else:
-                res = {'DocEntry': 'Sin DocEntry'}
+            res = response.json() if response.text else {'DocEntry': 'Sin DocEntry'}
         finally:
             return res
 
@@ -337,15 +334,16 @@ class SAPData(SAP):
 
     def get_bin_abs_entry_from_ceco(self, ceco: str) -> int:
         """
-        Usado desde el modulo de traslados busca el AbsEntry
-        de determinada ubicación.
+        Hace que se carguen todas las AbsEntry y BinCode de las bodegas
+        y retorna el AbsEntry del ceco entrante.
         :param ceco: Suele ser bodega destino o bodega origen.
                 Ex: '304, '101', etc.
         :return: Caso encontrar el AbsEntry del value, retorna
                  el valor encontrado en self.sucursales, sino un cero.
         """
-        if ceco in self.abs_entries and self.abs_entries[ceco].get(f"{ceco}-AL"):
-            return self.abs_entries[ceco].get(f"{ceco}-AL")
+        end = 'AL' if ceco not in ('900', '910', '800') else 'TR'
+        if ceco in self.abs_entries and self.abs_entries[ceco].get(f"{ceco}-{end}"):
+            return self.abs_entries[ceco].get(f"{ceco}-{end}")
         elif not self.abs_entries and not self.abs_entries_loaded:
             self.load_abs_entries()
             return self.get_bin_abs_entry_from_ceco(ceco)
@@ -400,8 +398,6 @@ class SAPData(SAP):
 
 if __name__ == '__main__':
     client = SAPData()
-    # client.get_costing_code_from_sucursal('1001')
     # client.load_abs_entries()
     # client.load_sucursales()
     # client.load_dispensados()
-    client.get_docentry_factura('4694768')
