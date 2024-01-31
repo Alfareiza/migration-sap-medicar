@@ -25,9 +25,10 @@ class Csv2Dict:
 
     def load_data_from_db(self, records) -> None:
         for record in records:
-            self.data[record.valor_documento] = {'json': {}, 'csv': []}
-            self.data[record.valor_documento]['json'] = record.payload
-            self.data[record.valor_documento]['csv'] = eval(record.lineas)
+            self.data[record.valor_documento] = {
+                'json': record.payload,
+                'csv': eval(record.lineas),
+            }
             self.csv_lines += record.cantidad_lineas_documento
             if record.status == '' or 'DocEntry' in record.status:
                 self.succss.add(record.valor_documento)
@@ -42,11 +43,11 @@ class Csv2Dict:
 
     def group_by_type_of_errors(self):
         """
-        Crea los atributos csv_errs y sap_errs donde se guardan las
+        Crea los atributos csv_errs, sap_errs y other_errs donde se guardan las
         referencias de los registros que tienen ese tipo de error.
         Los cuáles podrán ser indexados en self.data.
         """
-        self.result_succss, self.csv_errs, self.sap_errs = {}, {}, {}
+        self.result_succss, self.csv_errs, self.sap_errs, self.other_errs = {}, {}, {}, {}
         for k, v in self.data.items():
             status_text = make_text_status(v['csv'])
 
@@ -59,6 +60,11 @@ class Csv2Dict:
                 if status_text not in self.sap_errs:
                     self.sap_errs[status_text] = []
                 self.sap_errs[status_text].append(k)
+
+            elif 'CONNECTION' in status_text or 'TIMEOUT' in status_text:
+                if status_text not in self.sap_errs:
+                    self.other_errs[status_text] = []
+                self.other_errs[status_text].append(k)
 
             elif 'DocEntry' in status_text:
                 self.result_succss[k] = status_text

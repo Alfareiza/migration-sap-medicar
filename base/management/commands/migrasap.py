@@ -12,7 +12,7 @@ from base.models import RegistroMigracion
 from core.settings import logger as log, DEBUG
 from utils.decorators import logtime, not_on_debug
 from utils.gdrive.handler_api import GDriveHandler
-from utils.interactor_db import crea_registro_migracion, update_estado_finalizado
+from utils.interactor_db import crea_registro_migracion, update_estado_finalizado, update_estado_error_heroku
 from utils.parsers import Module
 from utils.sap.manager import SAPData
 
@@ -26,6 +26,7 @@ class Command:
         super().__init__(*args, **kwargs)
         self.tanda = None
         self.migracion = None
+        self.last_migration = 0
 
     def add_arguments(self, parser):
         parser.add_argument("modulos", nargs="+", type=str)
@@ -41,10 +42,9 @@ class Command:
     def update_estado_para_finalizado(self):
         update_estado_finalizado(self.migracion.id)
 
-    @staticmethod
-    def migration_proceed():
-        last_migration = RegistroMigracion.objects.last()
-        return last_migration.estado in ('finalizado',) if last_migration else True
+    def migration_proceed(self):
+        self.last_migration = RegistroMigracion.objects.last()
+        return self.last_migration.estado in ('finalizado', 'error heroku') if self.last_migration else True
 
     @logtime('MIGRATION BOT')
     def handle(self, *args, **options):
@@ -62,12 +62,12 @@ class Command:
         """
 
         if not DEBUG and not self.migration_proceed():
-            log.info(f"{' migración en ejecución ':*^40}")
+            log.info(f"{' migración en estado: {} ':*^40}".format(self.last_migration))
             return
 
         self.create_migracion()
 
-        self.tanda = options['tanda'] if options['tanda'] else ''
+        self.tanda = options['tanda'] or ''
 
         log.info(f"{' INICIANDO MIGRACIÓN {} ':▼^70}".format(self.migracion.id))
         log.info(f"▶︎{' {} ':^59}◀︎".format(f'{self.tanda.upper()} TANDA' if self.tanda else ''))
@@ -110,7 +110,7 @@ class Command:
                         - ('ajustes_entrada', 'ajustes_salida')
         :param kwargs: Might be {'filepath': 'path_of_the_file.csv'}
         """
-        migracion_id = self.migracion.id if self.migracion else 0
+        # migracion_id = self.migracion.id if self.migracion else 0
         client = GDriveHandler()
         manager_sap = SAPData()
         for module in args:
@@ -127,7 +127,8 @@ class Command:
 
 def handle_sigterm(*args):
     [log.warning(f"Abortando migración con arg {i}->{arg}") for i, arg in enumerate(args, 1)]
-    # update_estado_finalizado(migracion_id)
+    if args and args[0] == 15 or args[0] == '15':
+        update_estado_error_heroku(migracion_id)
     sys.exit(1)
 
 

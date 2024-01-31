@@ -113,7 +113,11 @@ class ProcessSAP:
         if kwargs.get('payloads_previously_sent'):
             kwargs['csv_to_dict'].load_data_from_db(kwargs['payloads_previously_sent'])
             if kwargs['parser'].tanda == '2DA':
-                to_process = kwargs['payloads_previously_sent'].filter(status__icontains='[SAP]')
+                sap_errs = kwargs['payloads_previously_sent'].filter(status__icontains='[SAP]')
+                conn_errs = kwargs['payloads_previously_sent'].filter(status__icontains='[CONNECTION]')
+                timeout_errs = kwargs['payloads_previously_sent'].filter(status__icontains='[TIMEOUT]')
+
+                to_process = sap_errs | conn_errs | timeout_errs
 
                 # Solamente serán enviados a sap de nuevo los que tuvieron error en la primera tanda
                 kwargs['csv_to_dict'].succss = set(to_process.values_list('valor_documento', flat=True))
@@ -123,7 +127,9 @@ class ProcessSAP:
 
                 csvtodict.clear_data()
                 kwargs['csv_to_dict'].load_data_from_db(kwargs['db'].records)
-                kwargs['csv_to_dict'].load_data_from_db(kwargs['payloads_previously_sent'])
+                final_records = PayloadMigracion.objects.filter(nombre_archivo=kwargs['filename'],
+                                                                modulo=kwargs['csv_to_dict'].name)
+                kwargs['csv_to_dict'].load_data_from_db(final_records)
 
 
 class Export:
@@ -226,7 +232,7 @@ class Mail:
         e = EmailModule(module, data, attachs)
 
         e.send()
-        # e.render_local_html('example_output')
+        # e.render_local_html('output_31_enero')
 
 
 class ExcludeFromDB:

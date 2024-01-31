@@ -91,8 +91,8 @@ class SAPConnect(SAP):
         :param url: 'https://url-api-sap.com.co:10001/b1s/v8/DeliveryNotes'
         :return: None
         """
-        res = method(item, url)
-        # res = self.fake_sapapi_response()
+        res: dict = method(item, url)
+        # res = self.fake_method()
         if value_err := res.get('ERROR'):
             self.info.errs.add(key)
             try:
@@ -101,7 +101,7 @@ class SAPConnect(SAP):
                 ...
             msg = value_err
             for csv_item in self.info.data[key]['csv']:
-                csv_item['Status'] = f"[SAP] {value_err}"
+                csv_item['Status'] = f"{value_err}"
         else:
             # Si NO hubo ERROR al hacer el POST o PATCH
             if dentry := res.get('DocEntry'):

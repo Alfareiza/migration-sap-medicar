@@ -32,7 +32,7 @@ class SAP:
             response.raise_for_status()
         except Timeout:
             log.error(txt := "No hubo respuesta de la API en 30 min.")
-            res = {"ERROR": txt}
+            res = {"ERROR": f"[TIMEOUT] {txt}"}
         except HTTPError as e:
             if 'application/json' in e.response.headers['Content-Type']:
                 err = e.response.json()
@@ -46,10 +46,10 @@ class SAP:
             else:
                 msg = str(err)
             # log.error(f"{tag} {msg} [{extra_txt}]")
-            res = {"ERROR": clean_text(msg)}
+            res = {"ERROR": f"[SAP] {clean_text(msg)}"}
         except Exception as e:
-            log.error(txt := f"{e.response.status_code} {str(e)}")
-            res = {"ERROR": txt}
+            log.error(txt := f"STATUS_CODE={e.response.status_code} {str(e)}")
+            res = {"ERROR": f"[CONNECTION] {txt}"}
         else:
             res = response.json() if response.text else {'DocEntry': 'Sin DocEntry'}
         finally:
@@ -118,9 +118,15 @@ class SAP:
                                 headers=headers, payload=item)
 
     @staticmethod
-    def fake_sapapi_response():
-        title = random.choice(('DocEntry', 'ERROR'))
-        return {title: 'fake error' if title == 'ERROR' else f'DocEntry {random.randint(123, 999)}'}
+    def fake_method() -> dict:
+        return random.choice(
+            (
+                {"ERROR": "[CONNECTION] fake connection text"},
+                {"ERROR": "[TIMEOUT] fake timeout text"},
+                {"ERROR": "[SAP] fake sap text"},
+                {"DocEntry": f"Fake DocEntry {random.randint(123, 999)}"},
+            )
+        )
 
 
 class SAPData(SAP):
