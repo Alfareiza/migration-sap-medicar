@@ -1,8 +1,9 @@
 import csv
+import time
 import traceback
 from dataclasses import dataclass, field
 from pathlib import Path, PosixPath
-from typing import Optional, List
+from typing import Optional
 
 from googleapiclient.errors import HttpError
 
@@ -12,11 +13,27 @@ from utils.converters import Csv2Dict
 from utils.decorators import logtime
 from utils.resources import format_number as fn
 from utils.gdrive.handler_api import GDriveHandler
-from utils.interactor_db import update_estado_error, update_estado_error_sap, DBHandler, update_estado_error_drive, \
-    update_estado_error_export, update_estado_error_mail
-from utils.mail import (send_mail_due_to_general_error_in_file,
-                        send_mail_due_to_impossible_discover_files)
-from utils.pipelines import Validate, ProcessCSV, Export, ProcessSAP, Mail, SaveInBD, ExcludeFromDB
+from utils.interactor_db import (
+    DBHandler,
+    update_estado_error,
+    update_estado_error_drive,
+    update_estado_error_export,
+    update_estado_error_mail,
+    update_estado_error_sap
+)
+from utils.mail import (
+    send_mail_due_to_general_error_in_file,
+    send_mail_due_to_impossible_discover_files
+)
+from utils.pipelines import (
+    ExcludeFromDB,
+    Export,
+    Mail,
+    ProcessCSV,
+    ProcessSAP,
+    SaveInBD,
+    Validate,
+)
 from utils.sap.connectors import SAPConnect
 from utils.sap.manager import SAPData
 
@@ -200,7 +217,7 @@ class Parser:
                         self.proc().run(csv_to_dict=csv_to_dict, reader=csv_reader,
                                         parser=self, sap=sap, file=file, db=db,
                                         name_folder=name_folder, filename=db.fname)
-
+                        time.sleep(3)
                     csv_to_dict.clear_data()
                 elif records:
                     self.existing_records(records, csv_to_dict, sap, db,
@@ -247,6 +264,7 @@ class Parser:
             self.proc().run(csv_to_dict=csv_to_dict, db=db, file=file, name_folder=name_folder,
                             parser=self, filename=db.fname, sap=sap,
                             payloads_previously_sent=already_sent)
+            time.sleep(3)
         csv_to_dict.clear_data()
 
     def strategy_post_error(self, proc_name):
