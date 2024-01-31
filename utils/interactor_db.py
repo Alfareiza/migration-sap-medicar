@@ -91,7 +91,8 @@ def update_estado_error_mail(migracion_id: int) -> None:
 @not_on_debug
 def update_estado_error_heroku(migracion_id: int) -> None:
     migracion = RegistroMigracion.objects.get(id=migracion_id)
-    update_estado(migracion, 'heroku')
+    if migracion.estado == 'en ejecucion':
+        update_estado(migracion, 'heroku')
 
 
 @not_on_debug
