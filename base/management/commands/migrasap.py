@@ -44,7 +44,7 @@ class Command:
 
     def migration_proceed(self):
         self.last_migration = RegistroMigracion.objects.last()
-        return self.last_migration.estado in ('finalizado', 'error heroku') if self.last_migration else True
+        return self.last_migration.estado in ('finalizado', 'heroku') if self.last_migration else True
 
     @logtime('MIGRATION BOT')
     def handle(self, *args, **options):
