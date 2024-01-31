@@ -321,6 +321,12 @@ class Csv2Dict:
         log.error(f"{self.pk} {row[f'{self.pk}']}. Plu no reconocido : {item_code!r}")
         self.reg_error(row, f"[CSV] Plu no reconocido: {item_code!r}")
 
+
+    def pending_to_implement(self, row, msg):
+        txt = f"[CSV] {msg}. {row[self.pk]!r}"
+        log.error(f"{self.pk} {row[f'{self.pk}']}. {txt}")
+        self.reg_error(row, txt)
+
     def get_doc_entry_factura(self, row):
         """Busca el doc entry de la factura correspondiente."""
         try:
@@ -490,15 +496,24 @@ class Csv2Dict:
                 )
             case 'facturacion':  # 5.1
                 document_lines.update(
-                    ItemCode=self.get_plu(row),
                     Quantity=self.make_int(row, "CantidadDispensada"),
                     Price=self.make_float(row, "Precio"),
-                    BaseType="15",
-                    BaseEntry=self.get_doc_entry_factura(row),
                     BaseLine=0,
                     CostingCode=self.get_costing_code(row),
                     CostingCode3=self.get_contrato(row),
                 )
+                if document_lines.get('WarehouseCode') == '391':
+                    self.pending_to_implement(row, 'No se ha implementado facturación cuando CECO es 391')
+                    document_lines.update(
+                        ItemDescription='...por definir',
+                        ItemCode='...por definir'
+                    )
+                else:
+                    document_lines.update(
+                        BaseType="15",
+                        BaseEntry=self.get_doc_entry_factura(row),
+                        ItemCode=self.get_plu(row),
+                    )
             case 'notas_credito':  # 2
                 document_lines.update(
                     ItemCode=self.get_plu(row),

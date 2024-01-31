@@ -141,7 +141,10 @@ def sum_up_errs(txt: str) -> str:
         return "No se encontró dispensación para SSC."
 
     elif 'completamente asignado a la ubicación' in txt:
-        'Artículo no está completamente asignado a ubicación.'
+        return 'Artículo no está completamente asignado a ubicación.'
+
+    elif 'No se ha implementado facturación' in txt:
+        return 'No se ha implementado facturación 391.'
 
     return txt
 
