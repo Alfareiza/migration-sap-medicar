@@ -151,7 +151,7 @@ class Parser:
             self.pipeline = (Validate, ProcessCSV, SaveInBD, ProcessSAP)
         elif self.tanda == '2DA':
             self.pipeline = (ProcessSAP, Export, Mail, ExcludeFromDB)
-        if self.tanda == 'TEST':
+        elif self.tanda == 'TEST':
             self.pipeline = (Validate, ProcessCSV, SaveInBD, ExcludeFromDB)
         else:
             raise Exception(f'Tanda no ha sido definida. Recibido: {self.tanda!r}')
