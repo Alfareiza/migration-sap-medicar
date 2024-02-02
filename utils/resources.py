@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from django.conf import settings
 from pytz import timezone
 
 
@@ -78,3 +79,16 @@ def format_number(num: int) -> str:
     '1.000.000'
     """
     return f"{num:,.0f}".replace(',', '.')
+
+
+def has_ceco(name, item, ceco='391'):
+    modules_to_check = settings.MODULES_USE_DOCUMENTLINES.copy()
+    modules_to_check.remove(settings.FACTURACION_NAME)
+    if name in modules_to_check:
+        for line in item['DocumentLines']:
+            if 'WarehouseCode' in line.keys() and line['WarehouseCode'] == ceco:
+                return True
+    elif name == settings.TRASLADOS_NAME:
+        if item['FromWarehouse'] == ceco or item['ToWarehouse'] == ceco:
+            return True
+    return False

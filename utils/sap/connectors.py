@@ -1,8 +1,6 @@
-from concurrent.futures import ThreadPoolExecutor
-
 from core.settings import logger as log
-from utils.decorators import logtime, login_required, once_in_interval
-from utils.resources import format_number
+from utils.decorators import login_required, once_in_interval
+from utils.resources import format_number, has_ceco
 from utils.sap.manager import SAP
 
 
@@ -25,25 +23,26 @@ class SAPConnect(SAP):
         log.info(f"[{self.info.name}] {len(self.info.succss)} {method.__name__}s "
                  f"exitosos y {len(self.info.errs)} con error.")
 
-    @logtime('MASSIVE POSTS')
-    def register(self, method):
-        with ThreadPoolExecutor(max_workers=4) as executor:
-            _ = [executor.submit(
-                self.request_info,  # func
-                method, key, self.info.data[key]['json'], self.build_url(key)  # args
-            )
-                for key in list(self.info.succss)]
-            # counter = 0
-            # length = len(futures_result)
-            # for future in as_completed(futures_result):
-            #     counter += 1
-            #     # Ex.: [dispensacion] 11.44% 20.615 de 53.050 (4700162): DocEntry: 752066
-            #     # Ex.: [dispensacion] 11.41% 20.341 de 53.050 (4751883): 10001153 - Cantidad insuficiente
-            #     #      para el artículo 7893884158011 con el lote 123456 en el almacén
-            #     log.info(f'[{self.info.name}] {round((counter / length) * 100, 2)}% '
-            #              f'{format_number(counter)} de '
-            #              f'{format_number(length)} {future.result()}')
-            #     futures_result.pop(future)
+    # Deprecado Enero/2024
+    # @logtime('MASSIVE POSTS')
+    # def register(self, method):
+    #     with ThreadPoolExecutor(max_workers=4) as executor:
+    #         _ = [executor.submit(
+    #             self.request_info,  # func
+    #             method, key, self.info.data[key]['json'], self.build_url(key)  # args
+    #         )
+    #             for key in list(self.info.succss)]
+    # counter = 0
+    # length = len(futures_result)
+    # for future in as_completed(futures_result):
+    #     counter += 1
+    #     # Ex.: [dispensacion] 11.44% 20.615 de 53.050 (4700162): DocEntry: 752066
+    #     # Ex.: [dispensacion] 11.41% 20.341 de 53.050 (4751883): 10001153 - Cantidad insuficiente
+    #     #      para el artículo 7893884158011 con el lote 123456 en el almacén
+    #     log.info(f'[{self.info.name}] {round((counter / length) * 100, 2)}% '
+    #              f'{format_number(counter)} de '
+    #              f'{format_number(length)} {future.result()}')
+    #     futures_result.pop(future)
 
     def register_sync(self, method):
         """ Ejecuta función request_and_update para todas los payloads """
@@ -56,7 +55,11 @@ class SAPConnect(SAP):
 
     def request_and_update(self, method, key, item, url):
         """Hace petición a API y actualiza resultado en BD """
-        res = self.request_info(method, key, item, url)
+        if has_ceco(self.info.name, item, '391'):
+            res = f"({key}): DocEntry: No aplica"
+            self.update_status_csv_column(key, 'DocEntry: No aplica')
+        else:
+            res = self.request_info(method, key, item, url)
         self.update_payloadmigracion(key)
         return res
 
@@ -98,21 +101,19 @@ class SAPConnect(SAP):
             except Exception:
                 ...
             msg = value_err
-            for csv_item in self.info.data[key]['csv']:
-                csv_item['Status'] = f"{value_err}"
         else:
             # Si NO hubo ERROR al hacer el POST o PATCH
             if dentry := res.get('DocEntry'):
                 ...
             else:
                 log.warning(f'{key} No se encontró DocEntry en {res!r}')
-
             msg = f"DocEntry: {dentry}"
-            for csv_item in self.info.data[key]['csv']:
-                csv_item['Status'] = msg
-            # log.info(f"[{self.info.name}] {method.__name__.upper()} Realizado con "
-            #          f"exito! {key}. DocEntry: {res.get('DocEntry')}")
+        self.update_status_csv_column(key, msg)
         return f"({key}): {msg}"
+
+    def update_status_csv_column(self, key, msg):
+        for csv_item in self.info.data[key]['csv']:
+            csv_item['Status'] = msg
 
     def build_url(self, key):
         """Construye la url a la cual se realizará la petición a la API de SAP."""
