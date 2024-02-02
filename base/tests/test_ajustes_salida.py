@@ -2,6 +2,7 @@ import unittest
 
 from base.tests.common_tests import CustomTestsMixin, DocumentLinesTestsMixin
 from base.tests.conf_test import ajustes_salida_file, make_instance
+from utils.interactor_db import del_registro_migracion
 
 
 class TestAjustesSalida(CustomTestsMixin, DocumentLinesTestsMixin, unittest.TestCase):
@@ -15,7 +16,7 @@ class TestAjustesSalida(CustomTestsMixin, DocumentLinesTestsMixin, unittest.Test
 
     @classmethod
     def tearDownClass(cls):
-        ...
+        del_registro_migracion(cls.module.migracion_id)
 
     def test_structrure(self):
         """Valida que vengan exactamente los keys esperados"""

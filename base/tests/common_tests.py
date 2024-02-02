@@ -72,6 +72,3 @@ class DocumentLinesTestsMixin:
                 for art in v['json']['DocumentLines']:
                     with self.subTest(i=v):
                         self.assertEqual(art['Quantity'], sum(art['Quantity'] for art in art['BatchNumbers']))
-
-class SAPTestsMixin:
-    ...

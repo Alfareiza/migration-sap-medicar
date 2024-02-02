@@ -2,6 +2,7 @@ import unittest
 
 from base.tests.conf_test import dispensacion_file, make_instance
 from base.tests.common_tests import CustomTestsMixin, DocumentLinesTestsMixin
+from utils.interactor_db import del_registro_migracion
 
 
 class TestDispensacion(CustomTestsMixin, DocumentLinesTestsMixin, unittest.TestCase):
@@ -16,7 +17,7 @@ class TestDispensacion(CustomTestsMixin, DocumentLinesTestsMixin, unittest.TestC
 
     @classmethod
     def tearDownClass(cls):
-        ...
+        del_registro_migracion(cls.module.migracion_id)
 
     def is_capita(self, item):
         return item['json']['Series'] == 77
