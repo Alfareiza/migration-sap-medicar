@@ -105,7 +105,7 @@ class Module:
                 self.url = f'{self.BASE_URL}/InventoryGenEntries'
                 self.pk = 'NroSSC'
                 self.series = 83
-            case settings.settings.AJUSTES_LOTE_NAME:
+            case settings.AJUSTES_LOTE_NAME:
                 self.url = f'{self.BASE_URL}/BatchNumberDetails({{}})'  # TODO: Probar endpoint antes de implementar código
                 self.series = None
                 self.pk = 'Lote'
