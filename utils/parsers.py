@@ -154,7 +154,7 @@ class Parser:
         if self.tanda == 'TEST':
             self.pipeline = (Validate, ProcessCSV, SaveInBD, ExcludeFromDB)
         else:
-            raise Exception('Tanda no ha sido definida.')
+            raise Exception(f'Tanda no ha sido definida. Recibido: {self.tanda!r}')
 
     @logtime('')
     def run(self):
