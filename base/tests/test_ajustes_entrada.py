@@ -1,14 +1,17 @@
 import unittest
 
+from base.tests.common_tests import CustomTestsMixin, DocumentLinesTestsMixin
 from base.tests.conf_test import ajustes_entrada_file, make_instance
 
 
-class TestAjustesEntrada(unittest.TestCase):
+class TestAjustesEntrada(CustomTestsMixin, DocumentLinesTestsMixin, unittest.TestCase):
+    MODULE_NAME = 'ajustes_entrada'
 
     @classmethod
     def setUpClass(cls):
         fp = ajustes_entrada_file
-        cls.result = make_instance('ajustes_entrada', fp)
+        cls.module = make_instance(cls.MODULE_NAME, fp)
+        cls.result = cls.module.exec_migration(tanda='TEST')
 
     @classmethod
     def tearDownClass(cls):

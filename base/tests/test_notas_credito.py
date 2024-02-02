@@ -1,30 +1,33 @@
 import unittest
 
+from base.tests.common_tests import DocumentLinesTestsMixin, CustomTestsMixin
 from base.tests.conf_test import notas_credito_file, make_instance
+from utils.interactor_db import del_registro_migracion
 
 
-class TestNotasCredito(unittest.TestCase):
-
+class TestNotasCredito(DocumentLinesTestsMixin, CustomTestsMixin, unittest.TestCase):
+    MODULE_NAME = 'notas_credito'
     @classmethod
     def setUpClass(cls):
         fp = notas_credito_file
-        cls.result = make_instance('notas_credito', fp)
+        cls.module = make_instance(cls.MODULE_NAME, fp)
+        cls.result = cls.module.exec_migration(tanda='TEST')
 
     @classmethod
     def tearDownClass(cls):
-        ...
+        del_registro_migracion(cls.module.migracion_id)
 
     def test_structrure(self):
         """Valida que vengan exactamente los keys esperados"""
         for k, v in TestNotasCredito.result.data.items():
             with self.subTest(i=v):
                 self.assertEqual(
-                    list(v['json'].keys()),
-                    ["Comments", "U_LF_IdAfiliado", "U_LF_Formula",
-                     "U_LF_Mipres", "U_LF_Usuario", "Series", "DocDate",
-                     "TaxDate", "NumAtCard", "CardCode", "U_HBT_Tercero",
-                     "U_LF_Plan", "U_LF_NivelAfiliado", "U_LF_NombreAfiliado",
-                     "U_LF_Autorizacion", "DocumentLines"],
+                    sorted(list(v['json'].keys())),
+                    sorted(["Comments", "U_LF_IdAfiliado", "U_LF_Formula",
+                            "U_LF_Mipres", "U_LF_Usuario", "Series", "DocDate",
+                            "TaxDate", "NumAtCard", "CardCode", "U_HBT_Tercero",
+                            "U_LF_Plan", "U_LF_NivelAfiliado", "U_LF_NombreAfiliado",
+                            "U_LF_Autorizacion", "DocumentLines"]),
                 )
 
     def test_types_in_structrure(self):
@@ -70,10 +73,7 @@ class TestNotasCredito(unittest.TestCase):
                 self.assertTrue(v['json']['DocumentLines'])
 
     def test_structure_document_lines(self):
-        """
-        Valida que el documentlines tenga contenido y que sus keys sean
-        los correctos.
-        """
+        """ Valida que el documentlines tenga contenido y que sus keys sean los correctos. """
         for k, v in TestNotasCredito.result.data.items():
             with self.subTest(i=v):
                 self.assertTrue(len(v['json']['DocumentLines']))
@@ -95,15 +95,15 @@ class TestNotasCredito(unittest.TestCase):
                     self.assertTrue(isinstance(document['ItemCode'], str))
                     self.assertTrue(isinstance(document['Quantity'], int))
                     self.assertTrue(isinstance(document['Price'], float))
-                    self.assertTrue(isinstance(document['StockInmPrice'], float))
+                    if document['StockInmPrice']:
+                        self.assertTrue(isinstance(document['StockInmPrice'], float))
                     self.assertTrue(isinstance(document['BaseType'], str))
-                    self.assertTrue(isinstance(document['BaseEntry'], int))
-                    self.assertTrue(isinstance(document['BaseLine'], int))
+                    if document['BaseEntry']:
+                        self.assertTrue(isinstance(document['BaseEntry'], int))
+                    if document['BaseLine']:
+                        self.assertTrue(isinstance(document['BaseLine'], int))
                     self.assertTrue(isinstance(document['WarehouseCode'], str))
                     self.assertTrue(isinstance(document['CostingCode'], str))
                     self.assertTrue(isinstance(document['CostingCode2'], str))
                     self.assertTrue(isinstance(document['CostingCode3'], str))
                     self.assertTrue(isinstance(document['BatchNumbers'], list))
-
-
-

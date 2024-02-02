@@ -46,8 +46,8 @@ class DBHandler:
 
 
 @not_on_debug
-def crea_registro_migracion() -> RegistroMigracion:
-    migracion = RegistroMigracion(estado='en ejecucion')
+def crea_registro_migracion(custom_status='en ejecucion') -> RegistroMigracion:
+    migracion = RegistroMigracion(estado=custom_status)
     migracion.save()
     return migracion
 
@@ -99,3 +99,8 @@ def update_estado_error_heroku(migracion_id: int) -> None:
 def update_estado_finalizado(migracion_id: int) -> None:
     migracion = RegistroMigracion.objects.get(id=migracion_id)
     update_estado(migracion, 'finalizado')
+
+
+def del_registro_migracion(migracion_id: int) -> None:
+    log.debug(f'excluindo {migracion_id}')
+    RegistroMigracion.objects.get(id=migracion_id).delete()

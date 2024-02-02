@@ -1,29 +1,21 @@
-import json
 import unittest
 
-from base.tests.conf_test import traslados_file
-from core.settings import BASE_DIR
-from utils.parsers import Module
-from utils.sap.manager import SAPData
-
-MANAGER_SAP = SAPData()
-
-
-def make_instance(module_name, filepath):
-    module = Module(name=module_name, filepath=filepath, sap=MANAGER_SAP)
-    return module.exec_migration(export=False)
+from base.tests.conf_test import traslados_file, make_instance
+from utils.interactor_db import del_registro_migracion
 
 
 class TestTraslados(unittest.TestCase):
+    MODULE_NAME = 'traslados'
 
     @classmethod
     def setUpClass(cls):
         fp = traslados_file
-        cls.result = make_instance('traslados', fp)
+        cls.module = make_instance(cls.MODULE_NAME, fp)
+        cls.result = cls.module.exec_migration(tanda='TEST')
 
     @classmethod
     def tearDownClass(cls):
-        ...
+        del_registro_migracion(cls.module.migracion_id)
 
     def test_structrure(self):
         """Valida que vengan exactamente los keys esperados"""

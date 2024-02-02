@@ -1,15 +1,18 @@
 import unittest
 
-from base.tests.conf_test import dispensacion_file, facturacion_file, make_instance
-from core.settings import BASE_DIR
+from base.tests.conf_test import dispensacion_file, make_instance
+from base.tests.common_tests import CustomTestsMixin, DocumentLinesTestsMixin
 
 
-class TestDispensacion(unittest.TestCase):
+class TestDispensacion(CustomTestsMixin, DocumentLinesTestsMixin, unittest.TestCase):
     """python -m unittest base.tests.test_dispensacion"""
+    MODULE_NAME = 'dispensacion'
+
     @classmethod
     def setUpClass(cls):
         fp = dispensacion_file
-        cls.result = make_instance('dispensacion', fp)
+        cls.module = make_instance(cls.MODULE_NAME, fp)
+        cls.result = cls.module.exec_migration(tanda='TEST')
 
     @classmethod
     def tearDownClass(cls):
@@ -23,28 +26,28 @@ class TestDispensacion(unittest.TestCase):
 
     def test_structrure(self):
         """Valida que vengan exactamente los keys esperados"""
-        for k, v in TestDispensacion.result.data.items():
+        for k, v in self.result.data.items():
             with self.subTest(i=v):
                 if self.is_capita(v):
                     self.assertCountEqual(
                         list(v['json'].keys()),
-                        ["Series", "DocDate", "U_HBT_Tercero", "Comments",
-                         "U_LF_Plan", "U_LF_IdAfiliado", "U_LF_NombreAfiliado",
+                        ["Series", "DocDate", "TaxDate", "U_HBT_Tercero", "Comments",
+                         "U_LF_Plan", "U_LF_IdAfiliado", "U_LF_NombreAfiliado", "U_LF_IDSSC",
                          "U_LF_Formula", "U_LF_NivelAfiliado", "U_LF_Autorizacion",
-                         "U_LF_Mipres", "U_LF_Usuario", "DocumentLines"]
+                         "U_LF_Mipres", "U_LF_Usuario", "JournalMemo", "DocumentLines"]
                     )
                 elif self.is_evento(v):
                     self.assertCountEqual(
                         list(v['json'].keys()),
                         ["Series", "DocDate", "TaxDate", "CardCode", "U_HBT_Tercero", "Comments",
-                         "U_LF_Plan", "U_LF_IdAfiliado", "U_LF_NombreAfiliado",
+                         "U_LF_Plan", "U_LF_IdAfiliado", "U_LF_NombreAfiliado", "U_LF_IDSSC",
                          "U_LF_Formula", "U_LF_NivelAfiliado", "U_LF_Autorizacion",
                          "U_LF_Mipres", "U_LF_Usuario", "DocumentLines"]
                     )
 
     def test_types_in_structrure(self):
         """Valida los tipos de cada value"""
-        for k, v in TestDispensacion.result.data.items():
+        for k, v in self.result.data.items():
             with self.subTest(i=v):
                 self.assertTrue(isinstance(v['json']['Series'], int))
                 self.assertTrue(isinstance(v['json']['DocDate'], str))
@@ -55,16 +58,20 @@ class TestDispensacion(unittest.TestCase):
                 self.assertTrue(isinstance(v['json']['U_LF_NombreAfiliado'], str))
                 self.assertTrue(isinstance(v['json']['U_LF_Formula'], str))
                 self.assertTrue(isinstance(v['json']['U_LF_NivelAfiliado'], int))
-                self.assertTrue(isinstance(v['json']['U_LF_Autorizacion'], int))
+                if self.is_evento(v):
+                    self.assertTrue(isinstance(v['json']['U_LF_Autorizacion'], int))
+                else:
+                    self.assertTrue(isinstance(v['json']['U_LF_Autorizacion'], str))
                 self.assertTrue(isinstance(v['json']['U_LF_Mipres'], str))
                 self.assertTrue(isinstance(v['json']['U_LF_Usuario'], str))
                 self.assertTrue(isinstance(v['json']['DocumentLines'], list))
                 if self.is_evento(v):
                     self.assertTrue(isinstance(v['json']['CardCode'], str))
                     self.assertTrue(isinstance(v['json']['TaxDate'], str))
+
     def test_content_in_structrure(self):
         """Valida que hayan datos en los keys obligatórios."""
-        for k, v in TestDispensacion.result.data.items():
+        for k, v in self.result.data.items():
             with self.subTest(i=v):
                 self.assertTrue(v['json']['Series'])
                 self.assertTrue(v['json']['DocDate'])
@@ -75,7 +82,8 @@ class TestDispensacion(unittest.TestCase):
                 self.assertTrue(v['json']['U_LF_NombreAfiliado'])
                 self.assertTrue(v['json']['U_LF_Formula'])
                 self.assertTrue(v['json']['U_LF_NivelAfiliado'])
-                self.assertTrue(v['json']['U_LF_Autorizacion'])
+                if self.is_evento(v):
+                    self.assertTrue(v['json']['U_LF_Autorizacion'])
                 # self.assertTrue(v['json']['U_LF_Mipres'])
                 self.assertTrue(v['json']['U_LF_Usuario'])
                 self.assertTrue(v['json']['DocumentLines'])
@@ -88,7 +96,7 @@ class TestDispensacion(unittest.TestCase):
         Valida que el documentlines tenga contenido y que sus keys sean
         los correctos.
         """
-        for k, v in TestDispensacion.result.data.items():
+        for k, v in self.result.data.items():
             with self.subTest(i=v):
                 self.assertTrue(len(v['json']['DocumentLines']))
                 for document in v['json']['DocumentLines']:
@@ -110,7 +118,7 @@ class TestDispensacion(unittest.TestCase):
 
     def test_types_document_lines(self):
         """Valida los tipos de datos del documentlines."""
-        for k, v in TestDispensacion.result.data.items():
+        for k, v in self.result.data.items():
             for document in v['json']['DocumentLines']:
                 with self.subTest(i=document):
                     self.assertTrue(isinstance(document['ItemCode'], str))
@@ -128,7 +136,7 @@ class TestDispensacion(unittest.TestCase):
     def test_batch_numbers(self):
         """Valida que BatchNumbers tenga al menos un elemento
         y que cada uno sea de tipo diccionario."""
-        for k, v in TestDispensacion.result.data.items():
+        for k, v in self.result.data.items():
             for line in v['json']['DocumentLines']:
                 with self.subTest(i=line):
                     self.assertTrue(line['BatchNumbers'])
@@ -136,7 +144,7 @@ class TestDispensacion(unittest.TestCase):
 
     def test_structure_batch_numbers(self):
         """Valida que los keys de los BatchNumbers sean los correctos."""
-        for k, v in TestDispensacion.result.data.items():
+        for k, v in self.result.data.items():
             for line in v['json']['DocumentLines']:
                 for batch in line['BatchNumbers']:
                     with self.subTest(i=batch):
@@ -144,7 +152,7 @@ class TestDispensacion(unittest.TestCase):
 
     def test_types_batch_numbers(self):
         """Valida los tipos de datos del BatchNumbers."""
-        for k, v in TestDispensacion.result.data.items():
+        for k, v in self.result.data.items():
             for line in v['json']['DocumentLines']:
                 for batch in line['BatchNumbers']:
                     with self.subTest(i=batch):
@@ -156,7 +164,7 @@ class TestDispensacion(unittest.TestCase):
         Valida que la cantidad total sea igual a la suma de las cantidades
         de los lotes.
         """
-        for k, v in TestDispensacion.result.data.items():
+        for k, v in self.result.data.items():
             for batch in v['json']['DocumentLines']:
                 with self.subTest(i=batch):
                     cant = batch['Quantity']

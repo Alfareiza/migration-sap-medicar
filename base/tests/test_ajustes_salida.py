@@ -1,14 +1,17 @@
 import unittest
 
+from base.tests.common_tests import CustomTestsMixin, DocumentLinesTestsMixin
 from base.tests.conf_test import ajustes_salida_file, make_instance
 
 
-class TestAjustesSalida(unittest.TestCase):
+class TestAjustesSalida(CustomTestsMixin, DocumentLinesTestsMixin, unittest.TestCase):
+    MODULE_NAME = 'ajustes_salida'
 
     @classmethod
     def setUpClass(cls):
         fp = ajustes_salida_file
-        cls.result = make_instance('ajustes_salida', fp)
+        cls.module = make_instance(cls.MODULE_NAME, fp)
+        cls.result = cls.module.exec_migration(tanda='TEST')
 
     @classmethod
     def tearDownClass(cls):
@@ -16,7 +19,7 @@ class TestAjustesSalida(unittest.TestCase):
 
     def test_structrure(self):
         """Valida que vengan exactamente los keys esperados"""
-        for k, v in TestAjustesSalida.result.data.items():
+        for k, v in self.result.data.items():
             with self.subTest(i=v):
                 self.assertCountEqual(
                     list(v['json'].keys()),
@@ -26,7 +29,7 @@ class TestAjustesSalida(unittest.TestCase):
 
     def test_types_in_structrure(self):
         """Valida los tipos de cada value"""
-        for k, v in TestAjustesSalida.result.data.items():
+        for k, v in self.result.data.items():
             with self.subTest(i=v):
                 self.assertTrue(isinstance(v['json']['Series'], int))
                 self.assertTrue(isinstance(v['json']['DocDate'], str))
@@ -36,7 +39,7 @@ class TestAjustesSalida(unittest.TestCase):
                 self.assertTrue(isinstance(v['json']['DocumentLines'], list))
     def test_content_in_structrure(self):
         """Valida que hayan datos en los keys obligatórios."""
-        for k, v in TestAjustesSalida.result.data.items():
+        for k, v in self.result.data.items():
             with self.subTest(i=v):
                 self.assertTrue(v['json']['Series'])
                 self.assertTrue(v['json']['DocDate'])
@@ -50,7 +53,7 @@ class TestAjustesSalida(unittest.TestCase):
         Valida que el documentlines tenga contenido y que sus keys sean
         los correctos.
         """
-        for k, v in TestAjustesSalida.result.data.items():
+        for k, v in self.result.data.items():
             with self.subTest(i=v):
                 self.assertTrue(len(v['json']['DocumentLines']))
                 for document in v['json']['DocumentLines']:
@@ -64,7 +67,7 @@ class TestAjustesSalida(unittest.TestCase):
 
     def test_types_document_lines(self):
         """Valida los tipos de datos del documentlines."""
-        for k, v in TestAjustesSalida.result.data.items():
+        for k, v in self.result.data.items():
             for document in v['json']['DocumentLines']:
                 with self.subTest(i=document):
                     self.assertTrue(isinstance(document['ItemCode'], str))
@@ -78,7 +81,7 @@ class TestAjustesSalida(unittest.TestCase):
     def test_batch_numbers(self):
         """Valida que BatchNumbers tenga al menos un elemento
         y que cada uno sea de tipo diccionario."""
-        for k, v in TestAjustesSalida.result.data.items():
+        for k, v in self.result.data.items():
             for line in v['json']['DocumentLines']:
                 with self.subTest(i=line):
                     self.assertTrue(line['BatchNumbers'])
@@ -86,7 +89,7 @@ class TestAjustesSalida(unittest.TestCase):
 
     def test_structure_batch_numbers(self):
         """Valida que los keys de los BatchNumbers sean los correctos."""
-        for k, v in TestAjustesSalida.result.data.items():
+        for k, v in self.result.data.items():
             for line in v['json']['DocumentLines']:
                 for batch in line['BatchNumbers']:
                     with self.subTest(i=batch):
@@ -94,7 +97,7 @@ class TestAjustesSalida(unittest.TestCase):
 
     def test_types_batch_numbers(self):
         """Valida los tipos de datos del BatchNumbers."""
-        for k, v in TestAjustesSalida.result.data.items():
+        for k, v in self.result.data.items():
             for line in v['json']['DocumentLines']:
                 for batch in line['BatchNumbers']:
                     with self.subTest(i=batch):
@@ -106,7 +109,7 @@ class TestAjustesSalida(unittest.TestCase):
         Valida que la cantidad total sea igual a la suma de las cantidades
         de los lotes.
         """
-        for k, v in TestAjustesSalida.result.data.items():
+        for k, v in self.result.data.items():
             for batch in v['json']['DocumentLines']:
                 with self.subTest(i=batch):
                     cant = batch['Quantity']
