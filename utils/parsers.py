@@ -6,6 +6,7 @@ from pathlib import Path, PosixPath
 from typing import Optional
 
 from googleapiclient.errors import HttpError
+from django.conf import settings
 
 from base.models import PayloadMigracion
 from core.settings import logger as log, BASE_DIR, SAP_URL
@@ -61,54 +62,50 @@ class Module:
                             'drive object at the same time.')
 
         match self.name.lower():
-            # case 'factura_eventos':
-            #     self.url = f'{self.BASE_URL}/Invoices'
-            #     self.pk = str()  # TODO Confirmar con el csv que va a entregar medicar
-            #     self.series = 4
-            case 'facturacion':
+            case settings.FACTURACION_NAME:
                 self.url = {'EVENTO': f'{self.BASE_URL}/Invoices'}
                 self.pk = 'NroSSC'
                 self.series = {'EVENTO': 4}
-            case 'notas_credito':
+            case settings.NOTAS_CREDITO_NAME:
                 self.url = f'{self.BASE_URL}/CreditNotes'
                 self.pk = 'NroSSC'
                 self.series = 78
-            case 'pagos_recibidos':
+            case settings.PAGOS_RECIBIDOS_NAME:
                 self.url = f'{self.BASE_URL}/IncomingPayments'
                 self.pk = 'NIT'  # Preguntar a Elias cual es el pk
                 self.series = 79
-            case 'dispensacion':
+            case settings.DISPENSACION_NAME:
                 self.url = {
                     "CAPITA": f'{self.BASE_URL}/InventoryGenExits',
                     "EVENTO": f'{self.BASE_URL}/DeliveryNotes'
                 }
                 self.pk = 'NroSSC'
                 self.series = {'CAPITA': 77, 'EVENTO': 81}
-            case 'traslados':
+            case settings.TRASLADOS_NAME:
                 self.url = f'{self.BASE_URL}/StockTransfers'
                 self.pk = 'NroDocumento'
                 self.series = None  # No usa
-            case 'compras':
+            case settings.COMPRAS_NAME:
                 self.url = f'{self.BASE_URL}/PurchaseDeliveryNotes'
                 self.pk = 'NroDocumento'
                 self.series = 80
-            case 'ajustes_salida':
+            case settings.AJUSTES_SALIDA_NAME:
                 self.url = f'{self.BASE_URL}/InventoryGenExits'
                 self.pk = 'NroDocumento'
                 self.series = 82
-            case 'ajustes_entrada':
+            case settings.AJUSTES_ENTRADA_NAME:
                 self.url = f'{self.BASE_URL}/InventoryGenEntries'
                 self.pk = 'NroDocumento'
                 self.series = 83
-            case 'ajustes_entrada_prueba':
+            case settings.AJUSTES_ENTRADA_PRUEBA_NAME:
                 self.url = f'{self.BASE_URL}/InventoryGenEntries'
                 self.pk = 'despacho'
                 self.series = 83
-            case 'dispensaciones_anuladas':
+            case settings.DISPENSACIONES_ANULADAS_NAME:
                 self.url = f'{self.BASE_URL}/InventoryGenEntries'
                 self.pk = 'NroSSC'
                 self.series = 83
-            case 'ajustes_vencimiento_lote':
+            case settings.settings.AJUSTES_LOTE_NAME:
                 self.url = f'{self.BASE_URL}/BatchNumberDetails({{}})'  # TODO: Probar endpoint antes de implementar código
                 self.series = None
                 self.pk = 'Lote'
@@ -149,13 +146,15 @@ class Parser:
         # del self.pipeline[-1]
 
     def set_pipeline(self):
-        """ Define cual va a ser el pipelien con base en param. """
+        """ Define cual va a ser el pipeline con base en param. """
         if self.tanda == '1RA':
             self.pipeline = (Validate, ProcessCSV, SaveInBD, ProcessSAP)
         elif self.tanda == '2DA':
             self.pipeline = (ProcessSAP, Export, Mail, ExcludeFromDB)
+        if self.tanda == 'TEST':
+            self.pipeline = (Validate, ProcessCSV, SaveInBD, Export, ExcludeFromDB)
         else:
-            raise Exception(f'Tanda no ha sido definida.')
+            raise Exception('Tanda no ha sido definida.')
 
     @logtime('')
     def run(self):

@@ -2,6 +2,7 @@ import csv
 import json
 import pickle
 from dataclasses import dataclass
+from django.conf import settings
 
 from base.models import PayloadMigracion
 from core.settings import (
@@ -38,27 +39,27 @@ class Validate:
     def validate_header(module_name, fieldnames):
         """Valida que os campos do modulo estejam como é esperado"""
         match module_name:
-            case 'compras':
+            case settings.COMPRAS_NAME:
                 fields = COMPRAS_HEADER
-            case 'traslados':
+            case settings.TRASLADOS_NAME:
                 fields = TRASLADOS_HEADER
-            case 'ajustes_entrada_prueba':
+            case settings.AJUSTES_ENTRADA_PRUEBA_NAME:
                 fields = AJUSTES_ENTRADA_PRUEBA_HEADER
-            case 'ajustes_entrada':
+            case settings.AJUSTES_ENTRADA_NAME:
                 fields = AJUSTES_ENTRADA_HEADER
-            case 'ajustes_salida':
+            case settings.AJUSTES_SALIDA_NAME:
                 fields = AJUSTES_SALIDA_HEADER
-            case 'ajustes_vencimiento_lote':
+            case settings.AJUSTES_LOTE_NAME:
                 fields = AJUSTE_LOTE_HEADER
-            case 'dispensacion':
+            case settings.DISPENSACION_NAME:
                 fields = DISPENSACION_HEADER
-            case 'dispensaciones_anuladas':
+            case settings.DISPENSACIONES_ANULADAS_NAME:
                 fields = DISPENSACIONES_ANULADAS_HEADER
-            case 'facturacion':
+            case settings.FACTURACION_NAME:
                 fields = FACTURACION_HEADER
-            case 'notas_credito':
+            case settings.NOTAS_CREDITO_NAME:
                 fields = NOTAS_CREDITO_HEADER
-            case 'pagos_recibidos':
+            case settings.PAGOS_RECIBIDOS_NAME:
                 fields = PAGOS_RECIBIDOS_HEADER
             case _:
                 fields = {}

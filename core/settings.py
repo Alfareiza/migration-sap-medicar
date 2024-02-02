@@ -150,8 +150,20 @@ ch.setFormatter(formatter)
 # add ch to logger
 logger.addHandler(ch)
 
-# HEADERS CSV
+# NAME OF MODULES
+COMPRAS_NAME = 'compras'
+TRASLADOS_NAME = 'traslados'
+AJUSTES_ENTRADA_PRUEBA_NAME = 'ajustes_entrada_prueba'
+AJUSTES_ENTRADA_NAME = 'ajustes_entrada'
+AJUSTES_SALIDA_NAME = 'ajustes_salida'
+AJUSTES_LOTE_NAME = 'ajustes_vencimiento_lote'
+DISPENSACION_NAME = 'dispensacion'
+DISPENSACIONES_ANULADAS_NAME = 'dispensaciones_anuladas'
+FACTURACION_NAME = 'facturacion'
+NOTAS_CREDITO_NAME = 'notas_credito'
+PAGOS_RECIBIDOS_NAME = 'pagos_recibidos'
 
+# HEADERS CSV
 DISPENSACION_HEADER = {
     'FechaDispensacion', 'SubPlan', 'NIT', 'Plan', 'NroDocumento',
     'Beneficiario', 'NroSSC', 'Categoria', 'NroAutorizacion',
@@ -163,7 +175,7 @@ DISPENSACION_HEADER = {
 FACTURACION_HEADER = {
     'FechaFactura', 'NIT', 'Plan', 'SubPlan', 'Factura', 'NroDocumento',
     'Beneficiario', 'NroSSC', 'Categoria', 'NroAutorizacion',
-    'Mipres', 'Plu', 'CECO', 'CantidadDispensada', 'Precio'
+    'Mipres', 'Plu', 'CECO', 'CantidadDispensada', 'Precio', 'Articulo', 'IVA'
 }
 
 NOTAS_CREDITO_HEADER = {
@@ -174,8 +186,13 @@ NOTAS_CREDITO_HEADER = {
 }
 
 AJUSTES_SALIDA_HEADER = {
-    'FechaAjuste', 'Plu', 'TipoAjuste', 'CECO',
-    'NroDocumento', 'Lote', 'Cantidad', 'TipoAjuste'
+    'FechaAjuste',
+    'Plu',
+    'CECO',
+    'NroDocumento',
+    'Lote',
+    'Cantidad',
+    'TipoAjuste',
 }
 
 AJUSTES_ENTRADA_HEADER = AJUSTES_SALIDA_HEADER.union({'Precio', 'FechaVencimiento'})
@@ -210,6 +227,12 @@ AJUSTES_ENTRADA_PRUEBA_HEADER = {
     'codigo', 'cantidad', 'lote', 'fecha_venc', 'Costo',
     'usuario',
 }
+
+# MODULES THAT USE CECO 391
+MODULES_USE_DOCUMENTLINES = [COMPRAS_NAME, AJUSTES_ENTRADA_PRUEBA_NAME,
+                             AJUSTES_ENTRADA_NAME, AJUSTES_SALIDA_NAME,
+                             DISPENSACION_NAME, DISPENSACIONES_ANULADAS_NAME,
+                             FACTURACION_NAME, NOTAS_CREDITO_NAME]
 
 # SAP INFORMATION
 

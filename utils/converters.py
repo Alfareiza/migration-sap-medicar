@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-
+from django.conf import settings
 from base.templatetags.filter_extras import make_text_status
 from core.settings import logger as log
 from utils.decorators import logtime
@@ -321,13 +321,27 @@ class Csv2Dict:
         log.error(f"{self.pk} {row[f'{self.pk}']}. Plu no reconocido : {item_code!r}")
         self.reg_error(row, f"[CSV] Plu no reconocido: {item_code!r}")
 
+    def get_iva_code(self, row):
+        """Busca el IVA en Columna y devuelve el código correspondiente"""
+        iva_code = row.get('IVA', '')
+
+        match iva_code:
+            case '0.0':
+                return 'NOGRAVADOS'
+            case '19.0':
+                return 'GRAVADOS19'
+            case _:
+                txt = f"Detectado IVA inválido {iva_code!r}"
+                log.error(f"{self.pk} {row[f'{self.pk}']}. {txt}")
+                self.reg_error(row, txt)
+
 
     def pending_to_implement(self, row, msg):
         txt = f"[CSV] {msg}. {row[self.pk]!r}"
         log.error(f"{self.pk} {row[f'{self.pk}']}. {txt}")
         self.reg_error(row, txt)
 
-    def get_doc_entry_factura(self, row):
+    def get_doc_entry_factura(self, row) -> str:
         """Busca el doc entry de la factura correspondiente."""
         try:
             dentry = self.sap.get_docentry_factura(row[self.pk])
@@ -484,17 +498,7 @@ class Csv2Dict:
             "CostingCode2": row.get("CECO", ''),
         }
         match self.name:
-            case 'factura_eventos':  # 1.2
-                document_lines.update(
-                    ItemCode=self.get_plu(row),
-                    # TODO: Preguntar a Marlay cual es el ItemCode Cuando se trata de 1.2 Factura Eventos 391
-                    ItemDescription=row["Articulo"],
-                    Price=self.make_float(row, "Vlr.Unitario Margen"),
-                    Quantity=self.make_int(row, "Cantidad"),
-                    CostingCode=self.get_costing_code(row),
-                    CostingCode3=str(),  # TODO: Preguntar a Marlay de donde se saca el # de contrato?
-                )
-            case 'facturacion':  # 5.1
+            case settings.FACTURACION_NAME:  # 5.1
                 document_lines.update(
                     Quantity=self.make_int(row, "CantidadDispensada"),
                     Price=self.make_float(row, "Precio"),
@@ -505,8 +509,8 @@ class Csv2Dict:
                 if document_lines.get('WarehouseCode') == '391':
                     self.pending_to_implement(row, 'No se ha implementado facturación cuando CECO es 391')
                     document_lines.update(
-                        ItemDescription='...por definir',
-                        ItemCode='...por definir'
+                        ItemDescription=row['Articulo'],
+                        ItemCode=self.get_iva_code(row)
                     )
                 else:
                     document_lines.update(
@@ -514,7 +518,7 @@ class Csv2Dict:
                         BaseEntry=self.get_doc_entry_factura(row),
                         ItemCode=self.get_plu(row),
                     )
-            case 'notas_credito':  # 2
+            case settings.NOTAS_CREDITO_NAME:
                 document_lines.update(
                     ItemCode=self.get_plu(row),
                     Quantity=self.make_int(row, "CantidadDispensada"),
@@ -532,7 +536,7 @@ class Csv2Dict:
                         }
                     ]
                 )
-            case 'dispensacion':  # 4 y 5
+            case settings.DISPENSACION_NAME:  # 4 y 5
                 if row[self.pk] in self.data and self.data[row[self.pk]]['json']:
                     self.single_serie = self.data[row[self.pk]]['json']['Series']
                 if self.single_serie == self.series['CAPITA']:  # 4
@@ -564,7 +568,7 @@ class Csv2Dict:
                             }
                         ]
                     )
-            case 'compras':  # 7
+            case settings.COMPRAS_NAME:  # 7
                 for key in ('CostingCode2',):
                     document_lines.pop(key, None)
                 document_lines.update(
@@ -579,7 +583,7 @@ class Csv2Dict:
                     ],
                 )
                 document_lines.update(Quantity=self.get_num_in_buy(row, document_lines['BatchNumbers'][0]['Quantity']))
-            case 'ajustes_salida':  # 8.1
+            case settings.AJUSTES_SALIDA_NAME:  # 8.1
                 document_lines.update(
                     ItemCode=self.get_plu(row),
                     Quantity=self.make_int(row, "Cantidad"),
@@ -592,7 +596,7 @@ class Csv2Dict:
                         }
                     ]
                 )
-            case 'ajustes_entrada':  # 8.2
+            case settings.AJUSTES_ENTRADA_NAME:  # 8.2
                 document_lines.update(
                     ItemCode=self.get_plu(row),
                     Quantity=self.make_int(row, "Cantidad"),
@@ -607,7 +611,7 @@ class Csv2Dict:
                         }
                     ]
                 )
-            case 'ajustes_entrada_prueba':
+            case settings.AJUSTES_ENTRADA_PRUEBA_NAME:
                 document_lines.update(
                     ItemCode=self.get_plu(row, 'codigo'),
                     WarehouseCode=row.get("bodega_ent", ''),
@@ -624,7 +628,7 @@ class Csv2Dict:
                         }
                     ]
                 )
-            case 'dispensaciones_anuladas':
+            case settings.DISPENSACIONES_ANULADAS_NAME:
                 document_lines.update(
                     ItemCode=self.get_plu(row),
                     Quantity=self.make_int(row, "Cantidad"),
@@ -653,7 +657,7 @@ class Csv2Dict:
             "U_LF_Usuario": row.get("UsuarioDispensa", '')
         }
         match self.name:
-            case 'facturacion':  # 5.1, 2  [Implementado]
+            case settings.FACTURACION_NAME:  # 5.1, 2  [Implementado]
                 base_dct.update(
                     Series=self.get_series(row),
                     DocDate=self.transform_date(row, "FechaFactura"),
@@ -676,7 +680,7 @@ class Csv2Dict:
                                             base_dct['DocumentLines'][0]['Price'])
                     }
                 ], )
-            case 'notas_credito':
+            case settings.NOTAS_CREDITO_NAME:
                 base_dct.update(
                     Series=self.series,
                     DocDate=self.transform_date(row, "FechaFactura"),
@@ -685,35 +689,14 @@ class Csv2Dict:
                     CardCode=self.get_codigo_tercero(row),
                     U_LF_Plan=self.get_plan(row),
                     U_LF_NivelAfiliado=self.make_int(row, "CategoriaActual"),
+                    U_HBT_Tercero=self.get_codigo_tercero(row),
                     U_LF_NombreAfiliado=self.get_nombre_afiliado(row),
                     U_LF_Autorizacion=self.make_int(row, "NroAutorizacion"),
                     Comments=load_comments(row, 'UsuarioDispensa'),
                     U_LF_Mipres=row.get("MiPres", ''),
                     DocumentLines=[self.build_document_lines(row)],
                 )
-            # No se está usando factura_eventos 21/Dic/23
-            case 'factura_eventos':  # 1.2  [Pendiente en probar con csv (puede ser que se mezcle con el de arriba)]
-                # TODO Preguntar a Marlay, de donde se va a tomar el CardCode y U_HBT_Tercero (código del cliente?)
-                base_dct.update(
-                    Series=self.get_series(row),
-                    DocDate=self.transform_date(row, "Fecha Factura"),
-                    TaxDate=self.transform_date(row, "Fecha Factura"),
-                    NumAtCard=row['Factura'],
-                    CardCode=self.get_codigo_tercero(row),
-                    U_HBT_Tercero=self.get_codigo_tercero(row),
-                    U_LF_Plan=self.get_plan(row),
-                    U_LF_NivelAfiliado=self.make_int(row, "CategoriaActual"),
-                    U_LF_NombreAfiliado=self.get_nombre_afiliado(row),
-                    U_LF_Autorizacion=self.get_num_aut(row),
-                    DocumentLines=[self.build_document_lines(row)],
-                    WithholdingTaxDataCollection=[
-                        {
-                            "WTCode": "RFEV",
-                            "Rate": 100
-                        }
-                    ]
-                )
-            case 'dispensacion':  # 4 y 5 [Implementado]
+            case settings.DISPENSACION_NAME:  # 4 y 5 [Implementado]
                 base_dct.update(Series=self.get_series(row))
                 if base_dct['Series'] == 77:  # 4
                     base_dct.update(DocDate=self.transform_date(row, "FechaDispensacion"))
@@ -754,7 +737,7 @@ class Csv2Dict:
                         U_LF_NombreAfiliado=self.get_nombre_afiliado(row),
                         DocumentLines=[self.build_document_lines(row)],
                     )
-            case 'traslados':  # 6
+            case settings.TRASLADOS_NAME:  # 6
                 for key in ('Comments', "U_LF_IdAfiliado", "U_LF_Formula",
                             "U_LF_Mipres", "U_LF_Usuario"):
                     base_dct.pop(key)
@@ -766,7 +749,7 @@ class Csv2Dict:
                     ToWarehouse=row['CentroDestino'],
                     StockTransferLines=[self.build_stock_transfer_lines(row)]
                 )
-            case 'compras':  # 7
+            case settings.COMPRAS_NAME:  # 7
                 for key in ("U_LF_IdAfiliado", "U_LF_Formula",
                             "U_LF_Mipres", "U_LF_Usuario"):
                     base_dct.pop(key)
@@ -778,7 +761,7 @@ class Csv2Dict:
                     # TODO de donde se obtiene Prefijo PN+Nit del cliente (PR90056320) debe estar creado en sap?
                     DocumentLines=[self.build_document_lines(row)],
                 )
-            case 'ajustes_salida':  # 8.1
+            case settings.AJUSTES_SALIDA_NAME:  # 8.1
                 for key in ("U_LF_IdAfiliado", "U_LF_Formula",
                             "U_LF_Mipres", "U_LF_Usuario"):
                     base_dct.pop(key, None)
@@ -789,7 +772,7 @@ class Csv2Dict:
                     U_HBT_Tercero="PR900073223",
                     DocumentLines=[self.build_document_lines(row)],
                 )
-            case 'ajustes_entrada':  # 8.2
+            case settings.AJUSTES_ENTRADA_NAME:  # 8.2
                 for key in ("U_LF_IdAfiliado", "U_LF_Formula",
                             "U_LF_Mipres", "U_LF_Usuario"):
                     base_dct.pop(key, None)
@@ -800,7 +783,7 @@ class Csv2Dict:
                     U_HBT_Tercero="PR900073223",
                     DocumentLines=[self.build_document_lines(row)],
                 )
-            case 'ajustes_entrada_prueba':  # 8.2
+            case settings.AJUSTES_ENTRADA_PRUEBA_NAME:  # 8.2
                 for key in ("U_LF_IdAfiliado", "U_LF_Formula",
                             "U_LF_Mipres", "U_LF_Usuario"):
                     base_dct.pop(key, None)
@@ -812,7 +795,7 @@ class Csv2Dict:
                     Comments=load_comments(row, 'usuario'),
                     DocumentLines=[self.build_document_lines(row)],
                 )
-            case 'dispensaciones_anuladas':  # 8.2
+            case settings.DISPENSACIONES_ANULADAS_NAME:  # 8.2
                 base_dct.update(
                     Series=self.series,
                     DocDate=self.transform_date(row, 'FechaAnulacion'),
@@ -826,7 +809,7 @@ class Csv2Dict:
                     U_LF_Autorizacion=self.make_int(row, 'NroAutorizacion') if row.get("NroAutorizacion") else '',
                     DocumentLines=[self.build_document_lines(row)],
                 )
-            case 'ajustes_vencimiento_lote':
+            case settings.AJUSTES_LOTE_NAME:
                 for key in ("U_LF_IdAfiliado", "U_LF_Formula",
                             "U_LF_Mipres", "U_LF_Usuario", "Comments"):
                     base_dct.pop(key, None)
@@ -834,7 +817,7 @@ class Csv2Dict:
                     Series=self.get_abs_entry_from_lote(row),
                     ExpirationDate=self.transform_date(row, 'FechaVencimiento')
                 )
-            case 'pagos_recibidos':
+            case settings.PAGOS_RECIBIDOS_NAME:
                 for key in ("U_LF_IdAfiliado", "U_LF_Formula",
                             "U_LF_Mipres", "U_LF_Usuario", "Comments"):
                     base_dct.pop(key, None)
@@ -870,7 +853,7 @@ class Csv2Dict:
         """
         match self.name:
             case 'dispensacion' | 'ajustes_entrada' | 'ajustes_salida' \
-                 | 'notas_credito' | 'compras' | 'ajustes_entrada_prueba':
+                 | 'notas_credito' | 'compras' | 'ajustes_entrada_prueba' | 'dispensaciones_anuladas':
                 lst_item_codes = [code['ItemCode'] for code in self.data[key]['json']["DocumentLines"]]
                 try:
                     idx = lst_item_codes.index(article['ItemCode'])
@@ -881,7 +864,7 @@ class Csv2Dict:
                 else:
                     self.data[key]['json']["DocumentLines"][idx]['Quantity'] += article['Quantity']
                     self.data[key]['json']["DocumentLines"][idx]['BatchNumbers'].append(article['BatchNumbers'][0])
-            case 'traslados':
+            case settings.TRASLADOS_NAME:
                 lst_item_codes = [code['ItemCode'] for code in self.data[key]['json']["StockTransferLines"]]
                 try:
                     idx = lst_item_codes.index(article['ItemCode'])
@@ -902,7 +885,7 @@ class Csv2Dict:
 
                     self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][0]['BaseLineNumber'] = self.data[key]['json']["StockTransferLines"][idx]['LineNum']
                     self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][1]['BaseLineNumber'] = self.data[key]['json']["StockTransferLines"][idx]['LineNum']
-            case 'facturacion':
+            case settings.FACTURACION_NAME:
                 article['BaseLine'] = self.data[key]['json']["DocumentLines"][-1]['BaseLine'] + 1
                 self.data[key]['json']["DocumentLines"].append(article)
                 self.data[key]['json']["WithholdingTaxDataCollection"][0]['U_HBT_Retencion'] += (article['Quantity']
@@ -915,14 +898,13 @@ class Csv2Dict:
             log.info(f'LN {i} [{self.name}] Leyendo {self.pk} {key}')
             row['Status'] = ''
             if key in self.data:
-                if self.name in ('facturacion', 'notas_credito', 'dispensacion', 'compras',
-                                 'ajustes_entrada_prueba', 'ajustes_entrada', 'ajustes_salida'):
+                if self.name in settings.MODULES_USE_DOCUMENTLINES:
                     self.add_article(key, self.build_document_lines(row))
                     self.data[key]['csv'].append(row)
-                if self.name in ('traslados',):
+                if self.name in (settings.TRASLADOS_NAME,):
                     self.add_article(key, self.build_stock_transfer_lines(row))
                     self.data[key]['csv'].append(row)
-                if self.name in ('pagos_recibidos',):
+                if self.name in (settings.PAGOS_RECIBIDOS_NAME,):
                     self.data[key]["PaymentInvoices"].append(self.build_payment_invoices(row))
             elif key != '':
                 # Entra aquí la primera vez que itera sobre el pk
