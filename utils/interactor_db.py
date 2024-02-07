@@ -102,5 +102,5 @@ def update_estado_finalizado(migracion_id: int) -> None:
 
 
 def del_registro_migracion(migracion_id: int) -> None:
-    log.debug(f'excluindo {migracion_id}')
+    log.debug(f'excluyendo migración #{migracion_id}')
     RegistroMigracion.objects.get(id=migracion_id).delete()
