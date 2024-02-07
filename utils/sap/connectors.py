@@ -17,12 +17,14 @@ class SAPConnect(SAP):
         y ejecutar las peticiones con actualización en DB """
         self.registros = registros
         self.info = csv_to_dict
-        method = self.post if self.info.name != 'ajustes_vencimiento_lote' else self.patch
+        method = self.select_method()
         # self.register(method)
-        self.register_sync(method)
+        self.gotosap(method)
         log.info(f"[{self.info.name}] {len(self.info.succss)} {method.__name__}s "
                  f"exitosos y {len(self.info.errs)} con error.")
 
+    def select_method(self):
+        return self.post if self.info.name != 'ajustes_vencimiento_lote' else self.patch
     # Deprecado Enero/2024
     # @logtime('MASSIVE POSTS')
     # def register(self, method):
@@ -44,7 +46,7 @@ class SAPConnect(SAP):
     #              f'{format_number(length)} {future.result()}')
     #     futures_result.pop(future)
 
-    def register_sync(self, method):
+    def gotosap(self, method):
         """ Ejecuta función request_and_update para todas los payloads """
         length = len(self.info.succss)
         for i, key in enumerate(list(self.info.succss), 1):
@@ -56,8 +58,9 @@ class SAPConnect(SAP):
     def request_and_update(self, method, key, item, url):
         """Hace petición a API y actualiza resultado en BD """
         if has_ceco(self.info.name, item, '391'):
-            res = f"({key}): DocEntry: No aplica"
-            self.update_status_csv_column(key, 'DocEntry: No aplica')
+            msg = 'DocEntry: No aplica'
+            res = f"({key}): {msg}"
+            self.update_status_csv_column(key, msg)
         else:
             res = self.request_info(method, key, item, url)
         self.update_payloadmigracion(key)
@@ -93,7 +96,7 @@ class SAPConnect(SAP):
         :return: None
         """
         res: dict = method(item, url)
-        # res = self.fake_method()
+        # res = self.fake_method(item, url)
         if value_err := res.get('ERROR'):
             self.info.errs.add(key)
             try:

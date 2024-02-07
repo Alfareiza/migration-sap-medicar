@@ -118,7 +118,7 @@ class SAP:
                                 headers=headers, payload=item)
 
     @staticmethod
-    def fake_method() -> dict:
+    def fake_method(item, url) -> dict:
         return random.choice(
             (
                 {"ERROR": "[CONNECTION] fake connection text"},
