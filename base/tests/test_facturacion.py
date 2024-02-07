@@ -1,7 +1,7 @@
 import unittest
 
 from base.tests.conf_test import facturacion_file, make_instance
-from base.tests.common_tests import CustomTestsMixin, DocumentLinesTestsMixin
+from base.tests.base_tests import DocumentLinesTestsMixin, CustomTestsMixin
 from utils.interactor_db import del_registro_migracion
 
 
@@ -143,5 +143,3 @@ class TestFacturacion(DocumentLinesTestsMixin, CustomTestsMixin, unittest.TestCa
                     v['json']['WithholdingTaxDataCollection'][0]['U_HBT_Retencion'],
                     subtotal
                 )
-
-# todo que si es ceco 391, no se va pa sap

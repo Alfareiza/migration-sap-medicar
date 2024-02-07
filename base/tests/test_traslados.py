@@ -1,5 +1,6 @@
 import unittest
 
+from base.tests.base_tests import TestsBaseAdvanced
 from base.tests.conf_test import traslados_file, make_instance
 from utils.interactor_db import del_registro_migracion
 
@@ -19,7 +20,7 @@ class TestTraslados(unittest.TestCase):
 
     def test_structrure(self):
         """Valida que vengan exactamente los keys esperados"""
-        for k, v in TestTraslados.result.data.items():
+        for k, v in self.result.data.items():
             with self.subTest(i=v):
                 self.assertCountEqual(
                     v['json'].keys(),
@@ -29,7 +30,7 @@ class TestTraslados(unittest.TestCase):
 
     def test_types_in_structrure(self):
         """Valida los tipos de cada value"""
-        for k, v in TestTraslados.result.data.items():
+        for k, v in self.result.data.items():
             with self.subTest(i=v):
                 self.assertTrue(isinstance(v['json']['DocDate'], str))
                 self.assertTrue(isinstance(v['json']['CardCode'], str))
@@ -40,10 +41,10 @@ class TestTraslados(unittest.TestCase):
 
     def test_content_in_structrure(self):
         """Valida que hayan datos en los keys obligatórios."""
-        for k, v in TestTraslados.result.data.items():
+        for k, v in self.result.data.items():
             with self.subTest(i=v):
                 self.assertTrue(v['json']['DocDate'])
-                self.assertTrue(v['json']['CardCode'])
+                self.assertTrue(v['json']['CardCode'] == 'PR900073223')
                 self.assertTrue(v['json']['JournalMemo'])
                 self.assertTrue(v['json']['FromWarehouse'])
                 self.assertTrue(v['json']['ToWarehouse'])
@@ -54,7 +55,7 @@ class TestTraslados(unittest.TestCase):
         Valida que el StockTransferLines tenga contenido y que sus keys sean
         los correctos.
         """
-        for k, v in TestTraslados.result.data.items():
+        for k, v in self.result.data.items():
             with self.subTest(i=v):
                 self.assertTrue(len(v['json']['StockTransferLines']))
                 for document in v['json']['StockTransferLines']:
@@ -67,7 +68,7 @@ class TestTraslados(unittest.TestCase):
 
     def test_types_stock_transfer_lines(self):
         """Valida los tipos de datos del StockTransferLines."""
-        for k, v in TestTraslados.result.data.items():
+        for k, v in self.result.data.items():
             for document in v['json']['StockTransferLines']:
                 with self.subTest(i=document):
                     self.assertTrue(isinstance(document['ItemCode'], str))
@@ -80,7 +81,7 @@ class TestTraslados(unittest.TestCase):
         """
         Valida que BatchNumbers tenga al menos un elemento
         y que cada uno sea de tipo diccionario"""
-        for k, v in TestTraslados.result.data.items():
+        for k, v in self.result.data.items():
             for line in v['json']['StockTransferLines']:
                 with self.subTest(i=line):
                     self.assertTrue(line['BatchNumbers'])
@@ -90,7 +91,7 @@ class TestTraslados(unittest.TestCase):
         """
         Valida que los keys de los BatchNumbers sean los correctos.
         """
-        for k, v in TestTraslados.result.data.items():
+        for k, v in self.result.data.items():
             for line in v['json']['StockTransferLines']:
                 for batch in line['BatchNumbers']:
                     with self.subTest(i=batch):
@@ -98,7 +99,7 @@ class TestTraslados(unittest.TestCase):
 
     def test_types_batch_numbers(self):
         """Valida los tipos de datos del BatchNumbers"""
-        for k, v in TestTraslados.result.data.items():
+        for k, v in self.result.data.items():
             for line in v['json']['StockTransferLines']:
                 for batch in line['BatchNumbers']:
                     with self.subTest(i=batch):
@@ -108,7 +109,7 @@ class TestTraslados(unittest.TestCase):
     def test_logic_batch_numbers(self):
         """Valida que la cantidad total sea igual a la suma de las cantidades
         de los lotes."""
-        for k, v in TestTraslados.result.data.items():
+        for k, v in self.result.data.items():
             for batch in v['json']['StockTransferLines']:
                 with self.subTest(i=batch):
                     cant = batch['Quantity']
@@ -118,7 +119,7 @@ class TestTraslados(unittest.TestCase):
     def test_stock_transfer_lines_bin_allocations(self):
         """Valida que StockTransferLinesBinAllocations tenga dos elementos
         y que cada uno sea de tipo diccionário"""
-        for k, v in TestTraslados.result.data.items():
+        for k, v in self.result.data.items():
             for line in v['json']['StockTransferLines']:
                 with self.subTest(i=line):
                     self.assertTrue(len(line['StockTransferLinesBinAllocations']) == 2)
@@ -127,7 +128,7 @@ class TestTraslados(unittest.TestCase):
 
     def test_structure_stock_transfer_lines_bin_allocations(self):
         """Valida los tipos de datos del StockTransferLines."""
-        for k, v in TestTraslados.result.data.items():
+        for k, v in self.result.data.items():
             for line in v['json']['StockTransferLines']:
                 for bin in line['StockTransferLinesBinAllocations']:
                     with self.subTest(i=bin):
@@ -139,7 +140,7 @@ class TestTraslados(unittest.TestCase):
 
     def test_types_stock_transfer_lines_bin_allocations(self):
         """Valida los tipos de datos del StockTransferLines."""
-        for k, v in TestTraslados.result.data.items():
+        for k, v in self.result.data.items():
             for line in v['json']['StockTransferLines']:
                 for bin in line['StockTransferLinesBinAllocations']:
                     with self.subTest(i=bin):
@@ -152,7 +153,7 @@ class TestTraslados(unittest.TestCase):
     def test_logic_stock_transfer_lines_bin_allocations(self):
         """Valida que los dos elementos de StockTransferLinesBinAllocations
         tengan to do igual excepto el BinAbsEntry"""
-        for k, v in TestTraslados.result.data.items():
+        for k, v in self.result.data.items():
             for line in v['json']['StockTransferLines']:
                 with self.subTest(i=line):
                     bin_one = line['StockTransferLinesBinAllocations'][0]
@@ -163,3 +164,8 @@ class TestTraslados(unittest.TestCase):
                     self.assertEqual(bin_one['BinActionType'], 'batFromWarehouse')
                     self.assertEqual(bin_two['BinActionType'], 'batToWarehouse')
                     self.assertEqual(bin_one['SerialAndBatchNumbersBaseLine'], bin_two['SerialAndBatchNumbersBaseLine'])
+
+
+class TestTrasladosAdvanced(TestsBaseAdvanced):
+    MODULE_NAME = 'traslados'
+    SOURCE_FILE = traslados_file

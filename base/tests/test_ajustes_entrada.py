@@ -1,6 +1,6 @@
 import unittest
 
-from base.tests.common_tests import CustomTestsMixin, DocumentLinesTestsMixin
+from base.tests.base_tests import TestsBaseAdvanced, DocumentLinesTestsMixin, CustomTestsMixin
 from base.tests.conf_test import ajustes_entrada_file, make_instance
 from utils.interactor_db import del_registro_migracion
 
@@ -20,7 +20,7 @@ class TestAjustesEntrada(CustomTestsMixin, DocumentLinesTestsMixin, unittest.Tes
 
     def test_structrure(self):
         """Valida que vengan exactamente los keys esperados"""
-        for k, v in TestAjustesEntrada.result.data.items():
+        for k, v in self.result.data.items():
             with self.subTest(i=v):
                 self.assertCountEqual(
                     list(v['json'].keys()),
@@ -30,7 +30,7 @@ class TestAjustesEntrada(CustomTestsMixin, DocumentLinesTestsMixin, unittest.Tes
 
     def test_types_in_structrure(self):
         """Valida los tipos de cada value"""
-        for k, v in TestAjustesEntrada.result.data.items():
+        for k, v in self.result.data.items():
             with self.subTest(i=v):
                 self.assertTrue(isinstance(v['json']['Series'], int))
                 self.assertTrue(isinstance(v['json']['DocDate'], str))
@@ -41,12 +41,12 @@ class TestAjustesEntrada(CustomTestsMixin, DocumentLinesTestsMixin, unittest.Tes
 
     def test_content_in_structrure(self):
         """Valida que hayan datos en los keys obligatórios."""
-        for k, v in TestAjustesEntrada.result.data.items():
+        for k, v in self.result.data.items():
             with self.subTest(i=v):
                 self.assertTrue(v['json']['Series'])
                 self.assertTrue(v['json']['DocDate'])
                 self.assertTrue(v['json']['DocDueDate'])
-                self.assertTrue(v['json']['U_HBT_Tercero'])
+                self.assertTrue(v['json']['U_HBT_Tercero'] == 'PR900073223')
                 self.assertTrue(v['json']['Comments'])
                 self.assertTrue(v['json']['DocumentLines'])
 
@@ -55,7 +55,7 @@ class TestAjustesEntrada(CustomTestsMixin, DocumentLinesTestsMixin, unittest.Tes
         Valida que el documentlines tenga contenido y que sus keys sean
         los correctos.
         """
-        for k, v in TestAjustesEntrada.result.data.items():
+        for k, v in self.result.data.items():
             with self.subTest(i=v):
                 self.assertTrue(len(v['json']['DocumentLines']))
                 for document in v['json']['DocumentLines']:
@@ -69,7 +69,7 @@ class TestAjustesEntrada(CustomTestsMixin, DocumentLinesTestsMixin, unittest.Tes
 
     def test_types_document_lines(self):
         """Valida los tipos de datos del documentlines."""
-        for k, v in TestAjustesEntrada.result.data.items():
+        for k, v in self.result.data.items():
             for document in v['json']['DocumentLines']:
                 with self.subTest(i=document):
                     self.assertTrue(isinstance(document['ItemCode'], str))
@@ -84,7 +84,7 @@ class TestAjustesEntrada(CustomTestsMixin, DocumentLinesTestsMixin, unittest.Tes
     def test_batch_numbers(self):
         """Valida que BatchNumbers tenga al menos un elemento
         y que cada uno sea de tipo diccionario."""
-        for k, v in TestAjustesEntrada.result.data.items():
+        for k, v in self.result.data.items():
             for line in v['json']['DocumentLines']:
                 with self.subTest(i=line):
                     self.assertTrue(line['BatchNumbers'])
@@ -92,7 +92,7 @@ class TestAjustesEntrada(CustomTestsMixin, DocumentLinesTestsMixin, unittest.Tes
 
     def test_structure_batch_numbers(self):
         """Valida que los keys de los BatchNumbers sean los correctos."""
-        for k, v in TestAjustesEntrada.result.data.items():
+        for k, v in self.result.data.items():
             for line in v['json']['DocumentLines']:
                 for batch in line['BatchNumbers']:
                     with self.subTest(i=batch):
@@ -100,7 +100,7 @@ class TestAjustesEntrada(CustomTestsMixin, DocumentLinesTestsMixin, unittest.Tes
 
     def test_types_batch_numbers(self):
         """Valida los tipos de datos del BatchNumbers."""
-        for k, v in TestAjustesEntrada.result.data.items():
+        for k, v in self.result.data.items():
             for line in v['json']['DocumentLines']:
                 for batch in line['BatchNumbers']:
                     with self.subTest(i=batch):
@@ -113,9 +113,14 @@ class TestAjustesEntrada(CustomTestsMixin, DocumentLinesTestsMixin, unittest.Tes
         Valida que la cantidad total sea igual a la suma de las cantidades
         de los lotes.
         """
-        for k, v in TestAjustesEntrada.result.data.items():
+        for k, v in self.result.data.items():
             for batch in v['json']['DocumentLines']:
                 with self.subTest(i=batch):
                     cant = batch['Quantity']
                     cant_in_batchs = sum(b['Quantity'] for b in batch['BatchNumbers'])
                     self.assertEqual(cant, cant_in_batchs)
+
+
+class TestAjustesEntradaAdvanced(TestsBaseAdvanced):
+    MODULE_NAME = 'ajustes_entrada'
+    SOURCE_FILE = ajustes_entrada_file

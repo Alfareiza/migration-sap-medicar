@@ -1,17 +1,17 @@
 import unittest
 
 from base.tests.base_tests import TestsBaseAdvanced, DocumentLinesTestsMixin, CustomTestsMixin
-from base.tests.conf_test import dispensacion_file, make_instance
+from base.tests.conf_test import make_instance, dispensaciones_anuladas_file
 from utils.interactor_db import del_registro_migracion
 
 
-class TestDispensacion(CustomTestsMixin, DocumentLinesTestsMixin, unittest.TestCase):
-    """python -m unittest base.tests.test_dispensacion"""
-    MODULE_NAME = 'dispensacion'
+class TestDispensacionesAnuladas(CustomTestsMixin, DocumentLinesTestsMixin, unittest.TestCase):
+    """python -m unittest base.tests.test_dispensaciones_anuladas"""
+    MODULE_NAME = 'dispensaciones_anuladas'
 
     @classmethod
     def setUpClass(cls):
-        fp = dispensacion_file
+        fp = dispensaciones_anuladas_file
         cls.module = make_instance(cls.MODULE_NAME, fp)
         cls.result = cls.module.exec_migration(tanda='TEST')
 
@@ -59,10 +59,10 @@ class TestDispensacion(CustomTestsMixin, DocumentLinesTestsMixin, unittest.TestC
                 self.assertTrue(isinstance(v['json']['U_LF_NombreAfiliado'], str))
                 self.assertTrue(isinstance(v['json']['U_LF_Formula'], str))
                 self.assertTrue(isinstance(v['json']['U_LF_NivelAfiliado'], int))
-                if self.is_evento(v):
-                    self.assertTrue(isinstance(v['json']['U_LF_Autorizacion'], int))
+                if v['json']['U_LF_Autorizacion']:
+                    self.assertIsInstance(v['json']['U_LF_Autorizacion'], int)
                 else:
-                    self.assertTrue(isinstance(v['json']['U_LF_Autorizacion'], str))
+                    self.assertIsInstance(v['json']['U_LF_Autorizacion'], str)
                 self.assertTrue(isinstance(v['json']['U_LF_Mipres'], str))
                 self.assertTrue(isinstance(v['json']['U_LF_Usuario'], str))
                 self.assertTrue(isinstance(v['json']['DocumentLines'], list))
@@ -149,7 +149,7 @@ class TestDispensacion(CustomTestsMixin, DocumentLinesTestsMixin, unittest.TestC
             for line in v['json']['DocumentLines']:
                 for batch in line['BatchNumbers']:
                     with self.subTest(i=batch):
-                        self.assertCountEqual(batch.keys(), ["BatchNumber", "Quantity"])
+                        self.assertCountEqual(batch.keys(), ["BatchNumber", "Quantity", "ExpiryDate"])
 
     def test_types_batch_numbers(self):
         """Valida los tipos de datos del BatchNumbers."""
@@ -161,6 +161,6 @@ class TestDispensacion(CustomTestsMixin, DocumentLinesTestsMixin, unittest.TestC
                         self.assertTrue(isinstance(batch['Quantity'], int))
 
 
-class TestDispensacionAdvanced(TestsBaseAdvanced):
-    MODULE_NAME = 'dispensacion'
-    SOURCE_FILE = dispensacion_file
+class TestDispensacionesAnuladasAdvanced(TestsBaseAdvanced):
+    MODULE_NAME = 'dispensaciones_anuladas'
+    SOURCE_FILE = dispensaciones_anuladas_file

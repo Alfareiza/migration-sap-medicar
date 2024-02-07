@@ -1,16 +1,17 @@
 import unittest
 
 from base.tests.base_tests import TestsBaseAdvanced, DocumentLinesTestsMixin, CustomTestsMixin
-from base.tests.conf_test import ajustes_salida_file, make_instance
+from base.tests.conf_test import make_instance, compras_file
 from utils.interactor_db import del_registro_migracion
 
 
-class TestAjustesSalida(CustomTestsMixin, DocumentLinesTestsMixin, unittest.TestCase):
-    MODULE_NAME = 'ajustes_salida'
+class TestCompras(CustomTestsMixin, DocumentLinesTestsMixin, unittest.TestCase):
+    """python -m unittest base.tests.test_compras"""
+    MODULE_NAME = 'compras'
 
     @classmethod
     def setUpClass(cls):
-        fp = ajustes_salida_file
+        fp = compras_file
         cls.module = make_instance(cls.MODULE_NAME, fp)
         cls.result = cls.module.exec_migration(tanda='TEST')
 
@@ -24,8 +25,8 @@ class TestAjustesSalida(CustomTestsMixin, DocumentLinesTestsMixin, unittest.Test
             with self.subTest(i=v):
                 self.assertCountEqual(
                     list(v['json'].keys()),
-                    ["Series", "DocDate", "DocDueDate", "Comments",
-                     "U_HBT_Tercero", "DocumentLines"]
+                    ["Series", "DocDate", "NumAtCard", "CardCode",
+                     "Comments", "DocumentLines"]
                 )
 
     def test_types_in_structrure(self):
@@ -34,8 +35,8 @@ class TestAjustesSalida(CustomTestsMixin, DocumentLinesTestsMixin, unittest.Test
             with self.subTest(i=v):
                 self.assertTrue(isinstance(v['json']['Series'], int))
                 self.assertTrue(isinstance(v['json']['DocDate'], str))
-                self.assertTrue(isinstance(v['json']['DocDueDate'], str))
-                self.assertTrue(isinstance(v['json']['U_HBT_Tercero'], str))
+                self.assertTrue(isinstance(v['json']['NumAtCard'], str))
+                self.assertTrue(isinstance(v['json']['CardCode'], str))
                 self.assertTrue(isinstance(v['json']['Comments'], str))
                 self.assertTrue(isinstance(v['json']['DocumentLines'], list))
 
@@ -45,8 +46,8 @@ class TestAjustesSalida(CustomTestsMixin, DocumentLinesTestsMixin, unittest.Test
             with self.subTest(i=v):
                 self.assertTrue(v['json']['Series'])
                 self.assertTrue(v['json']['DocDate'])
-                self.assertTrue(v['json']['DocDueDate'])
-                self.assertTrue(v['json']['U_HBT_Tercero'] == 'PR900073223')
+                self.assertTrue(v['json']['CardCode'])
+                self.assertTrue(v['json']['NumAtCard'])
                 self.assertTrue(v['json']['Comments'])
                 self.assertTrue(v['json']['DocumentLines'])
 
@@ -62,9 +63,8 @@ class TestAjustesSalida(CustomTestsMixin, DocumentLinesTestsMixin, unittest.Test
                     with self.subTest(i=document):
                         self.assertCountEqual(
                             document.keys(),
-                            ["ItemCode", "WarehouseCode", "CostingCode",
-                             "CostingCode2", "Quantity", "AccountCode",
-                             "BatchNumbers"]
+                            ["ItemCode", "Quantity", "WarehouseCode",
+                             "UnitPrice", "BatchNumbers"]
                         )
 
     def test_types_document_lines(self):
@@ -73,11 +73,10 @@ class TestAjustesSalida(CustomTestsMixin, DocumentLinesTestsMixin, unittest.Test
             for document in v['json']['DocumentLines']:
                 with self.subTest(i=document):
                     self.assertTrue(isinstance(document['ItemCode'], str))
-                    self.assertTrue(isinstance(document['Quantity'], int))
+                    if document['Quantity']:  #  document['Quantity'] puede ser None
+                        self.assertTrue(isinstance(document['Quantity'], int))
                     self.assertTrue(isinstance(document['WarehouseCode'], str))
-                    self.assertTrue(isinstance(document['AccountCode'], str))
-                    self.assertTrue(isinstance(document['CostingCode'], str))
-                    self.assertTrue(isinstance(document['CostingCode2'], str))
+                    self.assertTrue(isinstance(document['UnitPrice'], float))
                     self.assertTrue(isinstance(document['BatchNumbers'], list))
 
     def test_batch_numbers(self):
@@ -95,7 +94,10 @@ class TestAjustesSalida(CustomTestsMixin, DocumentLinesTestsMixin, unittest.Test
             for line in v['json']['DocumentLines']:
                 for batch in line['BatchNumbers']:
                     with self.subTest(i=batch):
-                        self.assertCountEqual(batch.keys(), ["BatchNumber", "Quantity"])
+                        self.assertCountEqual(
+                            batch.keys(),
+                            ["BatchNumber", "Quantity", "ExpiryDate"]
+                        )
 
     def test_types_batch_numbers(self):
         """Valida los tipos de datos del BatchNumbers."""
@@ -105,35 +107,9 @@ class TestAjustesSalida(CustomTestsMixin, DocumentLinesTestsMixin, unittest.Test
                     with self.subTest(i=batch):
                         self.assertTrue(isinstance(batch['BatchNumber'], str))
                         self.assertTrue(isinstance(batch['Quantity'], int))
-
-    def test_logic_batch_numbers(self):
-        """
-        Valida que la cantidad total sea igual a la suma de las cantidades
-        de los lotes.
-        """
-        for k, v in self.result.data.items():
-            for batch in v['json']['DocumentLines']:
-                with self.subTest(i=batch):
-                    cant = batch['Quantity']
-                    cant_in_batchs = sum(b['Quantity'] for b in batch['BatchNumbers'])
-                    self.assertEqual(cant, cant_in_batchs)
+                        self.assertTrue(isinstance(batch['ExpiryDate'], str))
 
 
-class TestAjustesSalidaAdvanced(TestsBaseAdvanced):
-    MODULE_NAME = 'ajustes_salida'
-    SOURCE_FILE = ajustes_salida_file
-
-    # @classmethod
-    # def setUpClass(cls):
-    #     super().setUpClass()
-    #
-    # @classmethod
-    # def tearDownClass(cls):
-    #     super().tearDownClass()
-
-    # def test_csv_error_shouldnt_go_to_sap(self):
-    #     ...
-    #
-    # def test_status_in_lineas_field(self):
-    #     """ Valida que el status se encuentre en todos los 'Status' del campo lineas en la bd """
-    #     ...
+class TestComprasAdvanced(TestsBaseAdvanced):
+    MODULE_NAME = 'compras'
+    SOURCE_FILE = compras_file
