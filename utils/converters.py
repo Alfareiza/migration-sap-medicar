@@ -20,8 +20,8 @@ class Csv2Dict:
 
     def __repr__(self):
         return (f"Csv2Dict(name='{self.name}', "
-               f"{self.pk}={len(self.data.values())} series={self.series} "
-               f"csv_lines={self.csv_lines})")
+                f"{self.pk}={len(self.data.values())} series={self.series} "
+                f"csv_lines={self.csv_lines})")
 
     def load_data_from_db(self, records) -> None:
         for record in records:
@@ -84,6 +84,8 @@ class Csv2Dict:
             row['Status'] = txt
         elif txt not in row['Status']:
             row['Status'] += f" | {txt}"
+
+        self.update_status_necessary_columns(row, row[self.pk])
 
     def get_series(self, row):
         """Determina el series a partir del SubPlan o No."""
@@ -280,7 +282,7 @@ class Csv2Dict:
         log.error(f"{self.pk} {row[f'{self.pk}']}. Beneficiario no reconocido : {person!r}")
         self.reg_error(row, f"[CSV] Beneficiario no reconocido: {person!r}")
 
-    def make_float(self, row, colum_name):
+    def make_float(self, row, colum_name) -> float:
         """ Intenta convertir valor a decimal."""
         try:
             vlr = float(row[colum_name])
@@ -334,7 +336,6 @@ class Csv2Dict:
                 txt = f"Detectado IVA inválido {iva_code!r}"
                 log.error(f"{self.pk} {row[f'{self.pk}']}. {txt}")
                 self.reg_error(row, txt)
-
 
     def pending_to_implement(self, row, msg):
         txt = f"[CSV] {msg}. {row[self.pk]!r}"
@@ -498,6 +499,114 @@ class Csv2Dict:
             "CostingCode2": row.get("CECO", ''),
         }
         match self.name:
+            case settings.COMPRAS_NAME:  # 7
+                for key in ('CostingCode2',):
+                    document_lines.pop(key, None)
+                document_lines.update(
+                    ItemCode=self.get_plu(row),
+                    UnitPrice=self.make_float(row, 'Precio'),
+                    BatchNumbers=[
+                        {
+                            "BatchNumber": row.get("Lote", ''),
+                            "Quantity": self.make_int(row, 'Cantidad'),
+                            "ExpiryDate": self.transform_date(row, 'FechaVencimiento')
+                        }
+                    ],
+                )
+                document_lines.update(Quantity=self.get_num_in_buy(row, document_lines['BatchNumbers'][0]['Quantity']))
+            case settings.AJUSTES_ENTRADA_PRUEBA_NAME:
+                document_lines.update(
+                    ItemCode=self.get_plu(row, 'codigo'),
+                    WarehouseCode=row.get("bodega_ent", ''),
+                    CostingCode2=row.get("bodega_ent", ''),
+                    Quantity=self.make_int(row, "cantidad"),
+                    CostingCode=self.get_costing_code(row, "bodega_ent"),
+                    AccountCode="7165950302",
+                    UnitPrice=self.make_float(row, 'Costo'),
+                    BatchNumbers=[
+                        {
+                            "BatchNumber": row["lote"],
+                            "Quantity": self.make_int(row, 'cantidad'),
+                            "ExpiryDate": self.transform_date_v2(row, 'fecha_venc')
+                        }
+                    ]
+                )
+            case settings.AJUSTES_ENTRADA_NAME:  # 8.2
+                document_lines.update(
+                    ItemCode=self.get_plu(row),
+                    Quantity=self.make_int(row, "Cantidad"),
+                    CostingCode=self.get_costing_code(row),
+                    AccountCode=self.get_centro_de_costo(row, 'TipoAjuste', 'entrada'),
+                    UnitPrice=self.make_float(row, 'Precio'),
+                    BatchNumbers=[
+                        {
+                            "BatchNumber": row["Lote"],
+                            "Quantity": self.make_int(row, 'Cantidad'),
+                            "ExpiryDate": self.transform_date(row, 'FechaVencimiento')
+                        }
+                    ]
+                )
+            case settings.AJUSTES_SALIDA_NAME:  # 8.1
+                document_lines.update(
+                    ItemCode=self.get_plu(row),
+                    Quantity=self.make_int(row, "Cantidad"),
+                    CostingCode=self.get_costing_code(row),
+                    AccountCode=self.get_centro_de_costo(row, 'TipoAjuste', 'salida'),
+                    BatchNumbers=[
+                        {
+                            "BatchNumber": row["Lote"],
+                            "Quantity": self.make_int(row, 'Cantidad'),
+                        }
+                    ]
+                )
+            case settings.DISPENSACION_NAME:  # 4 y 5
+                if row[self.pk] in self.data and self.data[row[self.pk]]['json']:
+                    self.single_serie = self.data[row[self.pk]]['json']['Series']
+                if self.single_serie == self.series['CAPITA']:  # 4
+                    document_lines.update(
+                        ItemCode=self.get_plu(row),
+                        Quantity=self.make_int(row, "CantidadDispensada"),
+                        AccountCode=self.get_centro_de_costo(row, 'SubPlan'),
+                        CostingCode=self.get_costing_code(row),
+                        CostingCode3=self.get_contrato(row),
+                        BatchNumbers=[
+                            {
+                                "BatchNumber": row.get("Lote", ''),
+                                "Quantity": self.make_int(row, "CantidadDispensada"),
+                            }
+                        ]
+                    )
+                elif self.single_serie == self.series['EVENTO']:  # 5
+                    document_lines.update(
+                        # LineNum=0,  # TODO: Es el renglon en SAP del Item.
+                        ItemCode=self.get_plu(row),
+                        Quantity=self.make_int(row, "CantidadDispensada"),
+                        Price=self.make_float(row, "Precio"),
+                        CostingCode=self.get_costing_code(row),
+                        CostingCode3=self.get_contrato(row),
+                        BatchNumbers=[
+                            {
+                                "BatchNumber": row.get("Lote", ''),
+                                "Quantity": self.make_int(row, "CantidadDispensada"),
+                            }
+                        ]
+                    )
+            case settings.DISPENSACIONES_ANULADAS_NAME:
+                document_lines.update(
+                    ItemCode=self.get_plu(row),
+                    Quantity=self.make_int(row, "Cantidad"),
+                    CostingCode=self.get_costing_code(row),
+                    CostingCode3=self.get_contrato(row),
+                    AccountCode=self.get_centro_de_costo(row, 'SubPlan'),
+                    UnitPrice=self.make_float(row, 'Precio'),
+                    BatchNumbers=[
+                        {
+                            "BatchNumber": row["Lote"],
+                            "Quantity": self.make_int(row, 'Cantidad'),
+                            "ExpiryDate": self.transform_date(row, 'FechaVencimiento')
+                        }
+                    ]
+                )
             case settings.FACTURACION_NAME:  # 5.1
                 document_lines.update(
                     Quantity=self.make_int(row, "CantidadDispensada"),
@@ -536,114 +645,6 @@ class Csv2Dict:
                         }
                     ]
                 )
-            case settings.DISPENSACION_NAME:  # 4 y 5
-                if row[self.pk] in self.data and self.data[row[self.pk]]['json']:
-                    self.single_serie = self.data[row[self.pk]]['json']['Series']
-                if self.single_serie == self.series['CAPITA']:  # 4
-                    document_lines.update(
-                        ItemCode=self.get_plu(row),
-                        Quantity=self.make_int(row, "CantidadDispensada"),
-                        AccountCode=self.get_centro_de_costo(row, 'SubPlan'),
-                        CostingCode=self.get_costing_code(row),
-                        CostingCode3=self.get_contrato(row),
-                        BatchNumbers=[
-                            {
-                                "BatchNumber": row.get("Lote", ''),
-                                "Quantity": self.make_int(row, "CantidadDispensada"),
-                            }
-                        ]
-                    )
-                elif self.single_serie == self.series['EVENTO']:  # 5
-                    document_lines.update(
-                        # LineNum=0,  # TODO: Es el renglon en SAP del Item.
-                        ItemCode=self.get_plu(row),
-                        Quantity=self.make_int(row, "CantidadDispensada"),
-                        Price=self.make_float(row, "Precio"),
-                        CostingCode=self.get_costing_code(row),
-                        CostingCode3=self.get_contrato(row),
-                        BatchNumbers=[
-                            {
-                                "BatchNumber": row.get("Lote", ''),
-                                "Quantity": self.make_int(row, "CantidadDispensada"),
-                            }
-                        ]
-                    )
-            case settings.COMPRAS_NAME:  # 7
-                for key in ('CostingCode2',):
-                    document_lines.pop(key, None)
-                document_lines.update(
-                    ItemCode=self.get_plu(row),
-                    UnitPrice=self.make_float(row, 'Precio'),
-                    BatchNumbers=[
-                        {
-                            "BatchNumber": row.get("Lote", ''),
-                            "Quantity": self.make_int(row, 'Cantidad'),
-                            "ExpiryDate": self.transform_date(row, 'FechaVencimiento')
-                        }
-                    ],
-                )
-                document_lines.update(Quantity=self.get_num_in_buy(row, document_lines['BatchNumbers'][0]['Quantity']))
-            case settings.AJUSTES_SALIDA_NAME:  # 8.1
-                document_lines.update(
-                    ItemCode=self.get_plu(row),
-                    Quantity=self.make_int(row, "Cantidad"),
-                    CostingCode=self.get_costing_code(row),
-                    AccountCode=self.get_centro_de_costo(row, 'TipoAjuste', 'salida'),
-                    BatchNumbers=[
-                        {
-                            "BatchNumber": row["Lote"],
-                            "Quantity": self.make_int(row, 'Cantidad'),
-                        }
-                    ]
-                )
-            case settings.AJUSTES_ENTRADA_NAME:  # 8.2
-                document_lines.update(
-                    ItemCode=self.get_plu(row),
-                    Quantity=self.make_int(row, "Cantidad"),
-                    CostingCode=self.get_costing_code(row),
-                    AccountCode=self.get_centro_de_costo(row, 'TipoAjuste', 'entrada'),
-                    UnitPrice=self.make_float(row, 'Precio'),
-                    BatchNumbers=[
-                        {
-                            "BatchNumber": row["Lote"],
-                            "Quantity": self.make_int(row, 'Cantidad'),
-                            "ExpiryDate": self.transform_date(row, 'FechaVencimiento')
-                        }
-                    ]
-                )
-            case settings.AJUSTES_ENTRADA_PRUEBA_NAME:
-                document_lines.update(
-                    ItemCode=self.get_plu(row, 'codigo'),
-                    WarehouseCode=row.get("bodega_ent", ''),
-                    CostingCode2=row.get("bodega_ent", ''),
-                    Quantity=self.make_int(row, "cantidad"),
-                    CostingCode=self.get_costing_code(row, "bodega_ent"),
-                    AccountCode="7165950302",
-                    UnitPrice=self.make_float(row, 'Costo'),
-                    BatchNumbers=[
-                        {
-                            "BatchNumber": row["lote"],
-                            "Quantity": self.make_int(row, 'cantidad'),
-                            "ExpiryDate": self.transform_date_v2(row, 'fecha_venc')
-                        }
-                    ]
-                )
-            case settings.DISPENSACIONES_ANULADAS_NAME:
-                document_lines.update(
-                    ItemCode=self.get_plu(row),
-                    Quantity=self.make_int(row, "Cantidad"),
-                    CostingCode=self.get_costing_code(row),
-                    CostingCode3=self.get_contrato(row),
-                    AccountCode=self.get_centro_de_costo(row, 'SubPlan'),
-                    UnitPrice=self.make_float(row, 'Precio'),
-                    BatchNumbers=[
-                        {
-                            "BatchNumber": row["Lote"],
-                            "Quantity": self.make_int(row, 'Cantidad'),
-                            "ExpiryDate": self.transform_date(row, 'FechaVencimiento')
-                        }
-                    ]
-                )
 
         return document_lines
 
@@ -657,44 +658,71 @@ class Csv2Dict:
             "U_LF_Usuario": row.get("UsuarioDispensa", '')
         }
         match self.name:
-            case settings.FACTURACION_NAME:  # 5.1, 2  [Implementado]
-                base_dct.update(
-                    Series=self.get_series(row),
-                    DocDate=self.transform_date(row, "FechaFactura"),
-                    TaxDate=self.transform_date(row, "FechaFactura"),
-                    NumAtCard=row["Factura"],
-                    CardCode=self.get_codigo_tercero(row),
-                    U_HBT_Tercero=self.get_codigo_tercero(row),
-                    U_LF_Plan=self.get_plan(row),
-                    U_LF_NivelAfiliado=self.make_int(row, "Categoria"),
-                    U_LF_NombreAfiliado=self.get_nombre_afiliado(row),
-                    U_LF_Autorizacion=self.get_num_aut(row),
-                    DocumentLines=[self.build_document_lines(row)],
-                    Comments=load_comments(row, 'Factura')
-                )
-                base_dct.update(WithholdingTaxDataCollection=[
-                    {
-                        "WTCode": "RFEV",
-                        "Rate": 100,
-                        "U_HBT_Retencion": (base_dct['DocumentLines'][0]['Quantity'] *
-                                            base_dct['DocumentLines'][0]['Price'])
-                    }
-                ], )
-            case settings.NOTAS_CREDITO_NAME:
+            case settings.COMPRAS_NAME:  # 7
+                for key in ("U_LF_IdAfiliado", "U_LF_Formula",
+                            "U_LF_Mipres", "U_LF_Usuario"):
+                    base_dct.pop(key)
                 base_dct.update(
                     Series=self.series,
-                    DocDate=self.transform_date(row, "FechaFactura"),
-                    TaxDate=self.transform_date(row, "FechaFactura"),
+                    DocDate=self.transform_date(row, 'FechaCompra'),
                     NumAtCard=row["Factura"],
-                    CardCode=self.get_codigo_tercero(row),
-                    U_LF_Plan=self.get_plan(row),
-                    U_LF_NivelAfiliado=self.make_int(row, "CategoriaActual"),
-                    U_HBT_Tercero=self.get_codigo_tercero(row),
-                    U_LF_NombreAfiliado=self.get_nombre_afiliado(row),
-                    U_LF_Autorizacion=self.make_int(row, "NroAutorizacion"),
-                    Comments=load_comments(row, 'UsuarioDispensa'),
-                    U_LF_Mipres=row.get("MiPres", ''),
+                    CardCode=self.get_nit_compras(row),
+                    # TODO de donde se obtiene Prefijo PN+Nit del cliente (PR90056320) debe estar creado en sap?
                     DocumentLines=[self.build_document_lines(row)],
+                )
+            case settings.TRASLADOS_NAME:  # 6
+                for key in ('Comments', "U_LF_IdAfiliado", "U_LF_Formula",
+                            "U_LF_Mipres", "U_LF_Usuario"):
+                    base_dct.pop(key)
+                base_dct.update(
+                    DocDate=self.transform_date(row, 'FechaTraslado'),
+                    CardCode="PR900073223",
+                    JournalMemo=load_comments(row),
+                    FromWarehouse=row['CentroOrigen'],
+                    ToWarehouse=row['CentroDestino'],
+                    StockTransferLines=[self.build_stock_transfer_lines(row)]
+                )
+            case settings.AJUSTES_ENTRADA_PRUEBA_NAME:  # 8.2
+                for key in ("U_LF_IdAfiliado", "U_LF_Formula",
+                            "U_LF_Mipres", "U_LF_Usuario"):
+                    base_dct.pop(key, None)
+                base_dct.update(
+                    Series=self.series,
+                    DocDate=self.transform_date_v2(row, 'fecha_tras'),
+                    DocDueDate=self.transform_date_v2(row, 'fecha_tras'),
+                    U_HBT_Tercero="PR900073223",
+                    Comments=load_comments(row, 'usuario'),
+                    DocumentLines=[self.build_document_lines(row)],
+                )
+            case settings.AJUSTES_ENTRADA_NAME:  # 8.2
+                for key in ("U_LF_IdAfiliado", "U_LF_Formula",
+                            "U_LF_Mipres", "U_LF_Usuario"):
+                    base_dct.pop(key, None)
+                base_dct.update(
+                    Series=self.series,
+                    DocDate=self.transform_date(row, 'FechaAjuste'),
+                    DocDueDate=self.transform_date(row, 'FechaAjuste'),
+                    U_HBT_Tercero="PR900073223",
+                    DocumentLines=[self.build_document_lines(row)],
+                )
+            case settings.AJUSTES_SALIDA_NAME:  # 8.1
+                for key in ("U_LF_IdAfiliado", "U_LF_Formula",
+                            "U_LF_Mipres", "U_LF_Usuario"):
+                    base_dct.pop(key, None)
+                base_dct.update(
+                    Series=self.series,
+                    DocDate=self.transform_date(row, 'FechaAjuste'),
+                    DocDueDate=self.transform_date(row, 'FechaAjuste'),
+                    U_HBT_Tercero="PR900073223",
+                    DocumentLines=[self.build_document_lines(row)],
+                )
+            case settings.AJUSTES_LOTE_NAME:
+                for key in ("U_LF_IdAfiliado", "U_LF_Formula",
+                            "U_LF_Mipres", "U_LF_Usuario", "Comments"):
+                    base_dct.pop(key, None)
+                base_dct.update(
+                    Series=self.get_abs_entry_from_lote(row),
+                    ExpirationDate=self.transform_date(row, 'FechaVencimiento')
                 )
             case settings.DISPENSACION_NAME:  # 4 y 5 [Implementado]
                 base_dct.update(Series=self.get_series(row))
@@ -737,64 +765,6 @@ class Csv2Dict:
                         U_LF_NombreAfiliado=self.get_nombre_afiliado(row),
                         DocumentLines=[self.build_document_lines(row)],
                     )
-            case settings.TRASLADOS_NAME:  # 6
-                for key in ('Comments', "U_LF_IdAfiliado", "U_LF_Formula",
-                            "U_LF_Mipres", "U_LF_Usuario"):
-                    base_dct.pop(key)
-                base_dct.update(
-                    DocDate=self.transform_date(row, 'FechaTraslado'),
-                    CardCode="PR900073223",
-                    JournalMemo=load_comments(row),
-                    FromWarehouse=row['CentroOrigen'],
-                    ToWarehouse=row['CentroDestino'],
-                    StockTransferLines=[self.build_stock_transfer_lines(row)]
-                )
-            case settings.COMPRAS_NAME:  # 7
-                for key in ("U_LF_IdAfiliado", "U_LF_Formula",
-                            "U_LF_Mipres", "U_LF_Usuario"):
-                    base_dct.pop(key)
-                base_dct.update(
-                    Series=self.series,
-                    DocDate=self.transform_date(row, 'FechaCompra'),
-                    NumAtCard=row["Factura"],
-                    CardCode=self.get_nit_compras(row),
-                    # TODO de donde se obtiene Prefijo PN+Nit del cliente (PR90056320) debe estar creado en sap?
-                    DocumentLines=[self.build_document_lines(row)],
-                )
-            case settings.AJUSTES_SALIDA_NAME:  # 8.1
-                for key in ("U_LF_IdAfiliado", "U_LF_Formula",
-                            "U_LF_Mipres", "U_LF_Usuario"):
-                    base_dct.pop(key, None)
-                base_dct.update(
-                    Series=self.series,
-                    DocDate=self.transform_date(row, 'FechaAjuste'),
-                    DocDueDate=self.transform_date(row, 'FechaAjuste'),
-                    U_HBT_Tercero="PR900073223",
-                    DocumentLines=[self.build_document_lines(row)],
-                )
-            case settings.AJUSTES_ENTRADA_NAME:  # 8.2
-                for key in ("U_LF_IdAfiliado", "U_LF_Formula",
-                            "U_LF_Mipres", "U_LF_Usuario"):
-                    base_dct.pop(key, None)
-                base_dct.update(
-                    Series=self.series,
-                    DocDate=self.transform_date(row, 'FechaAjuste'),
-                    DocDueDate=self.transform_date(row, 'FechaAjuste'),
-                    U_HBT_Tercero="PR900073223",
-                    DocumentLines=[self.build_document_lines(row)],
-                )
-            case settings.AJUSTES_ENTRADA_PRUEBA_NAME:  # 8.2
-                for key in ("U_LF_IdAfiliado", "U_LF_Formula",
-                            "U_LF_Mipres", "U_LF_Usuario"):
-                    base_dct.pop(key, None)
-                base_dct.update(
-                    Series=self.series,
-                    DocDate=self.transform_date_v2(row, 'fecha_tras'),
-                    DocDueDate=self.transform_date_v2(row, 'fecha_tras'),
-                    U_HBT_Tercero="PR900073223",
-                    Comments=load_comments(row, 'usuario'),
-                    DocumentLines=[self.build_document_lines(row)],
-                )
             case settings.DISPENSACIONES_ANULADAS_NAME:  # 8.2
                 base_dct.update(
                     Series=self.series,
@@ -809,13 +779,44 @@ class Csv2Dict:
                     U_LF_Autorizacion=self.make_int(row, 'NroAutorizacion') if row.get("NroAutorizacion") else '',
                     DocumentLines=[self.build_document_lines(row)],
                 )
-            case settings.AJUSTES_LOTE_NAME:
-                for key in ("U_LF_IdAfiliado", "U_LF_Formula",
-                            "U_LF_Mipres", "U_LF_Usuario", "Comments"):
-                    base_dct.pop(key, None)
+            case settings.FACTURACION_NAME:  # 5.1, 2  [Implementado]
                 base_dct.update(
-                    Series=self.get_abs_entry_from_lote(row),
-                    ExpirationDate=self.transform_date(row, 'FechaVencimiento')
+                    Series=self.get_series(row),
+                    DocDate=self.transform_date(row, "FechaFactura"),
+                    TaxDate=self.transform_date(row, "FechaFactura"),
+                    NumAtCard=row["Factura"],
+                    CardCode=self.get_codigo_tercero(row),
+                    U_HBT_Tercero=self.get_codigo_tercero(row),
+                    U_LF_Plan=self.get_plan(row),
+                    U_LF_NivelAfiliado=self.make_int(row, "Categoria"),
+                    U_LF_NombreAfiliado=self.get_nombre_afiliado(row),
+                    U_LF_Autorizacion=self.get_num_aut(row),
+                    DocumentLines=[self.build_document_lines(row)],
+                    Comments=load_comments(row, 'Factura')
+                )
+                base_dct.update(WithholdingTaxDataCollection=[
+                    {
+                        "WTCode": "RFEV",
+                        "Rate": 100,
+                        "U_HBT_Retencion": (base_dct['DocumentLines'][0]['Quantity'] *
+                                            base_dct['DocumentLines'][0]['Price'])
+                    }
+                ], )
+            case settings.NOTAS_CREDITO_NAME:
+                base_dct.update(
+                    Series=self.series,
+                    DocDate=self.transform_date(row, "FechaFactura"),
+                    TaxDate=self.transform_date(row, "FechaFactura"),
+                    NumAtCard=row["Factura"],
+                    CardCode=self.get_codigo_tercero(row),
+                    U_LF_Plan=self.get_plan(row),
+                    U_LF_NivelAfiliado=self.make_int(row, "CategoriaActual"),
+                    U_HBT_Tercero=self.get_codigo_tercero(row),
+                    U_LF_NombreAfiliado=self.get_nombre_afiliado(row),
+                    U_LF_Autorizacion=self.make_int(row, "NroAutorizacion"),
+                    Comments=load_comments(row, 'UsuarioDispensa'),
+                    U_LF_Mipres=row.get("MiPres", ''),
+                    DocumentLines=[self.build_document_lines(row)],
                 )
             case settings.PAGOS_RECIBIDOS_NAME:
                 for key in ("U_LF_IdAfiliado", "U_LF_Formula",
@@ -880,11 +881,15 @@ class Csv2Dict:
 
                     self.data[key]['json']["StockTransferLines"][idx]['BatchNumbers'].extend(article['BatchNumbers'])
                     self.data[key]['json']["StockTransferLines"][idx]['Quantity'] += article['Quantity']
-                    self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][0]['Quantity'] += article['Quantity']
-                    self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][1]['Quantity'] += article['Quantity']
+                    self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][0][
+                        'Quantity'] += article['Quantity']
+                    self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][1][
+                        'Quantity'] += article['Quantity']
 
-                    self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][0]['BaseLineNumber'] = self.data[key]['json']["StockTransferLines"][idx]['LineNum']
-                    self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][1]['BaseLineNumber'] = self.data[key]['json']["StockTransferLines"][idx]['LineNum']
+                    self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][0][
+                        'BaseLineNumber'] = self.data[key]['json']["StockTransferLines"][idx]['LineNum']
+                    self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][1][
+                        'BaseLineNumber'] = self.data[key]['json']["StockTransferLines"][idx]['LineNum']
             case settings.FACTURACION_NAME:
                 article['BaseLine'] = self.data[key]['json']["DocumentLines"][-1]['BaseLine'] + 1
                 self.data[key]['json']["DocumentLines"].append(article)
@@ -906,6 +911,7 @@ class Csv2Dict:
                     self.data[key]['csv'].append(row)
                 if self.name in (settings.PAGOS_RECIBIDOS_NAME,):
                     self.data[key]["PaymentInvoices"].append(self.build_payment_invoices(row))
+                self.update_status_necessary_columns(row, key)
             elif key != '':
                 # Entra aquí la primera vez que itera sobre el pk
                 # log.info(f'{i} [{self.name.capitalize()}] Leyendo {self.pk} {key}')
@@ -927,3 +933,13 @@ class Csv2Dict:
         log.info(f'Leidas {i} lineas del csv.')
         self.csv_lines = i
         return True
+
+    def update_status_necessary_columns(self, row, key):
+        """ Actualiza el campo de status en el resto de lineas del mismo
+        documento caso esten vacías. """
+        if key in self.errs:
+            if not row['Status']:
+                self.data[key]['csv'][-1]['Status'] = self.data[key]['csv'][-2]['Status']
+            else:
+                for r in self.data[row[self.pk]]['csv']:
+                    r['Status'] = row['Status']
