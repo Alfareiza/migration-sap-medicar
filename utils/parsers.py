@@ -62,6 +62,41 @@ class Module:
                             'drive object at the same time.')
 
         match self.name.lower():
+            case settings.COMPRAS_NAME:
+                self.url = f'{self.BASE_URL}/PurchaseDeliveryNotes'
+                self.pk = 'NroDocumento'
+                self.series = 80
+            case settings.TRASLADOS_NAME:
+                self.url = f'{self.BASE_URL}/StockTransfers'
+                self.pk = 'NroDocumento'
+                self.series = None  # No usa
+            case settings.AJUSTES_ENTRADA_PRUEBA_NAME:
+                self.url = f'{self.BASE_URL}/InventoryGenEntries'
+                self.pk = 'despacho'
+                self.series = 83
+            case settings.AJUSTES_ENTRADA_NAME:
+                self.url = f'{self.BASE_URL}/InventoryGenEntries'
+                self.pk = 'NroDocumento'
+                self.series = 83
+            case settings.AJUSTES_SALIDA_NAME:
+                self.url = f'{self.BASE_URL}/InventoryGenExits'
+                self.pk = 'NroDocumento'
+                self.series = 82
+            case settings.AJUSTES_LOTE_NAME:
+                self.url = f'{self.BASE_URL}/BatchNumberDetails({{}})'
+                self.series = None
+                self.pk = 'Lote'
+            case settings.DISPENSACION_NAME:
+                self.url = {
+                    "CAPITA": f'{self.BASE_URL}/InventoryGenExits',
+                    "EVENTO": f'{self.BASE_URL}/DeliveryNotes'
+                }
+                self.pk = 'NroSSC'
+                self.series = {'CAPITA': 77, 'EVENTO': 81}
+            case settings.DISPENSACIONES_ANULADAS_NAME:
+                self.url = f'{self.BASE_URL}/InventoryGenEntries'
+                self.pk = 'NroSSC'
+                self.series = 83
             case settings.FACTURACION_NAME:
                 self.url = {'EVENTO': f'{self.BASE_URL}/Invoices'}
                 self.pk = 'NroSSC'
@@ -74,41 +109,6 @@ class Module:
                 self.url = f'{self.BASE_URL}/IncomingPayments'
                 self.pk = 'NIT'  # Preguntar a Elias cual es el pk
                 self.series = 79
-            case settings.DISPENSACION_NAME:
-                self.url = {
-                    "CAPITA": f'{self.BASE_URL}/InventoryGenExits',
-                    "EVENTO": f'{self.BASE_URL}/DeliveryNotes'
-                }
-                self.pk = 'NroSSC'
-                self.series = {'CAPITA': 77, 'EVENTO': 81}
-            case settings.TRASLADOS_NAME:
-                self.url = f'{self.BASE_URL}/StockTransfers'
-                self.pk = 'NroDocumento'
-                self.series = None  # No usa
-            case settings.COMPRAS_NAME:
-                self.url = f'{self.BASE_URL}/PurchaseDeliveryNotes'
-                self.pk = 'NroDocumento'
-                self.series = 80
-            case settings.AJUSTES_SALIDA_NAME:
-                self.url = f'{self.BASE_URL}/InventoryGenExits'
-                self.pk = 'NroDocumento'
-                self.series = 82
-            case settings.AJUSTES_ENTRADA_NAME:
-                self.url = f'{self.BASE_URL}/InventoryGenEntries'
-                self.pk = 'NroDocumento'
-                self.series = 83
-            case settings.AJUSTES_ENTRADA_PRUEBA_NAME:
-                self.url = f'{self.BASE_URL}/InventoryGenEntries'
-                self.pk = 'despacho'
-                self.series = 83
-            case settings.DISPENSACIONES_ANULADAS_NAME:
-                self.url = f'{self.BASE_URL}/InventoryGenEntries'
-                self.pk = 'NroSSC'
-                self.series = 83
-            case settings.AJUSTES_LOTE_NAME:
-                self.url = f'{self.BASE_URL}/BatchNumberDetails({{}})'  # TODO: Probar endpoint antes de implementar código
-                self.series = None
-                self.pk = 'Lote'
 
     def exec_migration(self, tanda: str = '') -> Csv2Dict:
         """
@@ -187,6 +187,7 @@ class Parser:
                     for self.proc in self.pipeline:
                         self.proc().run(csv_to_dict=csv_to_dict, reader=csv_reader, db=db,
                                         parser=self, filename=db.fname, sap=sap)
+                        time.sleep(3)
             else:
                 self.existing_records(records, csv_to_dict, sap, db)
 
