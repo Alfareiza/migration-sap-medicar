@@ -611,18 +611,18 @@ class Csv2Dict:
                 document_lines.update(
                     Quantity=self.make_int(row, "CantidadDispensada"),
                     Price=self.make_float(row, "Precio"),
-                    BaseLine=0,
                     CostingCode=self.get_costing_code(row),
                     CostingCode3=self.get_contrato(row),
                 )
                 if document_lines.get('WarehouseCode') == '391':
-                    self.pending_to_implement(row, 'No se ha implementado facturación cuando CECO es 391')
+                    # self.pending_to_implement(row, 'No se ha implementado facturación cuando CECO es 391')
                     document_lines.update(
-                        ItemDescription=row['Articulo'],
+                        ItemDescription=f"{row.get('Plu', '')} {row['Articulo']}".strip(),
                         ItemCode=self.get_iva_code(row)
                     )
                 else:
                     document_lines.update(
+                        BaseLine=0,
                         BaseType="15",
                         BaseEntry=self.get_doc_entry_factura(row),
                         ItemCode=self.get_plu(row),
@@ -891,7 +891,8 @@ class Csv2Dict:
                     self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][1][
                         'BaseLineNumber'] = self.data[key]['json']["StockTransferLines"][idx]['LineNum']
             case settings.FACTURACION_NAME:
-                article['BaseLine'] = self.data[key]['json']["DocumentLines"][-1]['BaseLine'] + 1
+                if article['WarehouseCode'] != '391':
+                    article['BaseLine'] = self.data[key]['json']["DocumentLines"][-1]['BaseLine'] + 1
                 self.data[key]['json']["DocumentLines"].append(article)
                 self.data[key]['json']["WithholdingTaxDataCollection"][0]['U_HBT_Retencion'] += (article['Quantity']
                                                                                                  * article['Price'])

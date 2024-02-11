@@ -1,7 +1,6 @@
 import unittest
 from unittest import TestCase
 
-
 from base.models import PayloadMigracion
 from base.tests.conf_test import make_instance, ProcessFakeSAP
 from utils.converters import Csv2Dict
@@ -101,12 +100,12 @@ class DocumentLinesTestsMixin:
     def test_consistency_in_document_lines(self):
         """ Valida que tenga tantos dicts en DocumentLines como lineas reconocidas del archivo."""
         for k, v in self.result.data.items():
-            if self.MODULE_NAME != 'facturacion':
-                with self.subTest(i=v):
+            with self.subTest(i=v):
+                if self.MODULE_NAME != 'facturacion':
                     qty_articles = sum(len(art['BatchNumbers']) for art in v['json']['DocumentLines'])
                     self.assertEqual(qty_articles, len(v['csv']))
-            else:
-                self.assertEqual(len(v['json']['DocumentLines']), len(v['csv']))
+                else:
+                    self.assertEqual(len(v['json']['DocumentLines']), len(v['csv']))
 
     def test_consistency_in_batch_numbers(self):
         """ Valida que la cantidad que aparece en el DocumentLines sea igual a
@@ -176,4 +175,3 @@ class CustomTestsMixin:
                             self.get_costing_code_3(subplan),
                             art['CostingCode3']
                         )
-
