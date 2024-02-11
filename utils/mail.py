@@ -187,5 +187,6 @@ def send_mail_due_to_general_error_in_file(filename, title_error, body_error, cu
 
 def send_mail_due_to_impossible_discover_files(name_folder, body_error):
     mail = EmailError(f"No fue posible leer carpeta {name_folder}",
-                      f"Al intentar leer carpeta {name_folder!r} surgió el siguiente error:\n{body_error}")
+                      f"Al intentar leer carpeta {name_folder!r} 3 veces con intervalos de "
+                      f"30 segundos entre cada intento, surgió el siguiente error:\n\n{body_error}")
     mail.send()

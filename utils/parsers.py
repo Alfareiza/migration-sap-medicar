@@ -8,6 +8,7 @@ from typing import Optional
 from googleapiclient.errors import HttpError
 from django.conf import settings
 
+from base.exceptions import RetryMaxException
 from base.models import PayloadMigracion
 from core.settings import logger as log, BASE_DIR, SAP_URL
 from utils.converters import Csv2Dict
@@ -292,10 +293,10 @@ class Parser:
         es el archivo más viejo"""
         try:
             files = self.input.get_files_in_folder_by_name(name_folder, ext='csv')
-        except HttpError as e:
-            log.warning(f'Error {e} al buscar archivos en carpeta {name_folder!r}')
+        except RetryMaxException:
+            log.warning(f'Error al buscar archivos en carpeta {name_folder!r}')
             send_mail_due_to_impossible_discover_files(name_folder, traceback.format_exc())
-            update_estado_error_drive(self.module.migracion_id)
+            # update_estado_error_drive(self.module.migracion_id)
         else:
             if not files:
                 log.warning(f'No se encontraron archivos en carpeta {name_folder!r}')
