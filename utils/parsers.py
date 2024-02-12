@@ -168,16 +168,13 @@ class Parser:
         csv_to_dict = Csv2Dict(self.module.name, self.module.pk, self.module.series, self.module.sap)
         db = DBHandler(self.module.migracion_id, csv_to_dict.name, csv_to_dict.pk)
         sap = SAPConnect(self.module)
-        self.change_formatter_custom_file(db.fname)
 
         if isinstance(self.input, (str, PosixPath)):
             self.input = Path(self.input) if isinstance(self.input, str) else self.input
             db.fname = self.input.stem
-
             self.run_filepath(csv_to_dict, db, sap)
 
         elif isinstance(self.input, GDriveHandler):
-
             self.run_drive(csv_to_dict, db, sap)
 
         return csv_to_dict
