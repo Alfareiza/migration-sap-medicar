@@ -109,7 +109,7 @@ class ProcessSAP:
                 kwargs['sap'].process(csvtodict, kwargs['db'].records)
             else:
                 if kwargs['parser'].tanda == '1RA':
-                    log.info(f'[{csvtodict.name}] No hay payloads que enviar a sap')
+                    log.info(f'No hay payloads que enviar a sap')
 
         if kwargs.get('payloads_previously_sent'):
             kwargs['csv_to_dict'].load_data_from_db(kwargs['payloads_previously_sent'])

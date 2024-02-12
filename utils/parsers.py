@@ -1,4 +1,5 @@
 import csv
+import logging
 import time
 import traceback
 from dataclasses import dataclass, field
@@ -10,7 +11,7 @@ from django.conf import settings
 
 from base.exceptions import RetryMaxException
 from base.models import PayloadMigracion
-from core.settings import logger as log, BASE_DIR, SAP_URL
+from core.settings import logger as log, BASE_DIR, SAP_URL, ch, formatter
 from utils.converters import Csv2Dict
 from utils.decorators import logtime
 from utils.resources import format_number as fn
@@ -167,13 +168,16 @@ class Parser:
         csv_to_dict = Csv2Dict(self.module.name, self.module.pk, self.module.series, self.module.sap)
         db = DBHandler(self.module.migracion_id, csv_to_dict.name, csv_to_dict.pk)
         sap = SAPConnect(self.module)
+        self.change_formatter_custom_file(db.fname)
 
         if isinstance(self.input, (str, PosixPath)):
             self.input = Path(self.input) if isinstance(self.input, str) else self.input
             db.fname = self.input.stem
+            self.change_formatter_custom_file(db.fname)
             self.run_filepath(csv_to_dict, db, sap)
 
         elif isinstance(self.input, GDriveHandler):
+            self.change_formatter_custom_file(db.fname)
             self.run_drive(csv_to_dict, db, sap)
 
         return csv_to_dict
@@ -181,17 +185,18 @@ class Parser:
     def run_filepath(self, csv_to_dict, db, sap):
         """Procesa el archivo cuando se recibe un csv local."""
         try:
-            records = PayloadMigracion.objects.filter(nombre_archivo=self.input.stem, modulo=self.module.name)
-            if not records:
+            if records := PayloadMigracion.objects.filter(
+                nombre_archivo=self.input.stem, modulo=self.module.name
+            ):
+                self.existing_records(records, csv_to_dict, sap, db)
+
+            else:
                 with open(self.input, encoding='utf-8-sig') as csvf:
                     csv_reader = csv.DictReader(csvf, delimiter=';')
                     for self.proc in self.pipeline:
                         self.proc().run(csv_to_dict=csv_to_dict, reader=csv_reader, db=db,
                                         parser=self, filename=db.fname, sap=sap)
                         time.sleep(3)
-            else:
-                self.existing_records(records, csv_to_dict, sap, db)
-
         except Exception as e:
             update_estado_error(self.module.migracion_id)
             send_mail_due_to_general_error_in_file(f"{db.fname}.csv", e,
@@ -248,11 +253,10 @@ class Parser:
         if self.tanda == '1RA':
             self.pipeline = (ProcessSAP,)
 
-        log.info("[{}] Archivo {}.csv. {} Migraciones encontradas. "
+        log.info("{} Migraciones encontradas. "
                  "Enviadas a SAP: {}, Por enviar: {}."
                  " De las cuales {} tienen error mientras que {} no tienen error."
-                 .format(csv_to_dict.name, db.fname,
-                         fn(len(records)),
+                 .format(fn(len(records)),
                          fn(len(already_sent)),
                          fn(len(csv_to_dict.data)),
                          fn(len(csv_to_dict.errs)),
@@ -267,6 +271,7 @@ class Parser:
                             payloads_previously_sent=already_sent)
             time.sleep(3)
         csv_to_dict.clear_data()
+        self.change_formatter_base()
 
     def strategy_post_error(self, proc_name):
         """
@@ -314,3 +319,13 @@ class Parser:
         words = self.module.name.split('_')
         base_word = ' '.join(words).title().replace(' ', '')
         return f"{base_word}Medicar"
+
+    def change_formatter_custom_file(self, filename):
+        ch.setFormatter(
+            logging.Formatter("%(asctime)s%(tanda)s%(namefile)s %(funcName)s %(levelname)s %(message)s",
+                              "[%d%b %H:%M:%S]",
+                              defaults={"tanda": f"[{self.tanda}]", "namefile": f"[{filename}.csv]"})
+        )
+
+    def change_formatter_base(self):
+        ch.setFormatter(formatter)

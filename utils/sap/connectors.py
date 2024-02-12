@@ -51,7 +51,7 @@ class SAPConnect(SAP):
         length = len(self.info.succss)
         for i, key in enumerate(list(self.info.succss), 1):
             res = self.request_and_update(method, key, self.info.data[key]['json'], self.build_url(key))
-            log.info(f'[{self.info.name}] {round((i / length) * 100, 2)}% '
+            log.info(f'{round((i / length) * 100, 2)}% '
                      f'{format_number(i)} de '
                      f'{format_number(length)} {res}')
 
@@ -95,8 +95,8 @@ class SAPConnect(SAP):
         :param url: 'https://url-api-sap.com.co:10001/b1s/v8/DeliveryNotes'
         :return: None
         """
-        res: dict = method(item, url)
-        # res = self.fake_method(item, url)
+        # res: dict = method(item, url)
+        res = self.fake_method(item, url)
         if value_err := res.get('ERROR'):
             self.info.errs.add(key)
             try:

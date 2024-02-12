@@ -901,7 +901,7 @@ class Csv2Dict:
         for i, row in enumerate(csv_reader, 1):
             key = row[self.pk]
 
-            log.info(f'LN {i} [{self.name}] Leyendo {self.pk} {key}')
+            log.info(f'LN {i} Leyendo {self.pk} {key}')
             row['Status'] = ''
             if key in self.data:
                 if self.name in settings.MODULES_USE_DOCUMENTLINES:

@@ -143,7 +143,8 @@ ch.setLevel(logging.DEBUG)
 
 # create formatter
 formatter = logging.Formatter("%(asctime)s %(funcName)s %(levelname)s %(message)s",
-                              "[%d/%b/%Y %H:%M:%S]")
+                              "[%d%b %H:%M:%S]")
+
 # add formatter to ch
 ch.setFormatter(formatter)
 
