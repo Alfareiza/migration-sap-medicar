@@ -69,9 +69,7 @@ class Command:
 
         self.tanda = options['tanda'] or ''
 
-        log.info(f"{' INICIANDO MIGRACIÓN {} ':▼^70}".format(self.migracion.id))
-        log.info(f"▶︎{' {} ':^59}◀︎".format(f'{self.tanda.upper()} TANDA' if self.tanda else ''))
-        log.info(f"{'':▲^73}︎")
+        log.info(f"{' INICIANDO {} TANDA - MIGRACIÓN # {} ':▼^80}".format(self.tanda, self.migracion.id))
 
         if options['modulos'] == ['todos']:
             self.main(
@@ -93,9 +91,7 @@ class Command:
                       filepath=options['filepath'][0] if options.get('filepath') else None,
                       tanda=self.tanda)
 
-        log.info(f"{'':▼^73}")
-        log.info(f"▶{' {} ': ^59}◀︎".format(f'{self.tanda.upper()} TANDA' if self.tanda else ''))
-        log.info(f"{' FINALIZANDO MIGRACIÓN {} ':▲^70}".format(self.migracion.id))
+        log.info(f"{' FINALIZANDO {} TANDA - MIGRACIÓN # {} ':▲^80}".format(self.tanda, self.migracion.id))
 
         self.update_estado_para_finalizado()
         return
@@ -114,7 +110,7 @@ class Command:
         client = GDriveHandler()
         manager_sap = SAPData()
         for module in args:
-            log.info(f'{f" INICIO {module.upper()} {self.tanda} TANDA ":=^60}')
+            log.info(f'{f" INICIO {module.upper()} {self.tanda} TANDA ":=^80}')
             if dir := kwargs.get('filepath'):
                 # Caso sea local
                 mdl = Module(name=module, filepath=dir, sap=manager_sap, migracion_id=migracion_id)
@@ -122,7 +118,7 @@ class Command:
                 # Caso sea del drive
                 mdl = Module(name=module, drive=client, sap=manager_sap, migracion_id=migracion_id)
             data = mdl.exec_migration(tanda=kwargs.get('tanda'))
-            log.info(f'{f" FIN {module.upper()} {self.tanda} TANDA ":=^60}')
+            log.info(f'{f" FIN {module.upper()} {self.tanda} TANDA ":=^80}')
 
 
 def handle_sigterm(*args):
