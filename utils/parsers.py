@@ -197,6 +197,7 @@ class Parser:
                         self.proc().run(csv_to_dict=csv_to_dict, reader=csv_reader, db=db,
                                         parser=self, filename=db.fname, sap=sap)
                         time.sleep(3)
+                    self.change_formatter_base()
         except Exception as e:
             update_estado_error(self.module.migracion_id)
             send_mail_due_to_general_error_in_file(f"{db.fname}.csv", e,
@@ -224,6 +225,7 @@ class Parser:
                                         parser=self, sap=sap, file=file, db=db,
                                         name_folder=name_folder, filename=db.fname)
                         time.sleep(3)
+                    self.change_formatter_base()
                     csv_to_dict.clear_data()
                 elif records:
                     self.existing_records(records, csv_to_dict, sap, db,
