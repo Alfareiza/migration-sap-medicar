@@ -53,7 +53,7 @@ def retry_until_true(max_attempts=3, retry_interval=3):
                 try:
                     result = func(*args, **kwargs)
                 except HttpError:
-                    log.info(f'Tentativa #{i+1} fallida... intentando de nuevo')
+                    log.warning(f'Tentativa #{i+1} fallida... intentando de nuevo')
                     time.sleep(retry_interval)
                 else:
                     return result
@@ -78,7 +78,7 @@ def login_required(func):
                 sess_id, sess_timeout = pickle.load(f)
                 now = moment()
                 if now > sess_timeout:
-                    log.info('Login vencido ...')
+                    log.warning('Login vencido ...')
                     login_succeed = self.login()
                 else:
                     # log.info(f"Login válido. {datetime_str(now)} es menor que {datetime_str(sess_timeout)}")

@@ -173,11 +173,11 @@ class Parser:
         if isinstance(self.input, (str, PosixPath)):
             self.input = Path(self.input) if isinstance(self.input, str) else self.input
             db.fname = self.input.stem
-            self.change_formatter_custom_file(db.fname)
+
             self.run_filepath(csv_to_dict, db, sap)
 
         elif isinstance(self.input, GDriveHandler):
-            self.change_formatter_custom_file(db.fname)
+
             self.run_drive(csv_to_dict, db, sap)
 
         return csv_to_dict
@@ -185,6 +185,7 @@ class Parser:
     def run_filepath(self, csv_to_dict, db, sap):
         """Procesa el archivo cuando se recibe un csv local."""
         try:
+            self.change_formatter_custom_file(db.fname)
             if records := PayloadMigracion.objects.filter(
                 nombre_archivo=self.input.stem, modulo=self.module.name
             ):
@@ -197,7 +198,7 @@ class Parser:
                         self.proc().run(csv_to_dict=csv_to_dict, reader=csv_reader, db=db,
                                         parser=self, filename=db.fname, sap=sap)
                         time.sleep(3)
-                    self.change_formatter_base()
+            self.change_formatter_base()
         except Exception as e:
             update_estado_error(self.module.migracion_id)
             send_mail_due_to_general_error_in_file(f"{db.fname}.csv", e,
@@ -217,6 +218,8 @@ class Parser:
                 records = PayloadMigracion.objects.filter(nombre_archivo=file['name'][:-4],
                                                           modulo=self.module.name)
                 db.fname = file['name'][:-4]
+                self.change_formatter_custom_file(db.fname)
+
                 if not records and self.tanda == '1RA':
                     log.info(f"[CSV] Leyendo {i} de {len(self.input.files)} {file['name']!r}")
                     csv_reader = self.input.read_csv_file_by_id(file['id'])
@@ -225,7 +228,6 @@ class Parser:
                                         parser=self, sap=sap, file=file, db=db,
                                         name_folder=name_folder, filename=db.fname)
                         time.sleep(3)
-                    self.change_formatter_base()
                     csv_to_dict.clear_data()
                 elif records:
                     self.existing_records(records, csv_to_dict, sap, db,
@@ -233,6 +235,8 @@ class Parser:
                 else:
                     log.info(f"[{self.module.name}] archivo {db.fname} creado durante ejecución de"
                              f" primera tanda, se puede procesar en segunda tanda")
+
+                self.change_formatter_base()
             except Exception as e:
                 send_mail_due_to_general_error_in_file(file['name'], e, traceback.format_exc(),
                                                        self.pipeline.index(self.proc) + 1,
@@ -273,7 +277,6 @@ class Parser:
                             payloads_previously_sent=already_sent)
             time.sleep(3)
         csv_to_dict.clear_data()
-        self.change_formatter_base()
 
     def strategy_post_error(self, proc_name):
         """
