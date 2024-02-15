@@ -106,7 +106,6 @@ class Command:
                         - ('ajustes_entrada', 'ajustes_salida')
         :param kwargs: Might be {'filepath': 'path_of_the_file.csv'}
         """
-        # migracion_id = self.migracion.id if self.migracion else 0
         client = GDriveHandler()
         manager_sap = SAPData()
         for module in args:
