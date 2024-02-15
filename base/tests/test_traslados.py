@@ -44,7 +44,7 @@ class TestTraslados(unittest.TestCase):
         for k, v in self.result.data.items():
             with self.subTest(i=v):
                 self.assertTrue(v['json']['DocDate'])
-                self.assertTrue(v['json']['CardCode'] == 'PR900073223')
+                self.assertTrue(v['json']['CardCode'] == 'PRV900073223')
                 self.assertTrue(v['json']['JournalMemo'])
                 self.assertTrue(v['json']['FromWarehouse'])
                 self.assertTrue(v['json']['ToWarehouse'])

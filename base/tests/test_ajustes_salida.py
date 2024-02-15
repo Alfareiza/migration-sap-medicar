@@ -46,7 +46,7 @@ class TestAjustesSalida(CustomTestsMixin, DocumentLinesTestsMixin, unittest.Test
                 self.assertTrue(v['json']['Series'])
                 self.assertTrue(v['json']['DocDate'])
                 self.assertTrue(v['json']['DocDueDate'])
-                self.assertTrue(v['json']['U_HBT_Tercero'] == 'PR900073223')
+                self.assertTrue(v['json']['U_HBT_Tercero'] == 'PRV900073223')
                 self.assertTrue(v['json']['Comments'])
                 self.assertTrue(v['json']['DocumentLines'])
 

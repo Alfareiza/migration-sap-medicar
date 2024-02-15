@@ -676,7 +676,7 @@ class Csv2Dict:
                     base_dct.pop(key)
                 base_dct.update(
                     DocDate=self.transform_date(row, 'FechaTraslado'),
-                    CardCode="PR900073223",
+                    CardCode="PRV900073223",
                     JournalMemo=load_comments(row),
                     FromWarehouse=row['CentroOrigen'],
                     ToWarehouse=row['CentroDestino'],
@@ -690,7 +690,7 @@ class Csv2Dict:
                     Series=self.series,
                     DocDate=self.transform_date_v2(row, 'fecha_tras'),
                     DocDueDate=self.transform_date_v2(row, 'fecha_tras'),
-                    U_HBT_Tercero="PR900073223",
+                    U_HBT_Tercero="PRV900073223",
                     Comments=load_comments(row, 'usuario'),
                     DocumentLines=[self.build_document_lines(row)],
                 )
@@ -702,7 +702,7 @@ class Csv2Dict:
                     Series=self.series,
                     DocDate=self.transform_date(row, 'FechaAjuste'),
                     DocDueDate=self.transform_date(row, 'FechaAjuste'),
-                    U_HBT_Tercero="PR900073223",
+                    U_HBT_Tercero="PRV900073223",
                     DocumentLines=[self.build_document_lines(row)],
                 )
             case settings.AJUSTES_SALIDA_NAME:  # 8.1
@@ -713,7 +713,7 @@ class Csv2Dict:
                     Series=self.series,
                     DocDate=self.transform_date(row, 'FechaAjuste'),
                     DocDueDate=self.transform_date(row, 'FechaAjuste'),
-                    U_HBT_Tercero="PR900073223",
+                    U_HBT_Tercero="PRV900073223",
                     DocumentLines=[self.build_document_lines(row)],
                 )
             case settings.AJUSTES_LOTE_NAME:
