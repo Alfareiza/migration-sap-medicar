@@ -75,7 +75,7 @@ class Command:
             self.main(
                 'compras',
                 'traslados',
-                'ajustes_entrada_prueba',
+                # 'ajustes_entrada_prueba',
                 'ajustes_entrada',
                 'ajustes_salida',
                 'ajustes_vencimiento_lote',

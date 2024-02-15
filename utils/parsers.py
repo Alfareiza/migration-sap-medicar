@@ -67,23 +67,24 @@ class Module:
             case settings.COMPRAS_NAME:
                 self.url = f'{self.BASE_URL}/PurchaseDeliveryNotes'
                 self.pk = 'NroDocumento'
-                self.series = 80
+                self.series = 81
             case settings.TRASLADOS_NAME:
                 self.url = f'{self.BASE_URL}/StockTransfers'
                 self.pk = 'NroDocumento'
                 self.series = None  # No usa
-            case settings.AJUSTES_ENTRADA_PRUEBA_NAME:
-                self.url = f'{self.BASE_URL}/InventoryGenEntries'
-                self.pk = 'despacho'
-                self.series = 83
+            # Deprecated 15/Feb
+            # case settings.AJUSTES_ENTRADA_PRUEBA_NAME:
+            #     self.url = f'{self.BASE_URL}/InventoryGenEntries'
+            #     self.pk = 'despacho'
+            #     self.series = 83
             case settings.AJUSTES_ENTRADA_NAME:
                 self.url = f'{self.BASE_URL}/InventoryGenEntries'
                 self.pk = 'NroDocumento'
-                self.series = 83
+                self.series = 82
             case settings.AJUSTES_SALIDA_NAME:
                 self.url = f'{self.BASE_URL}/InventoryGenExits'
                 self.pk = 'NroDocumento'
-                self.series = 82
+                self.series = 83
             case settings.AJUSTES_LOTE_NAME:
                 self.url = f'{self.BASE_URL}/BatchNumberDetails({{}})'
                 self.series = None
@@ -94,23 +95,23 @@ class Module:
                     "EVENTO": f'{self.BASE_URL}/DeliveryNotes'
                 }
                 self.pk = 'NroSSC'
-                self.series = {'CAPITA': 77, 'EVENTO': 81}
+                self.series = {'CAPITA': 89, 'EVENTO': 11}
             case settings.DISPENSACIONES_ANULADAS_NAME:
                 self.url = f'{self.BASE_URL}/InventoryGenEntries'
                 self.pk = 'NroSSC'
-                self.series = 83
+                self.series = 90
             case settings.FACTURACION_NAME:
                 self.url = {'EVENTO': f'{self.BASE_URL}/Invoices'}
                 self.pk = 'NroSSC'
-                self.series = {'EVENTO': 4}
+                self.series = {'EVENTO': 85}
             case settings.NOTAS_CREDITO_NAME:
                 self.url = f'{self.BASE_URL}/CreditNotes'
                 self.pk = 'NroSSC'
-                self.series = 78
+                self.series = 91
             case settings.PAGOS_RECIBIDOS_NAME:
                 self.url = f'{self.BASE_URL}/IncomingPayments'
                 self.pk = 'NIT'  # Preguntar a Elias cual es el pk
-                self.series = 79
+                self.series = 92
 
     def exec_migration(self, tanda: str = '') -> Csv2Dict:
         """
