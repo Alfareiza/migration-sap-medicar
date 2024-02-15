@@ -354,7 +354,7 @@ class SAPData(SAP):
             return self.abs_entries[ceco].get(f"{ceco}-{end}")
         elif not self.abs_entries and not self.abs_entries_loaded:
             self.load_abs_entries()
-            return self.get_bin_abs_entry_from_ceco(ceco)
+            return self.get_bin_abs_entry_from_ceco(ceco, tipo_ceco)
         else:
             return 0
 
@@ -407,5 +407,7 @@ class SAPData(SAP):
 if __name__ == '__main__':
     client = SAPData()
     # client.load_abs_entries()
+    print(client.get_bin_abs_entry_from_ceco('910', 'origen'))
+    print('')
     # client.load_sucursales()
     # client.load_dispensados()
