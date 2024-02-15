@@ -393,7 +393,7 @@ class Csv2Dict:
         """Busca el BinAbsEntry en SAP de la bodega correspondiente.
         colum_name puede ser Bodega Origen o Bodega Destino"""
         try:
-            if binentry := self.sap.get_bin_abs_entry_from_ceco(row[colum_name]):
+            if binentry := self.sap.get_bin_abs_entry_from_ceco(row[colum_name], colum_name):
                 res = binentry
             else:
                 raise Exception()

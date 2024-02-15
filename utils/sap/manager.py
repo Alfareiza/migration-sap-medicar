@@ -338,16 +338,18 @@ class SAPData(SAP):
         else:
             return ''
 
-    def get_bin_abs_entry_from_ceco(self, ceco: str) -> int:
+    def get_bin_abs_entry_from_ceco(self, ceco: str, tipo_ceco: str) -> int:
         """
         Hace que se carguen todas las AbsEntry y BinCode de las bodegas
         y retorna el AbsEntry del ceco entrante.
+        Cuando el CentroDestino es 900, 910 o 980 debe ir a la TR.
+        Para el resto de casos va para la AL.
         :param ceco: Suele ser bodega destino o bodega origen.
                 Ex: '304, '101', etc.
         :return: Caso encontrar el AbsEntry del value, retorna
                  el valor encontrado en self.sucursales, sino un cero.
         """
-        end = 'AL' if ceco not in ('900', '910', '800') else 'TR'
+        end = 'TR' if ceco in {'900', '910', '980'} and 'destino' in tipo_ceco else 'AL'
         if ceco in self.abs_entries and self.abs_entries[ceco].get(f"{ceco}-{end}"):
             return self.abs_entries[ceco].get(f"{ceco}-{end}")
         elif not self.abs_entries and not self.abs_entries_loaded:
