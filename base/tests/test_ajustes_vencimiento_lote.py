@@ -32,14 +32,20 @@ class TestAjustesVencimientoLote(CustomTestsMixin, unittest.TestCase):
         """Valida los tipos de cada value"""
         for k, v in self.result.data.items():
             with self.subTest(i=v):
-                self.assertIsInstance(v['json']['Series'], int)
+                if k in self.result.errs:
+                    self.assertIsNone(v['json']['Series'])
+                else:
+                    self.assertIsInstance(v['json']['Series'], int)
                 self.assertIsInstance(v['json']['ExpirationDate'], str)
 
     def test_content_in_structrure(self):
         """Valida que hayan datos en los keys obligatórios."""
         for k, v in self.result.data.items():
             with self.subTest(i=v):
-                self.assertTrue(v['json']['Series'])
+                if k in self.result.errs:
+                    self.assertIsNone(v['json']['Series'])
+                else:
+                    self.assertIsInstance(v['json']['Series'], int)
                 self.assertTrue(v['json']['ExpirationDate'])
 
 

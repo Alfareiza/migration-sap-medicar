@@ -663,6 +663,7 @@ class Csv2Dict:
                             "U_LF_Mipres", "U_LF_Usuario"):
                     base_dct.pop(key)
                 base_dct.update(
+                    U_LF_NroDocumento=f"Comp{row[self.pk]}",
                     Series=self.series,
                     DocDate=self.transform_date(row, 'FechaCompra'),
                     NumAtCard=row["Factura"],

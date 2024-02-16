@@ -26,7 +26,7 @@ class TestCompras(CustomTestsMixin, DocumentLinesTestsMixin, unittest.TestCase):
                 self.assertCountEqual(
                     list(v['json'].keys()),
                     ["Series", "DocDate", "NumAtCard", "CardCode",
-                     "Comments", "DocumentLines"]
+                     "U_LF_NroDocumento", "Comments", "DocumentLines"]
                 )
 
     def test_types_in_structrure(self):
@@ -34,6 +34,7 @@ class TestCompras(CustomTestsMixin, DocumentLinesTestsMixin, unittest.TestCase):
         for k, v in self.result.data.items():
             with self.subTest(i=v):
                 self.assertTrue(isinstance(v['json']['Series'], int))
+                self.assertTrue(isinstance(v['json']['U_LF_NroDocumento'], str))
                 self.assertTrue(isinstance(v['json']['DocDate'], str))
                 self.assertTrue(isinstance(v['json']['NumAtCard'], str))
                 self.assertTrue(isinstance(v['json']['CardCode'], str))
@@ -46,6 +47,7 @@ class TestCompras(CustomTestsMixin, DocumentLinesTestsMixin, unittest.TestCase):
             with self.subTest(i=v):
                 self.assertTrue(v['json']['Series'])
                 self.assertTrue(v['json']['DocDate'])
+                self.assertTrue(v['json']['U_LF_NroDocumento'].startswith('Comp'))
                 self.assertTrue(v['json']['CardCode'])
                 self.assertTrue(v['json']['NumAtCard'])
                 self.assertTrue(v['json']['Comments'])
@@ -71,9 +73,9 @@ class TestCompras(CustomTestsMixin, DocumentLinesTestsMixin, unittest.TestCase):
         """Valida los tipos de datos del documentlines."""
         for k, v in self.result.data.items():
             for document in v['json']['DocumentLines']:
-                with self.subTest(i=document):
+                with (self.subTest(i=document)):
                     self.assertTrue(isinstance(document['ItemCode'], str))
-                    if document['Quantity']:  #  document['Quantity'] puede ser None
+                    if document['Quantity']: # puede ser None
                         self.assertTrue(isinstance(document['Quantity'], int))
                     self.assertTrue(isinstance(document['WarehouseCode'], str))
                     self.assertTrue(isinstance(document['UnitPrice'], float))
