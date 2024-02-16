@@ -675,7 +675,7 @@ class Csv2Dict:
                             "U_LF_Mipres", "U_LF_Usuario"):
                     base_dct.pop(key)
                 base_dct.update(
-                    NroDocumento=row['NroDocumento'],
+                    U_LF_NroDocumento=row[self.pk],
                     DocDate=self.transform_date(row, 'FechaTraslado'),
                     CardCode="PRV900073223",
                     JournalMemo=load_comments(row),
@@ -700,7 +700,7 @@ class Csv2Dict:
                             "U_LF_Mipres", "U_LF_Usuario"):
                     base_dct.pop(key, None)
                 base_dct.update(
-                    NroDocumento=f"AjEnt{row[self.pk]}",
+                    U_LF_NroDocumento=f"AjEnt{row[self.pk]}",
                     Series=self.series,
                     DocDate=self.transform_date(row, 'FechaAjuste'),
                     DocDueDate=self.transform_date(row, 'FechaAjuste'),
@@ -712,7 +712,7 @@ class Csv2Dict:
                             "U_LF_Mipres", "U_LF_Usuario"):
                     base_dct.pop(key, None)
                 base_dct.update(
-                    NroDocumento=f"AjSal{row[self.pk]}",
+                    U_LF_NroDocumento=f"AjSal{row[self.pk]}",
                     Series=self.series,
                     DocDate=self.transform_date(row, 'FechaAjuste'),
                     DocDueDate=self.transform_date(row, 'FechaAjuste'),
