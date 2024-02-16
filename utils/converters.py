@@ -675,6 +675,7 @@ class Csv2Dict:
                             "U_LF_Mipres", "U_LF_Usuario"):
                     base_dct.pop(key)
                 base_dct.update(
+                    NroDocumento=row['NroDocumento'],
                     DocDate=self.transform_date(row, 'FechaTraslado'),
                     CardCode="PRV900073223",
                     JournalMemo=load_comments(row),

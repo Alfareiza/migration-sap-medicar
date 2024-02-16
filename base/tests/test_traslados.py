@@ -24,7 +24,7 @@ class TestTraslados(unittest.TestCase):
             with self.subTest(i=v):
                 self.assertCountEqual(
                     v['json'].keys(),
-                    ["JournalMemo", "DocDate", "CardCode",
+                    ["JournalMemo", "DocDate", "CardCode", "NroDocumento",
                      "FromWarehouse", "ToWarehouse", "StockTransferLines"],
                 )
 
@@ -34,6 +34,7 @@ class TestTraslados(unittest.TestCase):
             with self.subTest(i=v):
                 self.assertTrue(isinstance(v['json']['DocDate'], str))
                 self.assertTrue(isinstance(v['json']['CardCode'], str))
+                self.assertIsInstance(v['json']['NroDocumento'], str)
                 self.assertTrue(isinstance(v['json']['JournalMemo'], str))
                 self.assertTrue(isinstance(v['json']['FromWarehouse'], str))
                 self.assertTrue(isinstance(v['json']['ToWarehouse'], str))
@@ -142,13 +143,28 @@ class TestTraslados(unittest.TestCase):
         """Valida los tipos de datos del StockTransferLines."""
         for k, v in self.result.data.items():
             for line in v['json']['StockTransferLines']:
-                for bin in line['StockTransferLinesBinAllocations']:
-                    with self.subTest(i=bin):
-                        self.assertTrue(isinstance(bin['BinAbsEntry'], int))
-                        self.assertTrue(isinstance(bin['Quantity'], int))
-                        self.assertTrue(isinstance(bin['BaseLineNumber'], int))
-                        self.assertTrue(isinstance(bin['BinActionType'], str))
-                        self.assertTrue(isinstance(bin['SerialAndBatchNumbersBaseLine'], int))
+                bin_one = line['StockTransferLinesBinAllocations'][0]
+                bin_two = line['StockTransferLinesBinAllocations'][1]
+                with self.subTest(i=line):
+                    if v['json']['FromWarehouse'] == '391':
+                        self.assertIsNone(bin_one['BinAbsEntry'])
+                    else:
+                        self.assertIsInstance(bin_one['BinAbsEntry'], int)
+
+                    if v['json']['ToWarehouse'] == '391':
+                        self.assertIsNone(bin_two['BinAbsEntry'])
+                    else:
+                        self.assertIsInstance(bin_two['BinAbsEntry'], int)
+
+                    self.assertIsInstance(bin_one['Quantity'], int)
+                    self.assertIsInstance(bin_one['BaseLineNumber'], int)
+                    self.assertIsInstance(bin_one['BinActionType'], str)
+                    self.assertIsInstance(bin_one['SerialAndBatchNumbersBaseLine'], int)
+
+                    self.assertIsInstance(bin_two['Quantity'], int)
+                    self.assertIsInstance(bin_two['BaseLineNumber'], int)
+                    self.assertIsInstance(bin_two['BinActionType'], str)
+                    self.assertIsInstance(bin_two['SerialAndBatchNumbersBaseLine'], int)
 
     def test_logic_stock_transfer_lines_bin_allocations(self):
         """Valida que los dos elementos de StockTransferLinesBinAllocations
