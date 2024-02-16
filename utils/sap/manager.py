@@ -52,8 +52,13 @@ class SAP:
             res = {"ERROR": f"[CONNECTION] {txt}"}
         else:
             res = response.json() if response.text else {'DocEntry': 'Sin DocEntry'}
-        finally:
-            return res
+        # Log temporario 16/Feb
+        if res == {"ERROR": ""}:
+            try:
+                log.warning(f'Response no tratado: {response.text}')
+            except Exception as e:
+                ...
+        return res
 
     def login(self) -> bool:
         """

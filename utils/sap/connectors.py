@@ -97,13 +97,13 @@ class SAPConnect(SAP):
         """
         res: dict = method(item, url)
         # res = self.fake_method(item, url)
-        if value_err := res.get('ERROR'):
+        if 'ERROR' in res:
             self.info.errs.add(key)
             try:
                 self.info.succss.remove(key)
             except Exception:
                 ...
-            msg = value_err
+            msg = res.get('ERROR')
         else:
             # Si NO hubo ERROR al hacer el POST o PATCH
             if dentry := res.get('DocEntry'):
