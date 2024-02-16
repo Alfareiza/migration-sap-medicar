@@ -25,7 +25,7 @@ class TestAjustesSalida(CustomTestsMixin, DocumentLinesTestsMixin, unittest.Test
                 self.assertCountEqual(
                     list(v['json'].keys()),
                     ["Series", "DocDate", "DocDueDate", "Comments",
-                     "U_HBT_Tercero", "DocumentLines"]
+                     "NroDocumento", "U_HBT_Tercero", "DocumentLines"]
                 )
 
     def test_types_in_structrure(self):
@@ -33,6 +33,7 @@ class TestAjustesSalida(CustomTestsMixin, DocumentLinesTestsMixin, unittest.Test
         for k, v in self.result.data.items():
             with self.subTest(i=v):
                 self.assertTrue(isinstance(v['json']['Series'], int))
+                self.assertTrue(isinstance(v['json']['NroDocumento'], str))
                 self.assertTrue(isinstance(v['json']['DocDate'], str))
                 self.assertTrue(isinstance(v['json']['DocDueDate'], str))
                 self.assertTrue(isinstance(v['json']['U_HBT_Tercero'], str))
@@ -44,6 +45,7 @@ class TestAjustesSalida(CustomTestsMixin, DocumentLinesTestsMixin, unittest.Test
         for k, v in self.result.data.items():
             with self.subTest(i=v):
                 self.assertTrue(v['json']['Series'])
+                self.assertTrue(v['json']['NroDocumento'])
                 self.assertTrue(v['json']['DocDate'])
                 self.assertTrue(v['json']['DocDueDate'])
                 self.assertTrue(v['json']['U_HBT_Tercero'] == 'PRV900073223')
