@@ -727,7 +727,7 @@ class Csv2Dict:
                 )
             case settings.DISPENSACION_NAME:  # 4 y 5 [Implementado]
                 base_dct.update(Series=self.get_series(row))
-                if base_dct['Series'] == 77:  # 4
+                if base_dct['Series'] == 89:  # 4
                     base_dct.update(DocDate=self.transform_date(row, "FechaDispensacion"))
                     base_dct.update(
                         U_LF_IDSSC=self.generate_idssc(row, base_dct.get('DocDate')),
@@ -740,7 +740,7 @@ class Csv2Dict:
                         JournalMemo="Escenario dispensación medicar",
                         DocumentLines=[self.build_document_lines(row)],
                     )
-                elif base_dct['Series'] == 81:  # 5
+                elif base_dct['Series'] == 11:  # 5
                     base_dct.update(DocDate=self.transform_date(row, "FechaDispensacion"))
                     base_dct.update(
                         U_LF_IDSSC=self.generate_idssc(row, base_dct.get('DocDate')),
