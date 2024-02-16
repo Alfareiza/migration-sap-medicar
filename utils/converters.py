@@ -533,6 +533,7 @@ class Csv2Dict:
                 )
             case settings.AJUSTES_ENTRADA_NAME:  # 8.2
                 document_lines.update(
+                    NroDocumento=f"AjEnt{row[self.pk]}",
                     ItemCode=self.get_plu(row),
                     Quantity=self.make_int(row, "Cantidad"),
                     CostingCode=self.get_costing_code(row),
@@ -548,6 +549,7 @@ class Csv2Dict:
                 )
             case settings.AJUSTES_SALIDA_NAME:  # 8.1
                 document_lines.update(
+                    NroDocumento=f"AjSal{row[self.pk]}",
                     ItemCode=self.get_plu(row),
                     Quantity=self.make_int(row, "Cantidad"),
                     CostingCode=self.get_costing_code(row),
