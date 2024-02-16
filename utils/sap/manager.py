@@ -47,9 +47,11 @@ class SAP:
                 msg = str(err)
             # log.error(f"{tag} {msg} [{extra_txt}]")
             res = {"ERROR": f"[SAP] {clean_text(msg)}"}
+        except ConnectionResetError as e:
+            res = {"ERROR": f"[CONNECTION] ConnectionResetError {str(e)}"}
         except Exception as e:
-            log.error(txt := f"STATUS_CODE={e.response.status_code} {str(e)}")
-            res = {"ERROR": f"[CONNECTION] {txt}"}
+            # log.error(txt := f"STATUS_CODE={e.response.status_code} {str(e)}")
+            res = {"ERROR": f"[CONNECTION] {str(e)}"}
         else:
             res = response.json() if response.text else {'DocEntry': 'Sin DocEntry'}
         # Log temporario 16/Feb
