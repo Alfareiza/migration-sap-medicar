@@ -133,9 +133,9 @@ sched = BlockingScheduler()
 @sched.scheduled_job('interval', minutes=10)
 def timed_job():
     c = Command()
+    print(' ')
     c.handle(modulos=['todos'], tanda='1RA')
-    log.info(10 * '  ')
-    log.info(10 * '  ')
+    log.info(50 * '-')
     c.handle(modulos=['todos'], tanda='2DA')
 
 
