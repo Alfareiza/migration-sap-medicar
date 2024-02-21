@@ -831,9 +831,9 @@ class Csv2Dict:
                     DocDate=self.transform_date(row, 'FechaPago'),
                     CardCode=self.get_codigo_tercero(row),
                     U_HBT_Tercero=self.get_codigo_tercero(row),
-                    Remarks=load_comments(row, 'NroDocumento'),
-                    JournalRemarks=load_comments(row, 'NroDocumento'),
-                    CashAccount='1105050103',  # Cada punto debe tener su cuenta
+                    Remarks=load_comments(row, self.pk),
+                    JournalRemarks=load_comments(row, self.pk),
+                    CashAccount='1105050101',  # Cada punto debe tener su cuenta
                     CashSum=self.make_float(row, 'Valor'),
                     ControlAccount='2805950101'
                 )

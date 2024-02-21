@@ -2,6 +2,7 @@ from datetime import datetime
 
 from django.conf import settings
 from pytz import timezone
+from decouple import config
 
 
 def moment():
@@ -56,7 +57,7 @@ def clean_text(text) -> str:
 
 
 def load_comments(row, column_name=None) -> str:
-    txt = f"Cargue automático {datetime_str()} UsuarioSAP: Medicar"
+    txt = f"Cargue automático {datetime_str()} UsuarioSAP: {config('SAP_USER')}"
     if column_name:
         extra = row.get(column_name)
         txt += f" ({column_name}. {extra})"
