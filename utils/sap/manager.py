@@ -36,7 +36,7 @@ class SAP:
         except HTTPError as e:
             match e.response.status_code:
                 case code if code >= 500:
-                    msg = str(e)
+                    msg = f"STATUS_CODE={code} {str(e)}"
                 case _:
                     if 'application/json' in e.response.headers['Content-Type']:
                         err = e.response.json()
