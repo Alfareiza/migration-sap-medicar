@@ -34,18 +34,22 @@ class SAP:
             log.error(txt := "No hubo respuesta de la API en 30 min.")
             res = {"ERROR": f"[TIMEOUT] {txt}"}
         except HTTPError as e:
-            if 'application/json' in e.response.headers['Content-Type']:
-                err = e.response.json()
-            else:
-                err = e.response.content
-            # extra_txt = payload['U_LF_Formula'] if 'U_LF_Formula' in payload else ''
-            # tag = f'[{self.module.name}]' if self.module else ''
-            # log.error(f"{tag}{err['error']['message']} [{extra_txt}]"
-            if 'error' in err and err.get('error'):
-                msg = err['error']['message']
-            else:
-                msg = str(err)
-            # log.error(f"{tag} {msg} [{extra_txt}]")
+            match e.response.status_code:
+                case code if code >= 500:
+                    msg = str(e)
+                case _:
+                    if 'application/json' in e.response.headers['Content-Type']:
+                        err = e.response.json()
+                    else:
+                        err = e.response.content
+                    # extra_txt = payload['U_LF_Formula'] if 'U_LF_Formula' in payload else ''
+                    # tag = f'[{self.module.name}]' if self.module else ''
+                    # log.error(f"{tag}{err['error']['message']} [{extra_txt}]"
+                    if 'error' in err and err.get('error'):
+                        msg = err['error']['message']
+                    else:
+                        msg = str(err)
+                    # log.error(f"{tag} {msg} [{extra_txt}]")
             res = {"ERROR": f"[SAP] {clean_text(msg)}"}
         except ConnectionResetError as e:
             res = {"ERROR": f"[CONNECTION] ConnectionResetError {str(e)}"}
