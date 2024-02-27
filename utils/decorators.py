@@ -72,20 +72,22 @@ def login_required(func):
         login_succeed = False
         if not login_pkl.exists():
             log.info('Login vencido ...')
-            login_succeed = self.login()
+            login_succeed, resp = self.login()
         else:
             with open(login_pkl, 'rb') as f:
                 sess_id, sess_timeout = pickle.load(f)
                 now = moment()
                 if now > sess_timeout:
                     log.warning('Login vencido ...')
-                    login_succeed = self.login()
+                    login_succeed, resp = self.login()
                 else:
                     # log.info(f"Login válido. {datetime_str(now)} es menor que {datetime_str(sess_timeout)}")
                     self.sess_id = sess_id
                     login_succeed = True
         if login_succeed:
             return func(*fargs, **fkwargs)
+        else:
+            log.error(resp)
 
     return wrapper
 

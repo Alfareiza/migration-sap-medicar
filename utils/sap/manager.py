@@ -104,7 +104,7 @@ class SAP:
                 pickle.dump([self.sess_id, self.sess_timeout], f)
             return True
         else:
-            return False
+            return False, resp
 
     def set_header(self):
         return {
