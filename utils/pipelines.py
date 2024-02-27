@@ -4,6 +4,7 @@ import pickle
 from dataclasses import dataclass
 from django.conf import settings
 
+from base.exceptions import LoginNotSucceed
 from base.models import PayloadMigracion
 from core.settings import (
     BASE_DIR,
@@ -34,6 +35,7 @@ class Validate:
 
     def run(self, **kwargs):
         self.validate_header(kwargs['parser'].module.name, kwargs['reader'].fieldnames)
+        self.validate_login(kwargs['sap'])
 
     @staticmethod
     def validate_header(module_name, fieldnames):
@@ -74,6 +76,12 @@ class Validate:
                 ', '.join(diff)
             ))
 
+    @staticmethod
+    def validate_login(sap):
+        """ Valida que se pueda hacer login """
+        login = sap.login()
+        if not login:
+            raise LoginNotSucceed
 
 class ProcessCSV:
     def __str__(self):

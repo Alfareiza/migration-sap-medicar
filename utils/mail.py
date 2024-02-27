@@ -182,7 +182,7 @@ def send_mail_due_to_general_error_in_file(filename, title_error, body_error, cu
                        },
                       template=BASE_DIR / "base/templates/notifiers/error_in_module.html")
     mail.send()
-    # mail.render_locally(html_name='sample.html')
+    # mail.render_locally(html_name=BASE_DIR / 'tmp/sample.html')
 
 
 def send_mail_due_to_impossible_discover_files(name_folder, body_error):

@@ -163,3 +163,4 @@ cython_debug/
 #GDrive Stuff
 client_secrets.json
 token.json
+/tmp/

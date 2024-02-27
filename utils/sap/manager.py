@@ -104,7 +104,8 @@ class SAP:
                 pickle.dump([self.sess_id, self.sess_timeout], f)
             return True
         else:
-            return False, resp
+            log.warning(f"Login no realizado, respuesta de SAP: {resp!r}")
+            return False
 
     def set_header(self):
         return {
