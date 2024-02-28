@@ -155,7 +155,7 @@ class SAPData(SAP):
         self.sucursales = {}
         self.sucursales_loaded = False
         self.entregas = {}
-        self.entregas_loaded = False
+        self.entregas_loaded = set()  # Se usa un set porque las entregas cargan a medida que se lee el csv
         self.abs_entries = {}
         self.abs_entries_loaded = False
         self.dispensados = {}
@@ -299,14 +299,16 @@ class SAPData(SAP):
         en SAP.
         """
         # log.info(f'Cargando todas las entregas de {ssc}.')
-        res = self.get(self.BASE_URL + f"{self.FACTURA}?$filter=U_LF_Formula eq '{ssc}'")
+        res = self.get(
+            f"{self.BASE_URL}{self.FACTURA}?$filter=U_LF_Formula eq '{ssc}'"
+        )
         if not res.get('ERROR'):
             if entregas := res.get('value'):
                 self.entregas[ssc] = entregas
             else:
                 log.warning(f'No se encontraron entregas en {ssc}.')
         # log.info('Proceso de cargar entregas finalizado.')
-        self.entregas_loaded = True
+        self.entregas_loaded.add(ssc)
 
     def get_costing_code_from_sucursal(self, ceco: str) -> str:
         """
@@ -331,7 +333,7 @@ class SAPData(SAP):
         """
         if value in self.entregas:
             return self.entregas.get(value)
-        elif not self.entregas and not self.entregas_loaded:
+        elif not self.entregas and value not in self.entregas_loaded:
             self.load_info_ssc(value)
             return self.get_info_ssc(value)
         else:
@@ -419,7 +421,9 @@ class SAPData(SAP):
 if __name__ == '__main__':
     client = SAPData()
     # client.load_abs_entries()
-    print(client.get_bin_abs_entry_from_ceco('910', 'origen'))
+    # print(client.get_bin_abs_entry_from_ceco('910', 'origen'))
+    print(client.get_info_ssc('4738427'))
+    # print(client.get_info_ssc('4738427'))
     print('')
     # client.load_sucursales()
     # client.load_dispensados()

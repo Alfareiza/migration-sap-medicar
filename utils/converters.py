@@ -359,6 +359,7 @@ class Csv2Dict:
         """
         Busca el doc entry (registro en sap) de la entrega correspondiente.
         filtrando exactamente con el ItemCode del row
+        Usado por NOTAS_CREDITO
         :param: to_reach: es el valor a tomarse del resultado de la consulta
         hecha en SAP en el endpoint InfoEntregaQuery.
         Ex.: Puede ser cualquier key del siguiente diccionário.
@@ -379,7 +380,7 @@ class Csv2Dict:
             if info := self.sap.get_info_ssc(row[self.pk]):
                 res = list(filter(lambda v: v['ItemCode'] == row['Plu'], info))
             if not info:
-                raise Exception('No se encontraron entregas para SSC')
+                raise Exception(f'{to_reach!r} no encontrado con {self.pk}')
             if not res:
                 raise Exception(f"No se encontro el Plu {row['Plu']} en SSC")
         except Exception as e:

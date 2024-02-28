@@ -45,7 +45,7 @@ from utils.sap.manager import SAPData
 class Module:
     name: str  # 'dispensacion', 'factura', 'notas_credito', etc.
     migracion_id: int  # 344, 345, 346.
-    filepath: Optional[str] = None  # Ruta del archivo csv con el origen de la información
+    filepath: Optional[str|Path] = None  # Ruta del archivo csv con el origen de la información
     drive: Optional[GDriveHandler] = None
     sap: Optional[SAPData] = None
     url: dict = field(init=False)
@@ -55,9 +55,9 @@ class Module:
     BASE_URL = SAP_URL
 
     def __post_init__(self):
-        if self.filepath:
-            if not Path(self.filepath).exists():
-                raise FileNotFoundError(f"File not found -> {self.filepath}")
+        self.filepath = Path(self.filepath) if isinstance(self.filepath, str) else self.filepath
+        if not self.filepath.exists():
+            raise FileNotFoundError(f"File not found -> {self.filepath}")
         if self.filepath and self.drive:
             # Valida que no sean recibidos estos dos atributos juntos.
             raise Exception('It\'s no possible to configure filepath and '
@@ -134,7 +134,7 @@ class Module:
 @dataclass
 class Parser:
     module: Module
-    input: str or GDriveHandler
+    input: str or Path or GDriveHandler
     tanda: str
     output_filepath: str = ''
 
@@ -171,7 +171,6 @@ class Parser:
         sap = SAPConnect(self.module)
 
         if isinstance(self.input, (str, PosixPath)):
-            self.input = Path(self.input) if isinstance(self.input, str) else self.input
             db.fname = self.input.stem
             self.run_filepath(csv_to_dict, db, sap)
 
