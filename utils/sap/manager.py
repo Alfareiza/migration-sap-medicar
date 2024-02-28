@@ -307,7 +307,7 @@ class SAPData(SAP):
                 self.entregas[ssc] = entregas
             else:
                 log.warning(f'No se encontraron entregas en {ssc}.')
-        # log.info('Proceso de cargar entregas finalizado.')
+        log.info(f'SSC {ssc} Buscada en SAP.')
         self.entregas_loaded.add(ssc)
 
     def get_costing_code_from_sucursal(self, ceco: str) -> str:
@@ -333,7 +333,7 @@ class SAPData(SAP):
         """
         if value in self.entregas:
             return self.entregas.get(value)
-        elif not self.entregas and value not in self.entregas_loaded:
+        elif value not in self.entregas_loaded:
             self.load_info_ssc(value)
             return self.get_info_ssc(value)
         else:
@@ -422,8 +422,8 @@ if __name__ == '__main__':
     client = SAPData()
     # client.load_abs_entries()
     # print(client.get_bin_abs_entry_from_ceco('910', 'origen'))
-    print(client.get_info_ssc('4738427'))
     # print(client.get_info_ssc('4738427'))
+    print(client.get_info_ssc('5128859'))
     print('')
     # client.load_sucursales()
     # client.load_dispensados()
