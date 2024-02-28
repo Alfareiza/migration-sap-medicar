@@ -53,7 +53,7 @@ class TestPagosRecibidos(CustomTestsMixin, unittest.TestCase):
                 self.assertTrue(v['json']['U_HBT_Tercero'])
                 self.assertTrue(v['json']['Remarks'])
                 self.assertTrue(v['json']['JournalRemarks'])
-                self.assertTrue(v['json']['CashAccount'] == '1105050103')
+                self.assertTrue(v['json']['CashAccount'] == '1105050101')
                 self.assertTrue(v['json']['CashSum'])
                 self.assertTrue(v['json']['ControlAccount'] == '2805950101')
 

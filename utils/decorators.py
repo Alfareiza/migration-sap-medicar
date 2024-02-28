@@ -8,7 +8,7 @@ from googleapiclient.errors import HttpError
 
 from base.exceptions import RetryMaxException
 from core.settings import logger as log, BASE_DIR, DEBUG
-from utils.resources import moment, datetime_str
+from utils.resources import login_check
 
 login_pkl = BASE_DIR / 'login.pickle'
 
@@ -69,21 +69,7 @@ def login_required(func):
     @wraps(func)
     def wrapper(*fargs, **fkwargs):
         self = fargs[0]  # Instancia de SAPData
-        login_succeed = False
-        if not login_pkl.exists():
-            log.info('Cache de login no encontrado')
-            login_succeed = self.login()
-        else:
-            with open(login_pkl, 'rb') as f:
-                sess_id, sess_timeout = pickle.load(f)
-                now = moment()
-                if now > sess_timeout:
-                    log.warning('Tiempo de login anterior expiró')
-                    login_succeed = self.login()
-                else:
-                    # log.info(f"Login válido. {datetime_str(now)} es menor que {datetime_str(sess_timeout)}")
-                    self.sess_id = sess_id
-                    login_succeed = True
+        login_succeed = login_check(self)
         if login_succeed:
             return func(*fargs, **fkwargs)
 

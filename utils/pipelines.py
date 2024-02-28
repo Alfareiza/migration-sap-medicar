@@ -25,7 +25,7 @@ from utils.converters import Csv2Dict
 from utils.decorators import once_in_interval
 from utils.gdrive.handler_api import GDriveHandler
 from utils.mail import EmailModule
-from utils.resources import set_filename, format_number as fn
+from utils.resources import set_filename, format_number as fn, login_check
 
 
 class Validate:
@@ -79,7 +79,7 @@ class Validate:
     @staticmethod
     def validate_login(sap):
         """ Valida que se pueda hacer login """
-        login = sap.login()
+        login = login_check(sap)
         if not login:
             raise LoginNotSucceed
 

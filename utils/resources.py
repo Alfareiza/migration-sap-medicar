@@ -1,8 +1,11 @@
+import pickle
 from datetime import datetime
 
 from django.conf import settings
 from pytz import timezone
 from decouple import config
+
+from core.settings import BASE_DIR, logger
 
 
 def moment():
@@ -93,3 +96,35 @@ def has_ceco(name, item, ceco='391'):
         if item['FromWarehouse'] == ceco or item['ToWarehouse'] == ceco:
             return True
     return False
+
+
+def login_check(sap) -> bool:
+    """
+    1. Valida que exista el archivo de login:
+        1.1 Caso exista:
+                1.1.1 Valida que que la hora de sesión
+                        no sea mayor que la hora actual.
+                1.1.2 Caso sea mayor, efectua el login.
+        1.2 Caso no exista, efectua el login.
+    Puede retornar False cuando la API que logra el login este
+    caída.
+    :param sap: Instancia de SAPData
+    :return: True o False caso haga login o no.
+    """
+    login_pkl = BASE_DIR / 'login.pickle'
+
+    if not login_pkl.exists():
+        logger.info('Cache de login no encontrado')
+        login_succeed = sap.login()
+    else:
+        with open(login_pkl, 'rb') as f:
+            sess_id, sess_timeout = pickle.load(f)
+            now = moment()
+            if now > sess_timeout:
+                logger.warning('Tiempo de login anterior expiró')
+                login_succeed = sap.login()
+            else:
+                # log.info(f"Login válido. {datetime_str(now)} es menor que {datetime_str(sess_timeout)}")
+                sap.sess_id = sess_id
+                login_succeed = True
+    return login_succeed

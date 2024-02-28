@@ -20,10 +20,10 @@ class TestDispensacion(CustomTestsMixin, DocumentLinesTestsMixin, unittest.TestC
         del_registro_migracion(cls.module.migracion_id)
 
     def is_capita(self, item):
-        return item['json']['Series'] == 77
+        return item['json']['Series'] == 89
 
     def is_evento(self, item):
-        return item['json']['Series'] == 81
+        return item['json']['Series'] == 11
 
     def test_structrure(self):
         """Valida que vengan exactamente los keys esperados"""
