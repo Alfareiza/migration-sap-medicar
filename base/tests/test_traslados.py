@@ -24,7 +24,7 @@ class TestTraslados(unittest.TestCase):
             with self.subTest(i=v):
                 self.assertCountEqual(
                     v['json'].keys(),
-                    ["JournalMemo", "DocDate", "CardCode", "NroDocumento",
+                    ["JournalMemo", "DocDate", "CardCode", "U_LF_NroDocumento",
                      "FromWarehouse", "ToWarehouse", "StockTransferLines"],
                 )
 
@@ -34,7 +34,7 @@ class TestTraslados(unittest.TestCase):
             with self.subTest(i=v):
                 self.assertTrue(isinstance(v['json']['DocDate'], str))
                 self.assertTrue(isinstance(v['json']['CardCode'], str))
-                self.assertIsInstance(v['json']['NroDocumento'], str)
+                self.assertIsInstance(v['json']['U_LF_NroDocumento'], str)
                 self.assertTrue(isinstance(v['json']['JournalMemo'], str))
                 self.assertTrue(isinstance(v['json']['FromWarehouse'], str))
                 self.assertTrue(isinstance(v['json']['ToWarehouse'], str))

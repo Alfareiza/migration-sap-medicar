@@ -62,4 +62,7 @@ class TestAjustesVencimientoLoteAdvanced(TestsBaseAdvanced):
             doc = docs_in_db.get(valor_documento=k)
             with self.subTest(i=v):
                 del doc.payload['Series']
-                self.assertEqual(doc.payload, v['json'])
+                if 'Series' not in v['json']:
+                    self.assertEqual(doc.payload, v['json'])
+                else:
+                    self.assertIn(k, self.result.errs)
