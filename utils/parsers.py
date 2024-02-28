@@ -55,9 +55,10 @@ class Module:
     BASE_URL = SAP_URL
 
     def __post_init__(self):
-        self.filepath = Path(self.filepath) if isinstance(self.filepath, str) else self.filepath
-        if not self.filepath.exists():
-            raise FileNotFoundError(f"File not found -> {self.filepath}")
+        if isinstance(self.filepath, str):
+            self.filepath = Path(self.filepath)
+            if not self.filepath.exists():
+                raise FileNotFoundError(f"File not found -> {self.filepath}")
         if self.filepath and self.drive:
             # Valida que no sean recibidos estos dos atributos juntos.
             raise Exception('It\'s no possible to configure filepath and '
