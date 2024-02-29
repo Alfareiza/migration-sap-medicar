@@ -380,7 +380,7 @@ class Csv2Dict:
             if info := self.sap.get_info_ssc(row[self.pk]):
                 res = list(filter(lambda v: v['ItemCode'] == row['Plu'], info))
             if not info:
-                raise Exception(f'{to_reach!r} no encontrado con {self.pk}')
+                raise Exception('No se encontraron entregas para SSC')
             if not res:
                 raise Exception(f"No se encontro el Plu {row['Plu']} en SSC")
         except Exception as e:

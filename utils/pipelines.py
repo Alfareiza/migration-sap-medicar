@@ -2,6 +2,8 @@ import csv
 import json
 import pickle
 from dataclasses import dataclass
+from pathlib import Path
+
 from django.conf import settings
 
 from base.exceptions import LoginNotSucceed
@@ -226,7 +228,7 @@ class Mail:
         """
         module = kwargs['parser'].module
         data = kwargs['csv_to_dict']
-        if module.filepath and '/' in module.filepath:
+        if isinstance(module.filepath, Path):
             module.filepath = kwargs['parser'].input.name
         else:
             module.filepath = kwargs['file']['name']
