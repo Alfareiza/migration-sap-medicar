@@ -174,8 +174,8 @@ class Export:
         """
         self.local_export(**kwargs)
         if isinstance(kwargs['parser'].input, GDriveHandler):
-            self.create_csv_errs(kwargs)
-            self.create_csv_processed(kwargs)
+            self.create_csv_errs_in_drive(kwargs)
+            self.create_csv_processed_in_drive(kwargs)
             self.move_csv(kwargs)
             ...
 
@@ -183,7 +183,7 @@ class Export:
         # Mueve archivo a carpeta
         kwargs['parser'].input.move_file(kwargs['file'], f"{kwargs['name_folder']}_BackUp")
 
-    def create_csv_processed(self, kwargs):
+    def create_csv_processed_in_drive(self, kwargs):
         # Crea archivo en Drive con todos los procesados
         kwargs['parser'].input.prepare_and_send_csv(
             self.file_processed,
@@ -191,7 +191,7 @@ class Export:
             f"{kwargs['name_folder']}_Procesado"
         )
 
-    def create_csv_errs(self, kwargs):
+    def create_csv_errs_in_drive(self, kwargs):
         # Crea archivo en Drive con todos los errores
         if kwargs['csv_to_dict'].errs:
             kwargs['parser'].input.prepare_and_send_csv(
