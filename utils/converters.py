@@ -896,10 +896,17 @@ class Csv2Dict:
                     self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][1][
                         'BaseLineNumber'] = self.data[key]['json']["StockTransferLines"][idx]['LineNum']
             case settings.FACTURACION_NAME:
-                if article['WarehouseCode'] != '391':
-                    article['BaseLine'] = self.data[key]['json']["DocumentLines"][-1]['BaseLine'] + 1
-                self.data[key]['json']["DocumentLines"].append(article)
-                self.data[key]['json']["WithholdingTaxDataCollection"][0]['U_HBT_Retencion'] += (article['Quantity']
+                lst_item_codes = [code['ItemCode'] for code in self.data[key]['json']["DocumentLines"]]
+                try:
+                    idx = lst_item_codes.index(article['ItemCode'])
+                except ValueError:
+                    if article['WarehouseCode'] != '391':
+                        article['BaseLine'] = self.data[key]['json']["DocumentLines"][-1]['BaseLine'] + 1
+                    self.data[key]['json']["DocumentLines"].append(article)
+                else:
+                    self.data[key]['json']["DocumentLines"][idx]['Quantity'] += article['Quantity']
+                finally:
+                    self.data[key]['json']["WithholdingTaxDataCollection"][0]['U_HBT_Retencion'] += (article['Quantity']
                                                                                                  * article['Price'])
 
     def process_module(self, csv_reader):
