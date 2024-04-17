@@ -35,7 +35,7 @@ from utils.pipelines import (
     ProcessCSV,
     ProcessSAP,
     SaveInBD,
-    Validate,
+    Validate, PreProcessSAP,
 )
 from utils.sap.connectors import SAPConnect
 from utils.sap.manager import SAPData
@@ -154,7 +154,7 @@ class Parser:
         if self.tanda == '1RA':
             self.pipeline = (Validate, ProcessCSV, SaveInBD, ProcessSAP)
         elif self.tanda == '2DA':
-            self.pipeline = (ProcessSAP, Export, Mail, ExcludeFromDB)
+            self.pipeline = (PreProcessSAP, ProcessSAP, Export, Mail, ExcludeFromDB)
         elif self.tanda == 'TEST':
             self.pipeline = (Validate, ProcessCSV, SaveInBD, ExcludeFromDB)
         else:

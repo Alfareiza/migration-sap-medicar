@@ -28,6 +28,7 @@ from utils.decorators import once_in_interval
 from utils.gdrive.handler_api import GDriveHandler
 from utils.mail import EmailModule
 from utils.resources import set_filename, format_number as fn, login_check
+from utils.sap.manager import SAPData
 
 
 class Validate:
@@ -85,6 +86,7 @@ class Validate:
         if not login:
             raise LoginNotSucceed
 
+
 class ProcessCSV:
     def __str__(self):
         return "Procesamiento de CSV"
@@ -141,6 +143,74 @@ class ProcessSAP:
                 final_records = PayloadMigracion.objects.filter(nombre_archivo=kwargs['filename'],
                                                                 modulo=kwargs['csv_to_dict'].name)
                 kwargs['csv_to_dict'].load_data_from_db(final_records)
+
+
+class PreProcessSAP:
+    OFFSET = "[SAP] Offset de registro no válido"
+
+    def __str__(self):
+        return "Preprocesamiento de errores específicos antes de enviar a SAP"
+
+    @once_in_interval(2)
+    def run(self, **kwargs):
+        """Busca en BD los registros que tengan determinados errores y ejecuta una estrategia."""
+        if kwargs.get('payloads_previously_sent') and kwargs['parser'].tanda == '2DA':
+            self.exec_strategy_error(self.OFFSET, kwargs['payloads_previously_sent'])
+
+    def exec_strategy_error(self, type_sap_error: str, qs_payloads):
+        match type_sap_error:
+            case self.OFFSET:
+                sap_errs = qs_payloads.filter(status__icontains=self.OFFSET)
+                log.info(f"{len(qs_payloads)} payloads con error de Offset ")
+                self.offset_strategy(records=sap_errs)
+
+    def offset_strategy(self, records):
+        client = SAPData()
+        for record in records:
+            if data_dispensado := client.get_dispensado(record.valor_documento):
+                if self.verify_quantities(data_dispensado, record.payload['DocumentLines']):
+                    new_payload = self.mix_dispensado_with_payload(data_dispensado, record.payload['DocumentLines'])
+                    record.payload['DocumentLines'] = new_payload
+                    record.save()
+                    log.info(f'Cambiado payload de {record.valor_documento}')
+                else:
+                    log.info(f'No puede ser cambiado payload de {record.valor_documento}')
+
+    def verify_quantities(self, data_dispensado, document_lines) -> bool:
+        """ Verifica que las cantidades totales por Plu sean la misma. """
+        arts_dispensados = dict()
+        arts_en_sap = dict()
+        for i in data_dispensado:
+            if i['ItemCode'] not in arts_dispensados:
+                arts_dispensados[i['ItemCode']] = 0
+            arts_dispensados[i['ItemCode']] += i['Quantity']
+
+        for i in document_lines:
+            if i['ItemCode'] not in arts_en_sap:
+                arts_en_sap[i['ItemCode']] = 0
+            arts_en_sap[i['ItemCode']] += i['Quantity']
+
+        return arts_dispensados == arts_en_sap
+
+    def mix_dispensado_with_payload(self, data_dispensado, document_lines) -> list:
+        """ Toma la información de SAP producto de haber consultado una dispensación
+        y monta esa respuesta en un payload, rellenándolo con el resto de información
+        necesaria """
+        for i in data_dispensado:
+            for key in ("id__", "U_LF_Formula", "CardCode", "U_LF_Autorizacion", "U_LF_IDSSC"):
+                del i[key]
+            i['BaseEntry'] = i['DocEntry']
+            del i['DocEntry']
+            i['BaseLine'] = i['LineNum']
+            del i['LineNum']
+            i['Price'] = [j['Price'] for j in document_lines if j['ItemCode'] == i['ItemCode']][0]
+            i['Quantity'] = int(i['Quantity'])
+            i['BaseType'] = str(document_lines[0]['BaseType'])
+            i['CostingCode'] = document_lines[0]['CostingCode']
+            i['CostingCode2'] = document_lines[0]['CostingCode2']
+            i['CostingCode3'] = document_lines[0]['CostingCode3']
+            i['WarehouseCode'] = document_lines[0]['WarehouseCode']
+        return data_dispensado
 
 
 class Export:

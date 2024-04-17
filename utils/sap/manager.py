@@ -136,6 +136,7 @@ class SAP:
                 {"ERROR": "[CONNECTION] fake connection text"},
                 {"ERROR": "[TIMEOUT] fake timeout text"},
                 {"ERROR": "[SAP] fake sap text"},
+                {"ERROR": "[SAP] Offset de registro no válido (ODBC -2010)"},
                 {"DocEntry": f"Fake DocEntry {random.randint(123, 999)}"},
             )
         )
@@ -417,6 +418,12 @@ class SAPData(SAP):
         log.warning(f'No se encontró info del lote {lote!r} en SAP.')
         return 0
 
+
+    def get_dispensado(self, ssc) -> dict:
+        """Obtiene información pura de SAP de una dispensación"""
+        if dispensado := self.get_all(f"{self.DISPENSADO}?$filter=U_LF_Formula eq '{ssc}'"):
+            return dispensado
+        return []
 
 if __name__ == '__main__':
     client = SAPData()
