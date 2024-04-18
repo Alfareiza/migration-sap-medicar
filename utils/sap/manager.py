@@ -139,6 +139,7 @@ class SAP:
                 {"ERROR": "[CONNECTION] fake connection text"},
                 {"ERROR": "[TIMEOUT] fake timeout text"},
                 {"ERROR": "[SAP] fake sap text"},
+                {"ERROR": "[SAP] Offset de registro no válido (ODBC -2010)"},
                 {"DocEntry": f"Fake DocEntry {random.randint(123, 999)}"},
             )
         )
