@@ -117,8 +117,8 @@ class SAP:
         """Realiza el post ante la API de SAP y retorna
         lo que haya resultado de la función request_api"""
         headers = self.set_header()
-        if dl := item.get('DocumentLines'):
-            log.info(f"▶︎▶︎▶︎ ({dl.get('U_LF_Formula', '')}) Posting DL: {dl}")
+        if dl := item.get('DocumentLines') and ():
+            log.info(f"▶︎▶︎▶︎ ({item.get('U_LF_Formula', '')}) Posting DL: {dl}")
         return self.request_api('POST', url,
                                 headers=headers, payload=item)
 
