@@ -117,6 +117,8 @@ class SAP:
         """Realiza el post ante la API de SAP y retorna
         lo que haya resultado de la función request_api"""
         headers = self.set_header()
+        if dl := item.get('DocumentLines'):
+            log.info(f"▶︎▶︎▶︎ ({dl.get('U_LF_Formula', '')}) Posting DL: {dl}")
         return self.request_api('POST', url,
                                 headers=headers, payload=item)
 
@@ -131,6 +133,7 @@ class SAP:
 
     @staticmethod
     def fake_method(item, url) -> dict:
+        log.info(f'▶︎▶︎▶︎ Posting {item}')
         return random.choice(
             (
                 {"ERROR": "[CONNECTION] fake connection text"},
@@ -417,6 +420,14 @@ class SAPData(SAP):
         log.warning(f'No se encontró info del lote {lote!r} en SAP.')
         return 0
 
+
+    def get_dispensado(self, ssc) -> dict:
+        """Obtiene información pura de SAP de una dispensación"""
+        if dispensado := self.get_all(f"{self.DISPENSADO}?$filter=U_LF_Formula eq '{ssc}'"):
+            log.info(f'({ssc}) Consultada en SAP información de ssc')
+            return dispensado
+        log.info(f'({ssc}) No fue encontrada información en SAP de ssc')
+        return []
 
 if __name__ == '__main__':
     client = SAPData()
