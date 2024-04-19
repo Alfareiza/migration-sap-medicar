@@ -157,11 +157,17 @@ class PreProcessSAP:
         if kwargs.get('payloads_previously_sent') and kwargs['parser'].tanda == '2DA':
             self.exec_strategy_error(self.OFFSET, kwargs['payloads_previously_sent'])
 
-            kwargs['payloads_previously_sent'] = PayloadMigracion.objects.filter(
-                nombre_archivo=kwargs['parser'].input.stem,
-                modulo=kwargs['parser'].module.name,
-                enviado_a_sap=True
-            )
+            try:
+                kwargs['payloads_previously_sent'] = PayloadMigracion.objects.filter(
+                    nombre_archivo=kwargs['parser'].input.stem,
+                    modulo=kwargs['parser'].module.name,
+                    enviado_a_sap=True
+                )
+            except Exception:
+                kwargs['payloads_previously_sent'] = PayloadMigracion.objects.filter(
+                    nombre_archivo=kwargs['parser'].module.name,
+                    enviado_a_sap=True
+                )
 
     def exec_strategy_error(self, type_sap_error: str, qs_payloads):
         match type_sap_error:
