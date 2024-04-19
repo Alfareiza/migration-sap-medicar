@@ -1,5 +1,7 @@
 from dataclasses import dataclass, field
+
 from django.conf import settings
+
 from base.templatetags.filter_extras import make_text_status
 from core.settings import logger as log
 from utils.decorators import logtime
@@ -25,10 +27,13 @@ class Csv2Dict:
 
     def load_data_from_db(self, records) -> None:
         for record in records:
+            record.refresh_from_db()
+            # log.info(f"{record.valor_documento} Cargando en csvdict actual DL -> {record.payload['DocumentLines']}")
             self.data[record.valor_documento] = {
                 'json': record.payload,
                 'csv': eval(record.lineas),
             }
+            # log.info(f"{record.valor_documento} Nuevo DL en csvdict           -> {self.data[record.valor_documento]['json']['DocumentLines']}")
             self.csv_lines += record.cantidad_lineas_documento
             if record.status == '' or 'DocEntry' in record.status:
                 self.succss.add(record.valor_documento)
