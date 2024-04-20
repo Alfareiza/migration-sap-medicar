@@ -1,6 +1,8 @@
 import os
 import signal
 import sys
+from datetime import datetime
+from pytz import timezone
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 
@@ -132,11 +134,15 @@ sched = BlockingScheduler()
 
 @sched.scheduled_job('interval', minutes=10)
 def timed_job():
-    c = Command()
-    log.info(' ')
-    c.handle(modulos=['todos'], tanda='1RA')
-    log.info(80 * '-')
-    c.handle(modulos=['todos'], tanda='2DA')
+    moment = datetime.now(tz=timezone("America/Bogota"))
+    if moment.hour == 23 and moment.minute >= 30 or moment.hour < 1:
+        ...
+    else:
+        c = Command()
+        log.info(' ')
+        c.handle(modulos=['todos'], tanda='1RA')
+        log.info(80 * '-')
+        c.handle(modulos=['todos'], tanda='2DA')
 
 
 if __name__ == '__main__':
