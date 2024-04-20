@@ -147,7 +147,10 @@ class ProcessSAP:
 
 class PreProcessSAP:
     OFFSET = "[SAP] Offset de registro no válido"
+    EXCEED = "[SAP] La cantidad no puede exceder la cantidad en el documento base"
 
+    def __init__(self):
+        self.client = None
     def __str__(self):
         return "Preprocesamiento de errores específicos antes de enviar a SAP"
 
@@ -155,32 +158,40 @@ class PreProcessSAP:
     def run(self, **kwargs):
         """Busca en BD los registros que tengan determinados errores y ejecuta una estrategia."""
         if kwargs.get('payloads_previously_sent') and kwargs['parser'].tanda == '2DA':
-            self.exec_strategy_error(self.OFFSET, kwargs['payloads_previously_sent'])
+            if not self.client:
+                self.client = SAPData()
+            for desc in (self.OFFSET, self.EXCEED):
+                self.exec_strategy_error(desc, kwargs['payloads_previously_sent'])
 
-            try:
-                kwargs['payloads_previously_sent'] = PayloadMigracion.objects.filter(
-                    nombre_archivo=kwargs['parser'].input.stem,
-                    modulo=kwargs['parser'].module.name,
-                    enviado_a_sap=True
-                )
-            except Exception:
-                kwargs['payloads_previously_sent'] = PayloadMigracion.objects.filter(
-                    nombre_archivo=kwargs['parser'].module.name,
-                    enviado_a_sap=True
-                )
+            self.update_qs_payloads(kwargs)
+        else:
+            log.info(f"No fueron encontrados payloads con errores {', '.join((self.OFFSET, self.EXCEED))}")
+
+    def update_qs_payloads(self, kwargs):
+        """ Actualiza QuerySet con base en la informacieon posiblemente
+        recién actualizada """
+        if hasattr(kwargs['parser'].input, 'stem'):
+            filename = kwargs['parser'].input.stem
+        else:
+            filename = kwargs['parser'].module.name
+
+        kwargs['payloads_previously_sent'] = PayloadMigracion.objects.filter(
+            nombre_archivo=filename, modulo=kwargs['parser'].module.name,
+            enviado_a_sap=True
+        )
 
     def exec_strategy_error(self, type_sap_error: str, qs_payloads):
         match type_sap_error:
-            case self.OFFSET:
-                sap_errs = qs_payloads.filter(status__icontains=self.OFFSET)
-                log.info(f"{len(sap_errs)} payloads con error de Offset")
-                self.offset_strategy(records=sap_errs)
+            case self.OFFSET | self.EXCEED:
+                sap_errs = qs_payloads.filter(status__icontains=type_sap_error)
+                log.info(f"*** {len(sap_errs)} payloads con error {type_sap_error[6:]!r} ***")
+                self.change_documentline(records=sap_errs)
 
-    def offset_strategy(self, records):
-        client = SAPData()
+
+    def change_documentline(self, records):
         to_update = []
         for record in records:
-            if data_dispensado := client.get_dispensado(record.valor_documento):
+            if data_dispensado := self.client.get_dispensado(record.valor_documento):
                 log.info(f'({record.valor_documento}) Cambiando DocumentLines')
                 if self.verify_quantities(data_dispensado, record.payload['DocumentLines']):
                     new_dl = self.mix_dispensado_with_payload(data_dispensado, record.payload['DocumentLines'])
@@ -192,7 +203,10 @@ class PreProcessSAP:
                     log.info(f"({record.valor_documento}) Nuevo DocumentLines  -> {record.payload['DocumentLines']}")
                 else:
                     log.info(f'({record.valor_documento}) No pudo ser cambiado payload de {record.valor_documento}')
-        PayloadMigracion.objects.bulk_update(to_update, fields=['payload'])
+
+        if to_update:
+            PayloadMigracion.objects.bulk_update(to_update, fields=['payload'])
+            to_update.clear()
 
     def verify_quantities(self, data_dispensado, document_lines) -> bool:
         """ Verifica que las cantidades totales por Plu sean la misma. """
