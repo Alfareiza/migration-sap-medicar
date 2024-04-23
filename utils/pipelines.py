@@ -148,6 +148,7 @@ class ProcessSAP:
 class PreProcessSAP:
     OFFSET = "[SAP] Offset de registro no válido"
     EXCEED = "[SAP] La cantidad no puede exceder la cantidad en el documento base"
+    COINCIDENCE = "[SAP] El número de artículo de destino no coincide con el número de artículo base"
 
     def __init__(self):
         self.client = None
@@ -160,12 +161,12 @@ class PreProcessSAP:
         if kwargs.get('payloads_previously_sent') and kwargs['parser'].tanda == '2DA':
             if not self.client:
                 self.client = SAPData()
-            for desc in (self.OFFSET, self.EXCEED):
+            for desc in (self.OFFSET, self.EXCEED, self.COINCIDENCE):
                 self.exec_strategy_error(desc, kwargs['payloads_previously_sent'])
 
             self.update_qs_payloads(kwargs)
         else:
-            log.info(f"No fueron encontrados payloads con errores {', '.join((self.OFFSET, self.EXCEED))}")
+            log.info(f"No fueron encontrados payloads con errores {', '.join((self.OFFSET, self.EXCEED, self.COINCIDENCE))}")
 
     def update_qs_payloads(self, kwargs):
         """ Actualiza QuerySet con base en la informacieon posiblemente
@@ -182,7 +183,7 @@ class PreProcessSAP:
 
     def exec_strategy_error(self, type_sap_error: str, qs_payloads):
         match type_sap_error:
-            case self.OFFSET | self.EXCEED:
+            case self.OFFSET | self.EXCEED | self.COINCIDENCE:
                 sap_errs = qs_payloads.filter(status__icontains=type_sap_error)
                 log.info(f"*** {len(sap_errs)} payloads con error {type_sap_error[6:]!r} ***")
                 self.change_documentline(records=sap_errs)
