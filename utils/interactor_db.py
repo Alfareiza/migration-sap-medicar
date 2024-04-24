@@ -22,6 +22,7 @@ class DBHandler:
             self.records = PayloadMigracion.objects.filter(id__in=[p.id for p in objs])
         except Exception as e:
             log.error(f"Error {e} al guardar en db")
+            raise
         else:
             log.info(f'[{self.mname}] {len(self.records)} payloads de archivo {self.mname} guardados en db')
 

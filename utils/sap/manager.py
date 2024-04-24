@@ -117,8 +117,6 @@ class SAP:
         """Realiza el post ante la API de SAP y retorna
         lo que haya resultado de la función request_api"""
         headers = self.set_header()
-        if dl := item.get('DocumentLines'):
-            log.info(f"▶︎▶︎▶︎ ({item.get('U_LF_Formula', '')}) Posting DL: {dl}")
         return self.request_api('POST', url,
                                 headers=headers, payload=item)
 
@@ -154,7 +152,7 @@ class SAPData(SAP):
     EMBALAJE = '/sml.svc/InfoEmbalajeV2Query'
     LOTE = '/sml.svc/InfoLoteV2Query'
     FACTURA = '/sml.svc/InfoFacturaV2Query'
-    DISPENSADO = '/sml.svc/InfoDispensadoV2Query'
+    DISPENSADO = '/sml.svc/InfoDispensadoV3Query'
 
     def __init__(self, module=None):
         super().__init__(module)
