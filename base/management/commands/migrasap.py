@@ -135,7 +135,7 @@ sched = BlockingScheduler()
 @sched.scheduled_job('interval', minutes=10)
 def timed_job():
     moment = datetime.now(tz=timezone("America/Bogota"))
-    if moment.hour == 23 and moment.minute >= 30 or moment.hour < 1:
+    if moment.hour == 23 and moment.minute >= 0 or moment.hour < 1:
         ...
     else:
         c = Command()
