@@ -191,7 +191,7 @@ class PreProcessSAP:
                 sap_errs = qs_payloads.filter(status__icontains=type_sap_error)
                 log.info(f"*** {len(sap_errs)} payloads con error {type_sap_error[6:]!r} en {settings.FACTURACION_NAME!r} ***")
                 self.change_documentline(self.client.get_dispensado, sap_errs, settings.FACTURACION_NAME)
-            case [self.COINCIDENCE, settings.NOTAS_CREDITO_NAME]:
+            case [self.EXCEED, settings.NOTAS_CREDITO_NAME]:
                 sap_errs = qs_payloads.filter(status__icontains=type_sap_error)
                 log.info(f"*** {len(sap_errs)} payloads con error {type_sap_error[6:]!r} en {settings.NOTAS_CREDITO_NAME!r} ***")
                 self.change_documentline(self.client.get_info_ssc, sap_errs, settings.NOTAS_CREDITO_NAME)
