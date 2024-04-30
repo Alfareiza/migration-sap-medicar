@@ -3,6 +3,7 @@ import json
 import pickle
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable, NoReturn
 
 from django.conf import settings
 
@@ -152,6 +153,7 @@ class PreProcessSAP:
 
     def __init__(self):
         self.client = None
+
     def __str__(self):
         return "Preprocesamiento de errores específicos antes de enviar a SAP"
 
@@ -162,11 +164,12 @@ class PreProcessSAP:
             if not self.client:
                 self.client = SAPData()
             for desc in (self.OFFSET, self.EXCEED, self.COINCIDENCE):
-                self.exec_strategy_error(desc, kwargs['payloads_previously_sent'])
+                self.exec_strategy_error(desc, kwargs['payloads_previously_sent'], kwargs['parser'].module.name)
 
             self.update_qs_payloads(kwargs)
         else:
-            log.info(f"No fueron encontrados payloads con errores {', '.join((self.OFFSET, self.EXCEED, self.COINCIDENCE))}")
+            log.info(f"No fueron encontrados payloads con errores "
+                     f"{', '.join((self.OFFSET, self.EXCEED, self.COINCIDENCE))}")
 
     def update_qs_payloads(self, kwargs):
         """ Actualiza QuerySet con base en la informacieon posiblemente
@@ -181,21 +184,27 @@ class PreProcessSAP:
             enviado_a_sap=True
         )
 
-    def exec_strategy_error(self, type_sap_error: str, qs_payloads):
-        match type_sap_error:
-            case self.OFFSET | self.EXCEED | self.COINCIDENCE:
+    def exec_strategy_error(self, type_sap_error: str, qs_payloads, module_name: str):
+        """ Ejecuta determinada lógica con base en los errores y modulos estbalecidos en el case. """
+        match type_sap_error, module_name:
+            case [self.OFFSET | self.EXCEED | self.COINCIDENCE, settings.FACTURACION_NAME]:
                 sap_errs = qs_payloads.filter(status__icontains=type_sap_error)
-                log.info(f"*** {len(sap_errs)} payloads con error {type_sap_error[6:]!r} ***")
-                self.change_documentline(records=sap_errs)
+                log.info(f"*** {len(sap_errs)} payloads con error {type_sap_error[6:]!r} en {settings.FACTURACION_NAME!r} ***")
+                self.change_documentline(self.client.get_dispensado, sap_errs, settings.FACTURACION_NAME)
+            case [self.COINCIDENCE, settings.NOTAS_CREDITO_NAME]:
+                sap_errs = qs_payloads.filter(status__icontains=type_sap_error)
+                log.info(f"*** {len(sap_errs)} payloads con error {type_sap_error[6:]!r} en {settings.NOTAS_CREDITO_NAME!r} ***")
+                self.change_documentline(self.client.get_info_ssc, sap_errs, settings.NOTAS_CREDITO_NAME)
 
-
-    def change_documentline(self, records):
+    def change_documentline(self, client_get_data: Callable, records: 'QuerySet[PayloadMigracion]',
+                            module_name: str) -> NoReturn:
+        """ Altera el DocumentLines de los registros recibidos. """
         to_update = []
         for record in records:
-            if data_dispensado := self.client.get_dispensado(record.valor_documento):
+            if data_sap := client_get_data(record.valor_documento):
                 log.info(f'({record.valor_documento}) Cambiando DocumentLines')
-                if self.verify_quantities(data_dispensado, record.payload['DocumentLines']):
-                    new_dl = self.mix_dispensado_with_payload(data_dispensado, record.payload['DocumentLines'])
+                if self.verify_quantities(data_sap, record.payload['DocumentLines']):
+                    new_dl = self.mix_documentlines(data_sap, record.payload['DocumentLines'], module_name)
                     tmp_payload = record.payload.copy()
                     log.info(f"({record.valor_documento}) Actual DocumentLines -> {record.payload['DocumentLines']}")
                     tmp_payload['DocumentLines'] = new_dl
@@ -203,7 +212,7 @@ class PreProcessSAP:
                     to_update.append(record)
                     log.info(f"({record.valor_documento}) Nuevo DocumentLines  -> {record.payload['DocumentLines']}")
                 else:
-                    log.info(f'({record.valor_documento}) No pudo ser cambiado payload de {record.valor_documento}')
+                    log.warning(f'({record.valor_documento}) No pudo ser cambiado payload de {record.valor_documento}')
 
         if to_update:
             PayloadMigracion.objects.bulk_update(to_update, fields=['payload'])
@@ -225,25 +234,43 @@ class PreProcessSAP:
 
         return arts_dispensados == arts_en_sap
 
-    def mix_dispensado_with_payload(self, data_dispensado, document_lines) -> list:
-        """ Toma la información de SAP producto de haber consultado una dispensación
-        y monta esa respuesta en un payload, rellenándolo con el resto de información
-        necesaria """
-        for i in data_dispensado:
-            for key in ("id__", "U_LF_Formula", "CardCode", "U_LF_Autorizacion", "U_LF_IDSSC"):
-                del i[key]
+    def mix_documentlines(self, data_sap: list, document_lines: list, module_name: str) -> list:
+        """ Toma la información de SAP producto de haberse consultado y monta esa respuesta
+        en un payload, rellenándolo con el resto de información necesaria. """
+        for i in data_sap:
+            # inicio procesos comunes #
+            for key in ("id__", "U_LF_Formula", "CardCode", "U_LF_Autorizacion", "U_LF_IDSSC",
+                        "LineStatus", "Dscription"):
+                try:
+                    del i[key]
+                except KeyError:
+                    ...
             i['BaseEntry'] = i['DocEntry']
             del i['DocEntry']
             i['BaseLine'] = i['LineNum']
             del i['LineNum']
             i['Price'] = [j['Price'] for j in document_lines if j['ItemCode'] == i['ItemCode']][0]
-            i['Quantity'] = int(i['Quantity'])
-            i['BaseType'] = str(document_lines[0]['BaseType'])
             i['CostingCode'] = document_lines[0]['CostingCode']
             i['CostingCode2'] = document_lines[0]['CostingCode2']
             i['CostingCode3'] = document_lines[0]['CostingCode3']
             i['WarehouseCode'] = document_lines[0]['WarehouseCode']
-        return data_dispensado
+            i['BaseType'] = str(document_lines[0]['BaseType'])
+            i['Quantity'] = int(i['Quantity'])
+            # fin procesos comunes #
+
+            match module_name:
+                case settings.NOTAS_CREDITO_NAME:
+                    i['StockInmPrice'] = i['StockPrice']
+                    i['BatchNumbers'] = [
+                        {
+                            "BatchNumber": i['BatchNum'],
+                            "Quantity": i['Quantity'],
+                        }
+                    ]
+                    del i["BatchNum"]
+                    del i['StockPrice']
+
+        return data_sap
 
 
 class Export:

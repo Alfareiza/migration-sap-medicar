@@ -137,7 +137,6 @@ class SAP:
             (
                 {"ERROR": "[CONNECTION] fake connection text"},
                 {"ERROR": "[TIMEOUT] fake timeout text"},
-                {"ERROR": "[SAP] fake sap text"},
                 {"ERROR": "[SAP] Offset de registro no válido (ODBC -2010)"},
                 {"ERROR": "[SAP] La cantidad no puede exceder la cantidad en el documento base"},
                 {"DocEntry": f"Fake DocEntry {random.randint(123, 999)}"},
@@ -151,7 +150,7 @@ class SAPData(SAP):
     ABSENTRY = '/sml.svc/InfoUbicacionV2Query'
     EMBALAJE = '/sml.svc/InfoEmbalajeV2Query'
     LOTE = '/sml.svc/InfoLoteV2Query'
-    FACTURA = '/sml.svc/InfoFacturaV2Query'
+    FACTURA = '/sml.svc/InfoFacturaV3Query'
     DISPENSADO = '/sml.svc/InfoDispensadoV3Query'
 
     def __init__(self, module=None):
@@ -435,7 +434,9 @@ if __name__ == '__main__':
     # client.load_abs_entries()
     # print(client.get_bin_abs_entry_from_ceco('910', 'origen'))
     # print(client.get_info_ssc('4738427'))
-    print(client.get_info_ssc('5128859'))
+    # import pprint
+    # pprint.pprint(client.get_info_ssc('5214658'))
+    # pprint.pprint(client.get_dispensado('5214658'))
     print('')
     # client.load_sucursales()
     # client.load_dispensados()
