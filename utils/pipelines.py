@@ -28,7 +28,7 @@ from utils.converters import Csv2Dict
 from utils.decorators import once_in_interval
 from utils.gdrive.handler_api import GDriveHandler
 from utils.mail import EmailModule
-from utils.resources import set_filename, format_number as fn, login_check
+from utils.resources import set_filename, format_number as fn, login_check, build_new_documentlines, mix_documentlines
 from utils.sap.manager import SAPData
 
 
@@ -190,21 +190,21 @@ class PreProcessSAP:
             case [self.OFFSET | self.EXCEED | self.COINCIDENCE, settings.FACTURACION_NAME]:
                 sap_errs = qs_payloads.filter(status__icontains=type_sap_error)
                 log.info(f"*** {len(sap_errs)} payloads con error {type_sap_error[6:]!r} en {settings.FACTURACION_NAME!r} ***")
-                self.change_documentline(self.client.get_dispensado, sap_errs, settings.FACTURACION_NAME)
+                self.handle_documentlines(self.client.get_dispensado, sap_errs, mix_documentlines)
             case [self.EXCEED, settings.NOTAS_CREDITO_NAME]:
                 sap_errs = qs_payloads.filter(status__icontains=type_sap_error)
                 log.info(f"*** {len(sap_errs)} payloads con error {type_sap_error[6:]!r} en {settings.NOTAS_CREDITO_NAME!r} ***")
-                self.change_documentline(self.client.get_info_ssc, sap_errs, settings.NOTAS_CREDITO_NAME)
+                self.handle_documentlines(self.client.get_info_ssc, sap_errs, build_new_documentlines)
 
-    def change_documentline(self, client_get_data: Callable, records: 'QuerySet[PayloadMigracion]',
-                            module_name: str) -> NoReturn:
+    def handle_documentlines(self, client_get_data: Callable, records: 'QuerySet[PayloadMigracion]',
+                             func: Callable) -> NoReturn:
         """ Altera el DocumentLines de los registros recibidos. """
         to_update = []
         for record in records:
             if data_sap := client_get_data(record.valor_documento):
                 log.info(f'({record.valor_documento}) Cambiando DocumentLines')
                 if self.verify_quantities(data_sap, record.payload['DocumentLines']):
-                    new_dl = self.mix_documentlines(data_sap, record.payload['DocumentLines'], module_name)
+                    new_dl = func(data_sap, record.payload['DocumentLines'])
                     tmp_payload = record.payload.copy()
                     log.info(f"({record.valor_documento}) Actual DocumentLines -> {record.payload['DocumentLines']}")
                     tmp_payload['DocumentLines'] = new_dl
@@ -212,7 +212,8 @@ class PreProcessSAP:
                     to_update.append(record)
                     log.info(f"({record.valor_documento}) Nuevo DocumentLines  -> {record.payload['DocumentLines']}")
                 else:
-                    log.warning(f'({record.valor_documento}) No pudo ser cambiado payload de {record.valor_documento}')
+                    log.warning(f'({record.valor_documento}) No pudo ser cambiado payload de {record.valor_documento}'
+                                f'por incosistencia entre cantidades detectadas en SAP vs actual DocumentLines.')
 
         if to_update:
             PayloadMigracion.objects.bulk_update(to_update, fields=['payload'])
@@ -233,44 +234,6 @@ class PreProcessSAP:
             arts_en_sap[i['ItemCode']] += i['Quantity']
 
         return arts_dispensados == arts_en_sap
-
-    def mix_documentlines(self, data_sap: list, document_lines: list, module_name: str) -> list:
-        """ Toma la información de SAP producto de haberse consultado y monta esa respuesta
-        en un payload, rellenándolo con el resto de información necesaria. """
-        for i in data_sap:
-            # inicio procesos comunes #
-            for key in ("id__", "U_LF_Formula", "CardCode", "U_LF_Autorizacion", "U_LF_IDSSC",
-                        "LineStatus", "Dscription"):
-                try:
-                    del i[key]
-                except KeyError:
-                    ...
-            i['BaseEntry'] = i['DocEntry']
-            del i['DocEntry']
-            i['BaseLine'] = i['LineNum']
-            del i['LineNum']
-            i['Price'] = [j['Price'] for j in document_lines if j['ItemCode'] == i['ItemCode']][0]
-            i['CostingCode'] = document_lines[0]['CostingCode']
-            i['CostingCode2'] = document_lines[0]['CostingCode2']
-            i['CostingCode3'] = document_lines[0]['CostingCode3']
-            i['WarehouseCode'] = document_lines[0]['WarehouseCode']
-            i['BaseType'] = str(document_lines[0]['BaseType'])
-            i['Quantity'] = int(i['Quantity'])
-            # fin procesos comunes #
-
-            match module_name:
-                case settings.NOTAS_CREDITO_NAME:
-                    i['StockInmPrice'] = i['StockPrice']
-                    i['BatchNumbers'] = [
-                        {
-                            "BatchNumber": i['BatchNum'],
-                            "Quantity": i['Quantity'],
-                        }
-                    ]
-                    del i["BatchNum"]
-                    del i['StockPrice']
-
-        return data_sap
 
 
 class Export:

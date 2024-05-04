@@ -128,3 +128,61 @@ def login_check(sap) -> bool:
                 sap.sess_id = sess_id
                 login_succeed = True
     return login_succeed
+
+
+def mix_documentlines(data_sap: list, document_lines: list) -> list:
+    """ Toma la información de SAP producto de haberse consultado y monta esa respuesta
+    en un payload, rellenándolo con el resto de información necesaria. """
+    for i in data_sap:
+        # inicio procesos comunes #
+        for key in ("id__", "U_LF_Formula", "CardCode", "U_LF_Autorizacion", "U_LF_IDSSC",
+                    "LineStatus", "Dscription"):
+            try:
+                del i[key]
+            except KeyError:
+                ...
+        i['BaseEntry'] = i['DocEntry']
+        del i['DocEntry']
+        i['BaseLine'] = i['LineNum']
+        del i['LineNum']
+        i['Price'] = [j['Price'] for j in document_lines if j['ItemCode'] == i['ItemCode']][0]
+        i['CostingCode'] = document_lines[0]['CostingCode']
+        i['CostingCode2'] = document_lines[0]['CostingCode2']
+        i['CostingCode3'] = document_lines[0]['CostingCode3']
+        i['WarehouseCode'] = document_lines[0]['WarehouseCode']
+        i['BaseType'] = str(document_lines[0]['BaseType'])
+        i['Quantity'] = int(i['Quantity'])
+        # fin procesos comunes #
+
+    return data_sap
+
+
+def build_new_documentlines(data_sap: list, document_lines: list) -> list:
+    """ Crea un nuevo document lines basado en la respuesta de sap.
+    Obs.: Usado en notas_credito """
+    resp = {}
+    for s in data_sap:
+        if s['LineNum'] not in resp:
+            resp[s['LineNum']] = {
+                "Price": [j['Price'] for j in document_lines if j['ItemCode'] == s['ItemCode']][0],
+                "BaseLine": s['LineNum'],
+                "ItemCode": s['ItemCode'],
+                "BaseEntry": s['DocEntry'],
+                "StockInmPrice": s['StockPrice'],
+                "Quantity": s['Quantity'],
+                "BaseType": document_lines[0]['BaseType'],
+                "CostingCode": document_lines[0]['CostingCode'],
+                "CostingCode2": document_lines[0]['CostingCode2'],
+                "CostingCode3": document_lines[0]['CostingCode3'],
+                "WarehouseCode": document_lines[0]['WarehouseCode'],
+                "BatchNumbers": [
+                    {
+                        "Quantity": s['Quantity'],
+                        "BatchNumber": s['BatchNum']
+                    }
+                ],
+            }
+        else:
+            resp[s['LineNum']]['Quantity'] += s['Quantity']
+            resp[s['LineNum']]['BatchNumbers'].append({'Quantity': s['Quantity'], 'BatchNumber': s['BatchNum']})
+    return list(resp.values())
