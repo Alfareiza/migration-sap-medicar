@@ -202,15 +202,15 @@ class PreProcessSAP:
         to_update = []
         for record in records:
             if data_sap := client_get_data(record.valor_documento):
-                log.info(f'({record.valor_documento}) Cambiando DocumentLines')
+                # log.debug(f'({record.valor_documento}) Cambiando DocumentLines')
                 if self.verify_quantities(data_sap, record.payload['DocumentLines']):
                     new_dl = func(data_sap, record.payload['DocumentLines'])
                     tmp_payload = record.payload.copy()
-                    log.info(f"({record.valor_documento}) Actual DocumentLines -> {record.payload['DocumentLines']}")
+                    # log.debug(f"({record.valor_documento}) Actual DocumentLines -> {record.payload['DocumentLines']}")
                     tmp_payload['DocumentLines'] = new_dl
                     record.payload = tmp_payload
                     to_update.append(record)
-                    log.info(f"({record.valor_documento}) Nuevo DocumentLines  -> {record.payload['DocumentLines']}")
+                    # log.debug(f"({record.valor_documento}) Nuevo DocumentLines  -> {record.payload['DocumentLines']}")
                 else:
                     log.warning(f'({record.valor_documento}) No pudo ser cambiado payload de {record.valor_documento}'
                                 f'por incosistencia entre cantidades detectadas en SAP vs actual DocumentLines.')
