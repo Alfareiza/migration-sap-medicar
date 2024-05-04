@@ -135,10 +135,10 @@ class SAP:
             log.info(f"▶︎▶︎▶︎ ({item.get('U_LF_Formula', '')}) Posting DL: {dl}")
         return random.choice(
             (
-                {"ERROR": "[CONNECTION] fake connection text"},
-                {"ERROR": "[TIMEOUT] fake timeout text"},
-                {"ERROR": "[SAP] Offset de registro no válido (ODBC -2010)"},
-                {"ERROR": "[SAP] La cantidad no puede exceder la cantidad en el documento base"},
+                # {"ERROR": "[CONNECTION] fake connection text"},
+                # {"ERROR": "[TIMEOUT] fake timeout text"},
+                # {"ERROR": "[SAP] Offset de registro no válido (ODBC -2010)"},
+                # {"ERROR": "[SAP] La cantidad no puede exceder la cantidad en el documento base"},
                 {"DocEntry": f"Fake DocEntry {random.randint(123, 999)}"},
             )
         )
