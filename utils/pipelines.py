@@ -150,6 +150,7 @@ class PreProcessSAP:
     OFFSET = "[SAP] Offset de registro no válido"
     EXCEED = "[SAP] La cantidad no puede exceder la cantidad en el documento base"
     COINCIDENCE = "[SAP] El número de artículo de destino no coincide con el número de artículo base"
+    INVALID_DL = "[SAP] Valor no válido  [DocumentLines"
 
     def __init__(self):
         self.client = None
@@ -163,7 +164,7 @@ class PreProcessSAP:
         if kwargs.get('payloads_previously_sent') and kwargs['parser'].tanda == '2DA':
             if not self.client:
                 self.client = SAPData()
-            for desc in (self.OFFSET, self.EXCEED, self.COINCIDENCE):
+            for desc in (self.OFFSET, self.EXCEED, self.COINCIDENCE, self.INVALID_DL):
                 self.exec_strategy_error(desc, kwargs['payloads_previously_sent'], kwargs['parser'].module.name)
 
             self.update_qs_payloads(kwargs)
@@ -191,7 +192,7 @@ class PreProcessSAP:
                 sap_errs = qs_payloads.filter(status__icontains=type_sap_error)
                 log.info(f"*** {len(sap_errs)} payloads con error {type_sap_error[6:]!r} en {settings.FACTURACION_NAME!r} ***")
                 self.handle_documentlines(self.client.get_dispensado, sap_errs, mix_documentlines)
-            case [self.EXCEED, settings.NOTAS_CREDITO_NAME]:
+            case [self.EXCEED | self.INVALID_DL, settings.NOTAS_CREDITO_NAME]:
                 sap_errs = qs_payloads.filter(status__icontains=type_sap_error)
                 log.info(f"*** {len(sap_errs)} payloads con error {type_sap_error[6:]!r} en {settings.NOTAS_CREDITO_NAME!r} ***")
                 self.handle_documentlines(self.client.get_info_ssc, sap_errs, build_new_documentlines)
