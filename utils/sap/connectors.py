@@ -53,7 +53,8 @@ class SAPConnect(SAP):
             res = self.request_and_update(method, key, self.info.data[key]['json'], self.build_url(key))
             log.info(f'{round((i / length) * 100, 2)}% '
                      f'{format_number(i)} de '
-                     f'{format_number(length)} {res}')
+                     f'{format_number(length)} {res}'
+                     f" {self.info.data[key]['json'] if '[SAP]' in res else ''}")
 
     def request_and_update(self, method, key, item, url):
         """Hace petición a API y actualiza resultado en BD """
