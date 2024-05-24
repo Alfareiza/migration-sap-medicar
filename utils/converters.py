@@ -208,7 +208,7 @@ class Csv2Dict:
     def get_plan(self, row: dict) -> str:
         """Determina si es subsidiado o contributivo"""
         plan = row.get('Plan', '').upper()
-        if 'SUBSIDIADO' in plan or 'Capita' in plan or 'Magisterio' in plan:
+        if 'SUBSIDIADO' in plan or 'Capita' in plan or 'MAGISTERIO' in plan:
             return 'S'
         elif 'CONTRIBUTIVO' in plan:
             return 'C'
@@ -304,11 +304,11 @@ class Csv2Dict:
             return vlr
 
     def make_int(self, row, colum_name) -> int:
-        """ Intenta conviertir valor a decimal."""
+        """ Intenta convertir valor a decimal."""
         try:
             num = int(float(row[colum_name]))  # En dispensacion este valor llega así: '9.'0
         except Exception:
-            txt = f"[CSV] {colum_name} '{row[colum_name]}' " \
+            txt = f"[CSV] {colum_name} {row[colum_name]!r} " \
                   "no pudo ser convertido a numero entero."
             log.error(f"{self.pk} {row[f'{self.pk}']}. {txt}")
             self.reg_error(row, txt)
