@@ -131,6 +131,8 @@ class Csv2Dict:
                 return "EVPBSCON"
             case "EVENTO PBS SUBSIDIADO":
                 return "EVPBSSUB"
+            case "MAGISTERIO FARMAT EVENTO":
+                return "MAGIS"
             case "":
                 return ""
             case _:
@@ -158,6 +160,8 @@ class Csv2Dict:
                 return "7165950203"
             case "EVENTO NO PBS CONTRIBUTIVO":
                 return "7165950204"
+            case "MAGISTERIO FARMAT EVENTO":
+                return "7165950401"
             case "EVENTO PBS SUBSIDIADO":
                 return "7165950201"
             case "AJUSTE POR FALTANTE":  # Estaba FALTANTES
@@ -204,7 +208,7 @@ class Csv2Dict:
     def get_plan(self, row: dict) -> str:
         """Determina si es subsidiado o contributivo"""
         plan = row.get('Plan', '').upper()
-        if 'SUBSIDIADO' in plan or 'Capita' in plan:
+        if 'SUBSIDIADO' in plan or 'Capita' in plan or 'Magisterio' in plan:
             return 'S'
         elif 'CONTRIBUTIVO' in plan:
             return 'C'
