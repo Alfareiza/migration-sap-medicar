@@ -98,7 +98,7 @@ class Csv2Dict:
         #  en la columna de subplan y por ende entra en el primer if y quiebra el
         #  código porque para facturación 'CAPITA' no existe en el dict self.series
         subplan = row.get('SubPlan', '').upper()
-        if 'CAPITA' in subplan:
+        if 'CAPITA' in subplan or 'MAGISTERIO' in subplan:
             self.single_serie = self.series['CAPITA']
             return self.series['CAPITA']
         elif 'EVENTO' in subplan:
@@ -308,8 +308,8 @@ class Csv2Dict:
         try:
             num = int(float(row[colum_name]))  # En dispensacion este valor llega así: '9.'0
         except Exception:
-            txt = f"[CSV] {colum_name} {row[colum_name]!r} " \
-                  "no pudo ser convertido a numero entero."
+            txt = (f"[CSV] {colum_name} {row[colum_name]!r} "
+                   "no pudo ser convertido a numero entero.")
             log.error(f"{self.pk} {row[f'{self.pk}']}. {txt}")
             self.reg_error(row, txt)
         else:
