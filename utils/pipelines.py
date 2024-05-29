@@ -28,7 +28,8 @@ from utils.converters import Csv2Dict
 from utils.decorators import once_in_interval
 from utils.gdrive.handler_api import GDriveHandler
 from utils.mail import EmailModule
-from utils.resources import set_filename, format_number as fn, login_check, build_new_documentlines, mix_documentlines
+from utils.resources import set_filename, format_number as fn, login_check, build_new_documentlines, mix_documentlines, \
+    re_make_stock_transfer_lines_traslados
 from utils.sap.manager import SAPData
 
 
@@ -151,6 +152,7 @@ class PreProcessSAP:
     EXCEED = "[SAP] La cantidad no puede exceder la cantidad en el documento base"
     COINCIDENCE = "[SAP] El número de artículo de destino no coincide con el número de artículo base"
     INVALID_DL = "[SAP] Valor no válido  [DocumentLines"
+    INEGATIVE = "recae en el inventario negativo"
 
     def __init__(self):
         self.client = None
@@ -158,13 +160,16 @@ class PreProcessSAP:
     def __str__(self):
         return "Preprocesamiento de errores específicos antes de enviar a SAP"
 
+    def errors(self):
+        return (self.OFFSET, self.EXCEED, self.COINCIDENCE, self.INVALID_DL, self.INEGATIVE)
+
     @once_in_interval(2)
     def run(self, **kwargs):
         """Busca en BD los registros que tengan determinados errores y ejecuta una estrategia."""
         if kwargs.get('payloads_previously_sent') and kwargs['parser'].tanda == '2DA':
             if not self.client:
                 self.client = SAPData()
-            for desc in (self.OFFSET, self.EXCEED, self.COINCIDENCE, self.INVALID_DL):
+            for desc in self.errors():
                 self.exec_strategy_error(desc, kwargs['payloads_previously_sent'], kwargs['parser'].module.name)
 
             self.update_qs_payloads(kwargs)
@@ -196,13 +201,17 @@ class PreProcessSAP:
                 sap_errs = qs_payloads.filter(status__icontains=type_sap_error)
                 log.info(f"*** {len(sap_errs)} payloads con error {type_sap_error[6:]!r} en {settings.NOTAS_CREDITO_NAME!r} ***")
                 self.handle_documentlines(self.client.get_info_ssc, sap_errs, build_new_documentlines)
+            case [self.INEGATIVE, settings.TRASLADOS_NAME]:
+                sap_errs = qs_payloads.filter(status__icontains=type_sap_error)
+                log.info(f"*** {len(sap_errs)} payloads con error {type_sap_error[6:]!r} en {settings.TRASLADOS_NAME!r} ***")
+                self.handle_documentlines(self.client.get_info_ssc, sap_errs, re_make_stock_transfer_lines_traslados)
 
     def handle_documentlines(self, client_get_data: Callable, records: 'QuerySet[PayloadMigracion]',
                              func: Callable) -> NoReturn:
         """ Altera el DocumentLines de los registros recibidos. """
         to_update = []
         for record in records:
-            if data_sap := client_get_data(record.valor_documento):
+            if record.modulo != settings.TRASLADOS_NAME and (data_sap := client_get_data(record.valor_documento)):
                 # log.debug(f'({record.valor_documento}) Cambiando DocumentLines')
                 if self.verify_quantities(data_sap, record.payload['DocumentLines']):
                     new_dl = func(data_sap, record.payload['DocumentLines'])
@@ -215,6 +224,12 @@ class PreProcessSAP:
                 else:
                     log.warning(f'({record.valor_documento}) No pudo ser cambiado payload de {record.valor_documento}'
                                 f'por incosistencia entre cantidades detectadas en SAP vs actual DocumentLines.')
+            elif record.modulo == settings.TRASLADOS_NAME:
+                new_stl = func(record.payload['StockTransferLines'])
+                tmp_payload = record.payload.copy()
+                tmp_payload['StockTransferLines'] = new_stl
+                record.payload = tmp_payload
+                to_update.append(record)
 
         if to_update:
             PayloadMigracion.objects.bulk_update(to_update, fields=['payload'])

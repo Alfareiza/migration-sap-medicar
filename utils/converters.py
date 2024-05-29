@@ -116,7 +116,7 @@ class Csv2Dict:
         :param row: Diccionario con datos que vienen del csv.
         :return: Codigo del centro.
         """
-        match row.get('SubPlan', '').upper():
+        match row.get('SubPlan', '').upper().strip():
             case "CAPITA" | "CAPITA NUEVA EPS DISFARMA" | "CAPITA COMPLEMENTARIA SUBSIDIADO":
                 return "CAPSUB01"
             case "CAPITA SUBSIDIADO":
@@ -131,7 +131,7 @@ class Csv2Dict:
                 return "EVPBSCON"
             case "EVENTO PBS SUBSIDIADO":
                 return "EVPBSSUB"
-            case "MAGISTERIO FARMAT EVENTO":
+            case "MAGISTERIO FARMAT EVENTO" | "MAGISTERIO RAMEDICAS CAPITA":
                 return "MAGIS"
             case "":
                 return ""
@@ -149,7 +149,7 @@ class Csv2Dict:
         :return: Centro de costo definido por contabilidad.
         """
         # match row.get('SubPlan', '').upper():
-        match row.get(column_name, '').upper():
+        match row.get(column_name, '').upper().strip():
             case "CAPITA" | "CAPITA SUBSIDIADO" | "CAPITA NUEVA EPS DISFARMA" | "CAPITA COMPLEMENTARIA SUBSIDIADO":
                 return "7165950102"
             case "CAPITA CONTRIBUTIVO" | "CAPITA COMPLEMENTARIA CONTRIBUTIVO":
@@ -160,7 +160,7 @@ class Csv2Dict:
                 return "7165950203"
             case "EVENTO NO PBS CONTRIBUTIVO":
                 return "7165950204"
-            case "MAGISTERIO FARMAT EVENTO":
+            case "MAGISTERIO FARMAT EVENTO" | "MAGISTERIO RAMEDICAS CAPITA":
                 return "7165950401"
             case "EVENTO PBS SUBSIDIADO":
                 return "7165950201"

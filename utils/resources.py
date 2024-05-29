@@ -186,3 +186,72 @@ def build_new_documentlines(data_sap: list, document_lines: list) -> list:
             resp[s['LineNum']]['Quantity'] += s['Quantity']
             resp[s['LineNum']]['BatchNumbers'].append({'Quantity': s['Quantity'], 'BatchNumber': s['BatchNum']})
     return list(resp.values())
+
+
+def re_make_stock_transfer_lines_traslados(stock_transfer_lines: list) -> list:
+    """ A partir del document lines existente, crea uno nuevo """
+    result = []
+    for i, stock in enumerate(stock_transfer_lines[0]['BatchNumbers']):
+        result.append({
+            "LineNum": i,
+            "ItemCode": stock_transfer_lines[0]['ItemCode'],
+            "Quantity": stock['Quantity'],
+            "BatchNumbers": [
+                {
+                    "BatchNumber": stock['BatchNumber'],
+                    "Quantity": stock['Quantity']
+                },
+            ],
+            "StockTransferLinesBinAllocations": [
+                {
+                    "BinAbsEntry": stock_transfer_lines[0]['StockTransferLinesBinAllocations'][0]['BinAbsEntry'],
+                    "Quantity": stock['Quantity'],
+                    "BaseLineNumber": stock_transfer_lines[0]['StockTransferLinesBinAllocations'][0]['BaseLineNumber'],
+                    "BinActionType": stock_transfer_lines[0]['StockTransferLinesBinAllocations'][0]['BinActionType'],
+                    "SerialAndBatchNumbersBaseLine": stock_transfer_lines[0]['StockTransferLinesBinAllocations'][0][
+                        'SerialAndBatchNumbersBaseLine'],
+                },
+                {
+                    "BinAbsEntry": stock_transfer_lines[0]['StockTransferLinesBinAllocations'][1]['BinAbsEntry'],
+                    "Quantity": stock['Quantity'],
+                    "BaseLineNumber": stock_transfer_lines[0]['StockTransferLinesBinAllocations'][1]['BaseLineNumber'],
+                    "BinActionType": stock_transfer_lines[0]['StockTransferLinesBinAllocations'][1]['BinActionType'],
+                    "SerialAndBatchNumbersBaseLine": stock_transfer_lines[0]['StockTransferLinesBinAllocations'][1][
+                        'SerialAndBatchNumbersBaseLine'],
+                }
+            ]
+        })
+    return result
+
+
+if __name__ == '__main__':
+    dl = [
+        {
+            "LineNum": 1,
+            "ItemCode": "7702418000681",
+            "Quantity": 100,
+            "BatchNumbers": [
+                {"BatchNumber": "C231343", "Quantity": 60},
+                {"BatchNumber": "C232481", "Quantity": 40}
+            ],
+            "StockTransferLinesBinAllocations": [
+                {
+                    "BinAbsEntry": 243,
+                    "Quantity": 100,
+                    "BaseLineNumber": 1,
+                    "BinActionType": "batFromWarehouse",
+                    "SerialAndBatchNumbersBaseLine": 0
+                },
+                {
+                    "BinAbsEntry": 197,
+                    "Quantity": 100,
+                    "BaseLineNumber": 1,
+                    "BinActionType": "batToWarehouse",
+                    "SerialAndBatchNumbersBaseLine": 0
+                }
+            ]
+        }
+    ]
+    from pprint import pprint
+
+    pprint(re_make_stock_transfer_lines_traslados(dl))
