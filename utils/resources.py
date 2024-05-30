@@ -191,9 +191,9 @@ def build_new_documentlines(data_sap: list, document_lines: list) -> list:
 def re_make_stock_transfer_lines_traslados(stock_transfer_lines: list) -> list:
     """ A partir del document lines existente, crea uno nuevo """
     result = []
-    for i, stock in enumerate(stock_transfer_lines[0]['BatchNumbers']):
+    for line, stock in enumerate(stock_transfer_lines[0]['BatchNumbers']):
         result.append({
-            "LineNum": i,
+            "LineNum": line,
             "ItemCode": stock_transfer_lines[0]['ItemCode'],
             "Quantity": stock['Quantity'],
             "BatchNumbers": [
@@ -206,7 +206,7 @@ def re_make_stock_transfer_lines_traslados(stock_transfer_lines: list) -> list:
                 {
                     "BinAbsEntry": stock_transfer_lines[0]['StockTransferLinesBinAllocations'][0]['BinAbsEntry'],
                     "Quantity": stock['Quantity'],
-                    "BaseLineNumber": stock_transfer_lines[0]['StockTransferLinesBinAllocations'][0]['BaseLineNumber'],
+                    "BaseLineNumber": line,
                     "BinActionType": stock_transfer_lines[0]['StockTransferLinesBinAllocations'][0]['BinActionType'],
                     "SerialAndBatchNumbersBaseLine": stock_transfer_lines[0]['StockTransferLinesBinAllocations'][0][
                         'SerialAndBatchNumbersBaseLine'],
@@ -214,7 +214,7 @@ def re_make_stock_transfer_lines_traslados(stock_transfer_lines: list) -> list:
                 {
                     "BinAbsEntry": stock_transfer_lines[0]['StockTransferLinesBinAllocations'][1]['BinAbsEntry'],
                     "Quantity": stock['Quantity'],
-                    "BaseLineNumber": stock_transfer_lines[0]['StockTransferLinesBinAllocations'][1]['BaseLineNumber'],
+                    "BaseLineNumber": line,
                     "BinActionType": stock_transfer_lines[0]['StockTransferLinesBinAllocations'][1]['BinActionType'],
                     "SerialAndBatchNumbersBaseLine": stock_transfer_lines[0]['StockTransferLinesBinAllocations'][1][
                         'SerialAndBatchNumbersBaseLine'],
