@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from datetime import datetime
 
 from django.conf import settings
 
@@ -24,6 +25,24 @@ class Csv2Dict:
         return (f"Csv2Dict(name='{self.name}', "
                 f"{self.pk}={len(self.data.values())} series={self.series} "
                 f"csv_lines={self.csv_lines})")
+
+    @property
+    def succss_ordered_by_date(self) -> set:
+        """ Ordena los info.success por el campo fecha que posea el modulo """
+        fecha_field = []
+        for h in tuple(getattr(settings, f"{self.name.upper()}_HEADER", list())):
+            if 'fecha' in h.lower():
+                fecha_field.append(h)
+
+        try:
+            # fecha_field son todos los campos del header del modulo que tengan la palabra 'fecha'
+            if not fecha_field:
+                raise Exception(f'No se encontró header con la palabra \'fecha\' en {self.name.uppper()}_HEADER')
+            order_func = lambda d: datetime.strptime(self.data[d]['csv'][0][fecha_field[0]], '%Y-%m-%d %H:%M:%S')
+            return self.succss.intersection(sorted(self.data, key=order_func))
+        except Exception as e:
+            log.error(f'Error al ordenar la info en {self.name.upper()!r}: {repr(e)}')
+            return self.succss
 
     def load_data_from_db(self, records) -> None:
         for record in records:

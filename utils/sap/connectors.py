@@ -49,12 +49,12 @@ class SAPConnect(SAP):
     def gotosap(self, method):
         """ Ejecuta función request_and_update para todas los payloads """
         length = len(self.info.succss)
-        for i, key in enumerate(list(self.info.succss), 1):
+        for i, key in enumerate(list(self.info.succss_ordered_by_date), 1):
             res = self.request_and_update(method, key, self.info.data[key]['json'], self.build_url(key))
             log.info(f'{round((i / length) * 100, 2)}% '
                      f'{format_number(i)} de '
                      f'{format_number(length)} {res}'
-                     f" {self.info.data[key]['json'] if '[SAP]' in res else ''}")
+                     f" {'json='.format(self.info.data[key]['json']) if '[SAP]' in res else ''}")
 
     def request_and_update(self, method, key, item, url):
         """Hace petición a API y actualiza resultado en BD """
