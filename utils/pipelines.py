@@ -222,7 +222,7 @@ class PreProcessSAP:
                     to_update.append(record)
                     # log.debug(f"({record.valor_documento}) Nuevo DocumentLines  -> {record.payload['DocumentLines']}")
                 else:
-                    log.warning(f'({record.valor_documento}) No pudo ser cambiado payload de {record.valor_documento}'
+                    log.warning(f'({record.valor_documento}) No pudo ser cambiado payload de {record.valor_documento} '
                                 f'por incosistencia entre cantidades detectadas en SAP vs actual DocumentLines.')
             elif record.modulo == settings.TRASLADOS_NAME:
                 new_stl = func(record.payload['StockTransferLines'])
