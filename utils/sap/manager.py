@@ -136,6 +136,7 @@ class SAP:
         return random.choice(
             (
                 # {"ERROR": "[CONNECTION] fake connection text"},
+                # {"ERROR": "[SAP] recae en el inventario negativo."},
                 # {"ERROR": "[TIMEOUT] fake timeout text"},
                 # {"ERROR": "[SAP] Offset de registro no válido (ODBC -2010)"},
                 # {"ERROR": "[SAP] La cantidad no puede exceder la cantidad en el documento base"},
