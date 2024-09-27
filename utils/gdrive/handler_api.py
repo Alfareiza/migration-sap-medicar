@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import csv
+import time
 from datetime import datetime
 import io
 import os.path
@@ -20,6 +21,9 @@ from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBa
 
 from core.settings import logger as log
 from utils.decorators import ignore_unhashable, logtime, retry_until_true
+from utils.resources import get_fibonacci_sequence
+
+NUMBER_OF_ATTEMPTS = 3
 
 
 @dataclass
@@ -228,7 +232,18 @@ class GDriveHandler:
         log.info(f"CSV {filename!r} creado en carpeta {folder_name!r}")
 
     def send_csv(self, file_metadata, media):
-        return self.service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+        fibonacci_sequence = get_fibonacci_sequence(4, 5)
+        for attempt in range(NUMBER_OF_ATTEMPTS):
+            try:
+                return self.service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+            except HttpError as e:
+                log.error(f'ATTEMPT#{attempt + 1} Error while fetching Google API (sync) -> {str(e)}')
+                time.sleep(fibonacci_sequence[attempt])
+                error = e
+
+            if attempt == NUMBER_OF_ATTEMPTS - 1:
+                raise error
+            time.sleep(fibonacci_sequence[attempt])
 
     def detect_csv_encoding(self, file_id):
         request = self.service.files().get_media(fileId=file_id)
@@ -245,6 +260,7 @@ class GDriveHandler:
 
         detector.close()
         return detector.result['encoding']
+
     def order_files_asc(self, lst_files):
         """
         Given a list of files, return the same list
@@ -273,6 +289,7 @@ class GDriveHandler:
         :return:
         """
         return sorted(lst_files, key=lambda x: datetime.strptime(x['createdTime'], '%Y-%m-%dT%H:%M:%S.%fZ'))
+
 
 def main():
     """Shows basic usage of the Drive v3 API.

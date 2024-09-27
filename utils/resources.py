@@ -1,5 +1,6 @@
 import pickle
 from datetime import datetime
+from typing import List
 
 from django.conf import settings
 from pytz import timezone
@@ -83,6 +84,23 @@ def format_number(num: int) -> str:
     '1.000.000'
     """
     return f"{num:,.0f}".replace(',', '.')
+
+
+def get_fibonacci_sequence(n: int, starting_number: int = 0) -> List[int]:
+    """
+    Method used to generate a Fibonacci sequence
+    >>> get_fibonacci_sequence(5, 2)
+    [2, 3, 5, 8, 13
+    >>> get_fibonacci_sequence(5)
+    [0, 1, 1, 2, 3]
+    >>> get_fibonacci_sequence(3, 5)
+    [5, 6, 11]
+    """
+    fibonacci_sequence = [starting_number, starting_number + 1]
+    for _ in range(2, n):
+        next_num = fibonacci_sequence[-1] + fibonacci_sequence[-2]
+        fibonacci_sequence.append(next_num)
+    return fibonacci_sequence
 
 
 def has_ceco(name, item, ceco='391'):
