@@ -288,10 +288,12 @@ class Export:
             self.move_csv(kwargs)
             ...
 
+    @once_in_interval(2)
     def move_csv(self, kwargs):
         # Mueve archivo a carpeta
         kwargs['parser'].input.move_file(kwargs['file'], f"{kwargs['name_folder']}_BackUp")
 
+    @once_in_interval(2)
     def create_csv_processed_in_drive(self, kwargs):
         # Crea archivo en Drive con todos los procesados
         kwargs['parser'].input.prepare_and_send_csv(
@@ -300,6 +302,7 @@ class Export:
             f"{kwargs['name_folder']}_Procesado"
         )
 
+    @once_in_interval(2)
     def create_csv_errs_in_drive(self, kwargs):
         # Crea archivo en Drive con todos los errores
         if kwargs['csv_to_dict'].errs:

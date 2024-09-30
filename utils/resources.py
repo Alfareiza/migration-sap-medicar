@@ -90,7 +90,7 @@ def get_fibonacci_sequence(n: int, starting_number: int = 0) -> List[int]:
     """
     Method used to generate a Fibonacci sequence
     >>> get_fibonacci_sequence(5, 2)
-    [2, 3, 5, 8, 13
+    [2, 3, 5, 8, 13]
     >>> get_fibonacci_sequence(5)
     [0, 1, 1, 2, 3]
     >>> get_fibonacci_sequence(3, 5)
