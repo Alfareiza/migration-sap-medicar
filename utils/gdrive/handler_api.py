@@ -23,7 +23,7 @@ from core.settings import logger as log
 from utils.decorators import ignore_unhashable, logtime, retry_until_true
 from utils.resources import get_fibonacci_sequence
 
-NUMBER_OF_ATTEMPTS = 5
+NUMBER_OF_ATTEMPTS = 10
 
 
 @dataclass
@@ -45,6 +45,7 @@ class GDriveHandler:
     @lru_cache()
     def get_folder_id_by_name(self, name) -> str:
         query = f"name = '{name}' and mimeType = 'application/vnd.google-apps.folder'"
+        log.info('Finding id of folder {name} in Google Drive.')
         response = self.service.files().list(q=query).execute()
         if folders := response.get('files', []):
             return folders[0]['id']
@@ -235,7 +236,7 @@ class GDriveHandler:
         """Try to create a file in Google Drive.
         In case of error, it will wait for three intervals (56, 111, 167) of seconds.
         """
-        fibonacci_sequence = get_fibonacci_sequence(4, 55)
+        fibonacci_sequence = get_fibonacci_sequence(NUMBER_OF_ATTEMPTS, 55)
         for attempt in range(NUMBER_OF_ATTEMPTS):
             try:
                 return self.service.files().create(body=file_metadata, media_body=media, fields='id').execute()
