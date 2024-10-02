@@ -28,6 +28,7 @@ NUMBER_OF_ATTEMPTS = 7
 
 @dataclass
 class GDriveHandler:
+    folders_ids = {}  # Recibe valores a medida que se consultan carpetas en func get_folder_id_by_name
 
     def __post_init__(self):
         # self.creds = Credentials.from_authorized_user_file('utils/gdrive/token.json', SCOPES)
@@ -43,14 +44,20 @@ class GDriveHandler:
 
     @ignore_unhashable
     @lru_cache()
-    def get_folder_id_by_name(self, name) -> str:
+    def discover_folder_id_by_name(self, name) -> str:
         query = f"name = '{name}' and mimeType = 'application/vnd.google-apps.folder'"
-        log.info('Finding id of folder {name} in Google Drive.')
+        log.info(f'Finding id of folder {name} in Google Drive.')
         response = self.service.files().list(q=query).execute()
         if folders := response.get('files', []):
             return folders[0]['id']
         log.warning(f'No fue encontrado folder {name}.')
         return ''
+
+    def get_folder_id_by_name(self, name) -> str:
+        """Reach id of folder in attr of class"""
+        log.info(f'Finding id of folder {name} in Cache.')
+        return self.folders_ids.get(name, self.discover_folder_id_by_name(name))
+
 
     def get_files_in_folder_by_id(self, folder_id, ext='', only_files=True) -> list:
         """
@@ -337,5 +344,5 @@ def main():
 
 
 if __name__ == '__main__':
-    # main()
+    main()
     ...
