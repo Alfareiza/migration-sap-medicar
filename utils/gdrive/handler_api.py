@@ -23,7 +23,7 @@ from core.settings import logger as log
 from utils.decorators import ignore_unhashable, logtime, retry_until_true
 from utils.resources import get_fibonacci_sequence
 
-NUMBER_OF_ATTEMPTS = 10
+NUMBER_OF_ATTEMPTS = 7
 
 
 @dataclass
