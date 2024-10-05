@@ -49,8 +49,10 @@ class GDriveHandler:
         log.info(f'Finding id of folder {name} in Google Drive.')
         response = self.service.files().list(q=query).execute()
         if folders := response.get('files', []):
-            return folders[0]['id']
-        log.warning(f'No fue encontrado folder {name}.')
+            folder_id = folders[0]['id']
+            self.folders_ids[name] = folders[0]['id']
+            return folder_id
+        log.warning(f'No fue encontrado folder {name} en Google Drive')
         return ''
 
     def get_folder_id_by_name(self, name) -> str:
