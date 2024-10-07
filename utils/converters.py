@@ -661,11 +661,11 @@ class Csv2Dict:
                 document_lines.update(
                     ItemCode=self.get_plu(row),
                     Quantity=self.make_int(row, "CantidadDispensada"),
-                    BaseType="13",
-                    BaseEntry=self.get_info_sap_entrega(row, 'DocEntry'),
-                    BaseLine=self.get_info_sap_entrega(row, 'BaseLine'),
+                    # BaseType="13",
+                    # BaseEntry=self.get_info_sap_entrega(row, 'DocEntry'),
+                    # BaseLine=self.get_info_sap_entrega(row, 'BaseLine'),
                     Price=self.make_float(row, "Precio"),
-                    StockInmPrice=self.get_info_sap_entrega(row, 'StockPrice'),
+                    # StockInmPrice=self.get_info_sap_entrega(row, 'StockPrice'),
                     CostingCode=self.get_costing_code(row),
                     CostingCode3=self.get_contrato(row),
                     BatchNumbers=[
