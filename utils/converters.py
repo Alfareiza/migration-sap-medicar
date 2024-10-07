@@ -534,7 +534,7 @@ class Csv2Dict:
                     document_lines.pop(key, None)
                 document_lines.update(
                     ItemCode=self.get_plu(row),
-                    UnitPrice=self.make_float(row, 'Precio'),
+                    UnitPrice=self.make_float(row, 'Precio') * self.make_int(row, 'Cantidad'),
                     BatchNumbers=[
                         {
                             "BatchNumber": row.get("Lote", ''),
@@ -899,6 +899,9 @@ class Csv2Dict:
                 else:
                     self.data[key]['json']["DocumentLines"][idx]['Quantity'] += article['Quantity']
                     self.data[key]['json']["DocumentLines"][idx]['BatchNumbers'].append(article['BatchNumbers'][0])
+                    if self.name == settings.COMPRAS_NAME:
+                        self.data[key]['json']["DocumentLines"][idx]['UnitPrice'] += article['UnitPrice']
+
             case settings.TRASLADOS_NAME:
                 lst_item_codes = [code['ItemCode'] for code in self.data[key]['json']["StockTransferLines"]]
                 try:
