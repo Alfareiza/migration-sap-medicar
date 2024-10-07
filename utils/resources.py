@@ -38,6 +38,27 @@ def datetime_str(dt=None):
     return format(dt, '%G-%m-%d %H:%M:%S')
 
 
+def string_to_datetime(date_string):
+    """Transform to datetime a string which depicts a datetime.
+    >>> string_to_datetime('2022-12-31 18:36:00')
+    datetime.datetime(2022, 12, 31, 18, 36)
+    """
+    return datetime.strptime(date_string, "%Y-%m-%d %H:%M:%S")
+
+
+def is_before_january_31(date_obj) -> bool:
+    """
+    >>> is_before_january_31(datetime(2022, 12, 31, 18, 36))
+    True
+    >>> is_before_january_31(datetime(2024, 1, 31, 18, 36))
+    True
+    >>> is_before_january_31(datetime(2024, 2, 1, 18, 36))
+    False
+    """
+    january_31 = datetime(year=2024, month=2, day=1)
+    return date_obj < january_31
+
+
 def set_filename(name: str, reason: str) -> str:
     """
     Dado un nombre de archivo le agrega una 'razón'
