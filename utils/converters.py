@@ -7,7 +7,12 @@ from django.conf import settings
 from base.templatetags.filter_extras import make_text_status
 from core.settings import logger as log
 from utils.decorators import logtime
-from utils.resources import load_comments, format_number as fn, string_to_datetime, is_before_january_31
+from utils.resources import (
+    format_number as fn,
+    is_later_than_january_31_2024,
+    load_comments,
+    string_to_datetime
+)
 from utils.sap.manager import SAPData
 
 
@@ -661,7 +666,8 @@ class Csv2Dict:
                         ItemCode=self.get_plu(row),
                     )
             case settings.NOTAS_CREDITO_NAME:
-                if not is_before_january_31(string_to_datetime(row['FecCreFactura'])):
+                fecha_factura_creada = row.get('FecCreFactura')
+                if not fecha_factura_creada or is_later_than_january_31_2024(string_to_datetime(fecha_factura_creada)):
                     document_lines.update(
                         BaseType="13",
                         BaseEntry=self.get_info_sap_entrega(row, 'DocEntry'),
