@@ -46,7 +46,6 @@ class GDriveHandler:
     @lru_cache()
     def discover_folder_id_by_name(self, name) -> str:
         query = f"name = '{name}' and mimeType = 'application/vnd.google-apps.folder'"
-        log.info(f'Finding id of folder {name} in Google Drive.')
         response = self.service.files().list(q=query).execute()
         if folders := response.get('files', []):
             folder_id = folders[0]['id']
@@ -57,7 +56,6 @@ class GDriveHandler:
 
     def get_folder_id_by_name(self, name) -> str:
         """Reach id of folder in attr of class"""
-        log.info(f'Finding id of folder {name} in Cache.')
         folder_id = GDriveHandler.folders_ids.get(name)
         return folder_id or self.discover_folder_id_by_name(name)
 
