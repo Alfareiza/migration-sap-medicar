@@ -197,10 +197,10 @@ class PreProcessSAP:
                 sap_errs = qs_payloads.filter(status__icontains=type_sap_error)
                 log.info(f"*** {len(sap_errs)} payloads con error {type_sap_error[6:]!r} en {settings.FACTURACION_NAME!r} ***")
                 self.handle_documentlines(self.client.get_dispensado, sap_errs, mix_documentlines)
-            # case [_, settings.NOTAS_CREDITO_NAME]:
-            #     sap_errs = qs_payloads.filter(status__icontains=type_sap_error)
-            #     log.info(f"*** {len(sap_errs)} payloads con error {type_sap_error[6:]!r} en {settings.NOTAS_CREDITO_NAME!r} ***")
-            #     self.handle_documentlines(self.client.get_info_ssc, sap_errs, build_new_documentlines)
+            case [_, settings.NOTAS_CREDITO_NAME]:
+                sap_errs = qs_payloads.filter(status__icontains=type_sap_error)
+                log.info(f"*** {len(sap_errs)} payloads con error {type_sap_error[6:]!r} en {settings.NOTAS_CREDITO_NAME!r} ***")
+                self.handle_documentlines(self.client.get_info_ssc, sap_errs, build_new_documentlines)
             case [self.INEGATIVE, settings.TRASLADOS_NAME]:
                 sap_errs = qs_payloads.filter(status__icontains=type_sap_error)
                 log.info(f"*** {len(sap_errs)} payloads con error {type_sap_error[6:]!r} en {settings.TRASLADOS_NAME!r} ***")
