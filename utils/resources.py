@@ -46,17 +46,17 @@ def string_to_datetime(date_string):
     return datetime.strptime(date_string, "%Y-%m-%d %H:%M:%S")
 
 
-def is_before_january_31(date_obj) -> bool:
+def is_later_than_january_31_2024(date_obj) -> bool:
     """
-    >>> is_before_january_31(datetime(2022, 12, 31, 18, 36))
-    True
-    >>> is_before_january_31(datetime(2024, 1, 31, 18, 36))
-    True
-    >>> is_before_january_31(datetime(2024, 2, 1, 18, 36))
+    >>> is_later_than_january_31_2024(datetime(2022, 12, 31, 18, 36))
     False
+    >>> is_later_than_january_31_2024(datetime(2024, 1, 31, 18, 36))
+    False
+    >>> is_later_than_january_31_2024(datetime(2024, 2, 1, 18, 36))
+    True
     """
-    january_31 = datetime(year=2024, month=2, day=1)
-    return date_obj < january_31
+    january_31 = datetime(year=2024, month=1, day=31, hour=23, minute=59, second=59)
+    return date_obj > january_31
 
 
 def set_filename(name: str, reason: str) -> str:
