@@ -180,7 +180,7 @@ FACTURACION_HEADER = {
 }
 
 NOTAS_CREDITO_HEADER = {
-    'FechaFactura', 'NIT', 'Plan', 'NroSSC',
+    'FecCreFactura', 'FechaFactura', 'NIT', 'Plan', 'NroSSC',
     'Beneficiario', 'CategoriaActual', 'NroAutorizacion',
     'MiPres', 'Plu', 'CECO', 'CantidadDispensada',
     'Precio', 'Lote', 'UsuarioDispensa'
