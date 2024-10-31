@@ -7,7 +7,12 @@ from django.conf import settings
 from base.templatetags.filter_extras import make_text_status
 from core.settings import logger as log
 from utils.decorators import logtime
-from utils.resources import load_comments, format_number as fn
+from utils.resources import (
+    format_number as fn,
+    is_later_than_january_31_2024,
+    load_comments,
+    string_to_datetime
+)
 from utils.sap.manager import SAPData
 
 
@@ -257,16 +262,19 @@ class Csv2Dict:
         else:
             return f"{anho}{mes}{dia}"
 
-    def transform_date(self, row: dict, column_name: str) -> str:
+    def transform_date(self, row: dict, column_name: str, force_exception = True) -> str:
         """ Transforma la fecha del formato "2022-12-31 18:36:00" a "20221231" """
         try:
             dt = row[column_name]
             anho, mes, dia = dt.split(' ')[0].split('-')
         except Exception:
-            log.error(f"{self.pk} {row[f'{self.pk}']}. Fecha '{dt}' no pudo ser transformada. "
-                      f'Se esperaba el formato "2022-12-31 18:36:00" y se recibió {dt}')
-            self.reg_error(row, f'[CSV] Formato inesperado en {column_name} '
-                                f'se espera este formato -> 2022-12-31 18:36:00')
+            if force_exception:
+                log.error(f"{self.pk} {row[f'{self.pk}']}. Fecha '{dt}' no pudo ser transformada. "
+                          f'Se esperaba el formato "2022-12-31 18:36:00" y se recibió {dt}')
+                self.reg_error(row, f'[CSV] Formato inesperado en {column_name} '
+                                    f'se espera este formato -> 2022-12-31 18:36:00')
+            else:
+                ...
         else:
             return f"{anho}{mes}{dia}"
 
@@ -658,14 +666,18 @@ class Csv2Dict:
                         ItemCode=self.get_plu(row),
                     )
             case settings.NOTAS_CREDITO_NAME:
+                fecha_factura_creada = row.get('FecCreFactura')
+                if not fecha_factura_creada or is_later_than_january_31_2024(string_to_datetime(fecha_factura_creada)):
+                    document_lines.update(
+                        BaseType="13",
+                        BaseEntry=self.get_info_sap_entrega(row, 'DocEntry'),
+                        BaseLine=self.get_info_sap_entrega(row, 'BaseLine'),
+                        StockInmPrice=self.get_info_sap_entrega(row, 'StockPrice'),
+                    )
                 document_lines.update(
                     ItemCode=self.get_plu(row),
                     Quantity=self.make_int(row, "CantidadDispensada"),
-                    BaseType="13",
-                    BaseEntry=self.get_info_sap_entrega(row, 'DocEntry'),
-                    BaseLine=self.get_info_sap_entrega(row, 'BaseLine'),
                     Price=self.make_float(row, "Precio"),
-                    StockInmPrice=self.get_info_sap_entrega(row, 'StockPrice'),
                     CostingCode=self.get_costing_code(row),
                     CostingCode3=self.get_contrato(row),
                     BatchNumbers=[

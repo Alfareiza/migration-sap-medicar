@@ -46,19 +46,18 @@ class GDriveHandler:
     @lru_cache()
     def discover_folder_id_by_name(self, name) -> str:
         query = f"name = '{name}' and mimeType = 'application/vnd.google-apps.folder'"
-        log.info(f'Finding id of folder {name} in Google Drive.')
         response = self.service.files().list(q=query).execute()
         if folders := response.get('files', []):
             folder_id = folders[0]['id']
-            self.folders_ids[name] = folders[0]['id']
+            GDriveHandler.folders_ids[name] = folders[0]['id']
             return folder_id
         log.warning(f'No fue encontrado folder {name} en Google Drive')
         return ''
 
     def get_folder_id_by_name(self, name) -> str:
         """Reach id of folder in attr of class"""
-        log.info(f'Finding id of folder {name} in Cache.')
-        return self.folders_ids.get(name, self.discover_folder_id_by_name(name))
+        folder_id = GDriveHandler.folders_ids.get(name)
+        return folder_id or self.discover_folder_id_by_name(name)
 
 
     def get_files_in_folder_by_id(self, folder_id, ext='', only_files=True) -> list:
@@ -346,5 +345,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
-    ...
+    # main()
+    # ...
+    g = GDriveHandler()
+    id_ = g.get_folder_id_by_name('DispensacionMedicar')
+    id__ = g.get_folder_id_by_name('DispensacionMedicar')
