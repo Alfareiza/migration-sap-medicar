@@ -810,7 +810,7 @@ class Csv2Dict:
                     U_LF_Plan=self.get_plan(row),
                     U_LF_NombreAfiliado=self.get_nombre_afiliado(row),
                     U_LF_NivelAfiliado=self.make_int(row, "CategoriaActual"),
-                    U_LF_Autorizacion=self.make_int(row, 'NroAutorizacion') if row.get("NroAutorizacion") else '',
+                    U_LF_Autorizacion=self.make_int(row, 'NroAutorizacion') if row["NroAutorizacion"] != '' else '',
                     DocumentLines=[self.build_document_lines(row)],
                 )
             case settings.FACTURACION_NAME:  # 5.1, 2  [Implementado]
