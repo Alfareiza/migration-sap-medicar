@@ -456,8 +456,8 @@ class Csv2Dict:
                 res_api = int(info[0]['NumInBuy'])
                 residuo, cociente = divmod(qty, res_api)
                 if cociente:
-                    raise Exception(f"Plu {row['Plu']} presenta incosistencia "
-                                    f"con cantidad {qty} siendo {res_api} su embalaje")
+                    raise Exception(f"Plu {row['Plu']} presenta inconsistencia "
+                                    f"con cantidad {qty} siendo {res_api} su embalaje (NumInBuy).")
                 res = residuo
             if not info:
                 raise Exception(f"No se encontraron embalajes para el Plu {row['Plu']!r}")
@@ -542,7 +542,6 @@ class Csv2Dict:
                     document_lines.pop(key, None)
                 document_lines.update(
                     ItemCode=self.get_plu(row),
-                    UnitPrice=self.make_float(row, 'Precio'),
                     BatchNumbers=[
                         {
                             "BatchNumber": row.get("Lote", ''),
@@ -552,6 +551,10 @@ class Csv2Dict:
                     ],
                 )
                 document_lines.update(Quantity=self.get_num_in_buy(row, document_lines['BatchNumbers'][0]['Quantity']))
+                if not document_lines['Quantity']:
+                    document_lines.update(UnitPrice=self.make_float(row, 'Precio'))
+                else:
+                    document_lines.update(UnitPrice=self.make_float(row, 'Precio') * document_lines['Quantity'])
             case settings.AJUSTES_ENTRADA_PRUEBA_NAME:
                 document_lines.update(
                     ItemCode=self.get_plu(row, 'codigo'),
@@ -911,6 +914,8 @@ class Csv2Dict:
                 else:
                     self.data[key]['json']["DocumentLines"][idx]['Quantity'] += article['Quantity']
                     self.data[key]['json']["DocumentLines"][idx]['BatchNumbers'].append(article['BatchNumbers'][0])
+                    if self.name == 'compras':
+                        self.data[key]['json']["DocumentLines"][idx]['UnitPrice'] *= self.data[key]['json']["DocumentLines"][idx]['Quantity']
             case settings.TRASLADOS_NAME:
                 lst_item_codes = [code['ItemCode'] for code in self.data[key]['json']["StockTransferLines"]]
                 try:

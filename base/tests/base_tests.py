@@ -1,4 +1,5 @@
 import unittest
+from collections import defaultdict
 from unittest import TestCase
 
 from base.models import PayloadMigracion
@@ -6,7 +7,7 @@ from base.tests.conf_test import make_instance, ProcessFakeSAP
 from utils.converters import Csv2Dict
 from utils.interactor_db import DBHandler, del_registro_migracion
 from utils.parsers import Parser
-from utils.pipelines import Validate, ProcessCSV, SaveInBD, ProcessSAP, ExcludeFromDB
+from utils.pipelines import Validate, ProcessCSV, SaveInBD, ProcessSAP, ExcludeFromDB, Export
 from utils.resources import has_ceco
 
 
@@ -121,6 +122,43 @@ class DocumentLinesTestsMixin:
                                 art['Quantity'],
                                 sum(art['Quantity'] for art in art['BatchNumbers'])
                             )
+
+    def test_unit_price_in_document_lines(self):
+        """Valida que el unitPrice sea calculado correctamente en el módulo de compras."""
+
+        def find_quantities_and_price_per_plu(lines_csv: list[dict]) -> tuple:
+            qtys = defaultdict(int)
+            prices = defaultdict(float)
+            for item in lines_csv:
+                qtys[item['Plu']] += int(float(item['Cantidad']))
+                prices[item['Plu']] = float(item['Precio'])
+            return qtys, prices
+
+        def embalaje(plu, qty):
+            res_api = self.module.sap.get_embalaje_info_from_plu(plu)
+            num_in_buy = int(res_api[0]['NumInBuy'])
+            residuo, cociente = divmod(qty, num_in_buy)
+            if cociente:
+                raise Exception(f"Plu {plu} presenta inconsistencia "
+                                f"con cantidad {qty} siendo {num_in_buy} su embalaje (NumInBuy).")
+            return residuo
+
+        if self.MODULE_NAME == 'compras':
+            for k, v in self.result.data.items():
+                qty_by_plu, price_by_plu = find_quantities_and_price_per_plu(v['csv'])
+                for art in v['json']['DocumentLines']:
+                    with self.subTest(i=v):
+                        quantities_in_csv, price_of_article = embalaje(art['ItemCode'], qty_by_plu[art['ItemCode']]), \
+                        price_by_plu[art['ItemCode']]
+                        expected = price_of_article * quantities_in_csv
+                        self.assertEqual(
+                            art['UnitPrice'], price_of_article * quantities_in_csv,
+                            f"\nPLU: {art['ItemCode']!r}"
+                            f"\nWe expected {expected}, but we got {art['UnitPrice']}"
+                            f"\nExplanation: "
+                            f"The unit price for the plu is {price_of_article} and the quantity is {quantities_in_csv}.\n "
+                            f"{price_of_article} * {quantities_in_csv} is {expected}."
+                        )
 
 
 class CustomTestsMixin:
