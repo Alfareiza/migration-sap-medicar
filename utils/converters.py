@@ -200,7 +200,7 @@ class Csv2Dict:
                     return "7165950302"
             case "AVERIAS":
                 return "5310350102"
-            case "SALIDA POR DONACION":
+            case "SALIDA POR DONACION" | "ENTRADA POR DONACION":
                 return "7165950303"
             case "VENCIDOS":
                 return "5310350102"
