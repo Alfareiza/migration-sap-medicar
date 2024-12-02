@@ -553,6 +553,8 @@ class Csv2Dict:
                 document_lines.update(Quantity=self.get_num_in_buy(row, document_lines['BatchNumbers'][0]['Quantity']))
                 if not document_lines['Quantity']:
                     document_lines.update(UnitPrice=self.make_float(row, 'Precio'))
+                elif document_lines['Quantity'] == 1:
+                    document_lines.update(UnitPrice=self.make_float(row, 'Precio'))
                 else:
                     document_lines.update(UnitPrice=self.make_float(row, 'Precio') * document_lines['Quantity'])
             case settings.AJUSTES_ENTRADA_PRUEBA_NAME:
