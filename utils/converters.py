@@ -556,7 +556,10 @@ class Csv2Dict:
                 elif document_lines['Quantity'] == 1:
                     document_lines.update(UnitPrice=self.make_float(row, 'Precio'))
                 else:
-                    document_lines.update(UnitPrice=self.make_float(row, 'Precio') * document_lines['Quantity'])
+                    qty_csv = document_lines['BatchNumbers'][0]['Quantity']
+                    qty_embalaje_calculado = document_lines['Quantity']
+                    embalaje_plu = qty_csv // qty_embalaje_calculado
+                    document_lines.update(UnitPrice=self.make_float(row, 'Precio') * embalaje_plu)
             case settings.AJUSTES_ENTRADA_PRUEBA_NAME:
                 document_lines.update(
                     ItemCode=self.get_plu(row, 'codigo'),
