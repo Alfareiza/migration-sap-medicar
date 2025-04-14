@@ -406,7 +406,7 @@ class File:
             if rows:
                 fieldnames = rows[0].keys()
                 with open(csvfilepath, 'w', encoding='utf-8-sig', newline='') as f:
-                    writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter=';')
+                    writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter=';', extrasaction='ignore')
                     writer.writeheader()
                     writer.writerows(rows)
                 log.info(f"Archivo creado -> {csvfilepath}")
