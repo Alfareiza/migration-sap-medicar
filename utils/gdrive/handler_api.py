@@ -18,6 +18,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBaseUpload
+from tenacity import retry, stop_after_attempt, wait_random
 
 from core.settings import logger as log
 from utils.decorators import ignore_unhashable, logtime, retry_until_true
@@ -220,6 +221,7 @@ class GDriveHandler:
                                                    fields='id').execute()
                 log.info(f"CSV {filename!r} creado en carpeta {folder_name!r} con ID: {file['id']}")
 
+    @retry(stop=stop_after_attempt(3), wait=wait_random(min=10, max=20))
     def prepare_and_send_csv(self, path_csv, filename, folder_name) -> None:
         """
         From a filepath, it sends the file to Google Drive.
@@ -228,16 +230,11 @@ class GDriveHandler:
         :param folder_name: Name of the folder where the file will be placed.
         :return:
         """
-        log.info(f"Preparando envio de csv para GDrive de {filename}")
+        log.info(f"Preparando envio de csv para GDrive de {filename!r}")
         folder_id = self.get_folder_id_by_name(folder_name)
         file_metadata = {'name': filename, 'parents': [folder_id]}
         media = MediaFileUpload(path_csv, mimetype='text/plain')
-        try:
-            file = self.send_csv(file_metadata, media)
-        except TimeoutError:
-            log.warning('Timeout al intentar cargar csv en drive.... intentando nuevamente')
-            sleep(10)
-            file = self.send_csv(file_metadata, media)
+        file = self.send_csv(file_metadata, media)
         log.info(f"CSV {filename!r} creado en carpeta {folder_name!r}")
 
     def send_csv(self, file_metadata, media):
