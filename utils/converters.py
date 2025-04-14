@@ -933,8 +933,6 @@ class Csv2Dict:
                         article['StockTransferLinesBinAllocations'][1].update(BaseLineNumber=last_line_num + 1)
                     self.data[key]['json']["StockTransferLines"].append(article)
                 else:
-                    self.data[key]['json']["StockTransferLines"][idx]['LineNum'] += 1
-
                     self.data[key]['json']["StockTransferLines"][idx]['BatchNumbers'].extend(article['BatchNumbers'])
                     self.data[key]['json']["StockTransferLines"][idx]['Quantity'] += article['Quantity']
                     self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][0][

@@ -181,6 +181,13 @@ class TestTraslados(unittest.TestCase):
                     self.assertEqual(bin_two['BinActionType'], 'batToWarehouse')
                     self.assertEqual(bin_one['SerialAndBatchNumbersBaseLine'], bin_two['SerialAndBatchNumbersBaseLine'])
 
+    def test_sequence_linenum(self):
+        """Valida que el orden de los linenums esté correto y no haya números faltando."""
+        for k, v in self.result.data.items():
+            for idx, line in enumerate(v['json']['StockTransferLines']):
+                with self.subTest(i=line):
+                    self.assertEqual(idx, line['LineNum'])
+
 
 class TestTrasladosAdvanced(TestsBaseAdvanced):
     MODULE_NAME = 'traslados'
