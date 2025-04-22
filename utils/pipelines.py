@@ -201,10 +201,6 @@ class PreProcessSAP:
                 sap_errs = qs_payloads.filter(status__icontains=type_sap_error)
                 log.info(f"*** {len(sap_errs)} payloads con error {type_sap_error[6:]!r} en {settings.NOTAS_CREDITO_NAME!r} ***")
                 self.handle_documentlines(self.client.get_info_ssc, sap_errs, build_new_documentlines)
-            case [self.INEGATIVE, settings.TRASLADOS_NAME]:
-                sap_errs = qs_payloads.filter(status__icontains=type_sap_error)
-                log.info(f"*** {len(sap_errs)} payloads con error {type_sap_error[6:]!r} en {settings.TRASLADOS_NAME!r} ***")
-                self.handle_documentlines(self.client.get_info_ssc, sap_errs, re_make_stock_transfer_lines_traslados)
 
     def handle_documentlines(self, client_get_data: Callable, records: 'QuerySet[PayloadMigracion]',
                              func: Callable) -> NoReturn:
@@ -224,12 +220,6 @@ class PreProcessSAP:
                 else:
                     log.warning(f'({record.valor_documento}) No pudo ser cambiado payload de {record.valor_documento} '
                                 f'por incosistencia entre cantidades detectadas en SAP vs actual DocumentLines.')
-            elif record.modulo == settings.TRASLADOS_NAME:
-                new_stl = func(record.payload['StockTransferLines'])
-                tmp_payload = record.payload.copy()
-                tmp_payload['StockTransferLines'] = new_stl
-                record.payload = tmp_payload
-                to_update.append(record)
 
         if to_update:
             PayloadMigracion.objects.bulk_update(to_update, fields=['payload'])

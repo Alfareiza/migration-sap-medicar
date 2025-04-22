@@ -227,6 +227,7 @@ def build_new_documentlines(data_sap: list, document_lines: list) -> list:
     return list(resp.values())
 
 
+# Obsoleto desde 22/Abr/2025, Branch: 6-deshacer-re-estructuración-de-json-en-2da-tanda
 def re_make_stock_transfer_lines_traslados(stock_transfer_lines: list) -> list:
     """ A partir del document lines existente, crea uno nuevo """
     result = []
