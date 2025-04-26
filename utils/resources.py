@@ -227,44 +227,51 @@ def build_new_documentlines(data_sap: list, document_lines: list) -> list:
     return list(resp.values())
 
 
-# Obsoleto desde 22/Abr/2025, Branch: 6-deshacer-re-estructuración-de-json-en-2da-tanda
 def re_make_stock_transfer_lines_traslados(stock_transfer_lines: list) -> list:
-    """ A partir del document lines existente, crea uno nuevo """
+    """A partir del StockTransferLines existente, crea uno nuevo donde no exista BatchNumbers con más de 1 lote.
+
+    De esta manera el LineNum debe ser consistente, comenzando desde cero y terminando en cuantos lotes detectados
+    en total en el StockTransferLinesBinAllocations."""
     result = []
-    for line, stock in enumerate(stock_transfer_lines[0]['BatchNumbers']):
-        result.append({
-            "LineNum": line,
-            "ItemCode": stock_transfer_lines[0]['ItemCode'],
-            "Quantity": stock['Quantity'],
-            "BatchNumbers": [
-                {
-                    "BatchNumber": stock['BatchNumber'],
-                    "Quantity": stock['Quantity']
-                },
-            ],
-            "StockTransferLinesBinAllocations": [
-                {
-                    "BinAbsEntry": stock_transfer_lines[0]['StockTransferLinesBinAllocations'][0]['BinAbsEntry'],
-                    "Quantity": stock['Quantity'],
-                    "BaseLineNumber": line,
-                    "BinActionType": stock_transfer_lines[0]['StockTransferLinesBinAllocations'][0]['BinActionType'],
-                    "SerialAndBatchNumbersBaseLine": stock_transfer_lines[0]['StockTransferLinesBinAllocations'][0][
-                        'SerialAndBatchNumbersBaseLine'],
-                },
-                {
-                    "BinAbsEntry": stock_transfer_lines[0]['StockTransferLinesBinAllocations'][1]['BinAbsEntry'],
-                    "Quantity": stock['Quantity'],
-                    "BaseLineNumber": line,
-                    "BinActionType": stock_transfer_lines[0]['StockTransferLinesBinAllocations'][1]['BinActionType'],
-                    "SerialAndBatchNumbersBaseLine": stock_transfer_lines[0]['StockTransferLinesBinAllocations'][1][
-                        'SerialAndBatchNumbersBaseLine'],
-                }
-            ]
-        })
+    line = 0
+    for stock in stock_transfer_lines:
+        for batch in stock['BatchNumbers']:
+            result.append({
+                "LineNum": line,
+                "ItemCode": stock['ItemCode'],
+                "Quantity": batch['Quantity'],
+                "BatchNumbers": [
+                    {
+                        "BatchNumber": batch['BatchNumber'],
+                        "Quantity": batch['Quantity']
+                    },
+                ],
+                "StockTransferLinesBinAllocations": [
+                    {
+                        "BinAbsEntry": stock['StockTransferLinesBinAllocations'][0]['BinAbsEntry'],
+                        "Quantity": batch['Quantity'],
+                        "BaseLineNumber": line,
+                        "BinActionType": stock['StockTransferLinesBinAllocations'][0]['BinActionType'],
+                        "SerialAndBatchNumbersBaseLine": stock['StockTransferLinesBinAllocations'][0][
+                            'SerialAndBatchNumbersBaseLine'],
+                    },
+                    {
+                        "BinAbsEntry": stock['StockTransferLinesBinAllocations'][1]['BinAbsEntry'],
+                        "Quantity": batch['Quantity'],
+                        "BaseLineNumber": line,
+                        "BinActionType": stock['StockTransferLinesBinAllocations'][1]['BinActionType'],
+                        "SerialAndBatchNumbersBaseLine": stock['StockTransferLinesBinAllocations'][1][
+                            'SerialAndBatchNumbersBaseLine'],
+                    }
+                ]
+            })
+            line += 1
     return result
 
 
 if __name__ == '__main__':
+    from pprint import pprint
+
     dl = [
         {
             "LineNum": 1,
@@ -292,6 +299,551 @@ if __name__ == '__main__':
             ]
         }
     ]
-    from pprint import pprint
+    dl_test = [
+        {
+            "LineNum": 0,
+            "ItemCode": "5420072711420",
+            "Quantity": 5,
+            "BatchNumbers": [
+                {
+                    "Quantity": 5,
+                    "BatchNumber": "QSABPAD0"
+                }
+            ],
+            "StockTransferLinesBinAllocations": [
+                {
+                    "Quantity": 5,
+                    "BinAbsEntry": 196,
+                    "BinActionType": "batFromWarehouse",
+                    "BaseLineNumber": 0,
+                    "SerialAndBatchNumbersBaseLine": 0
+                },
+                {
+                    "Quantity": 5,
+                    "BinAbsEntry": 382,
+                    "BinActionType": "batToWarehouse",
+                    "BaseLineNumber": 0,
+                    "SerialAndBatchNumbersBaseLine": 0
+                }
+            ]
+        },
+        {
+            "LineNum": 1,
+            "ItemCode": "6921875005966",
+            "Quantity": 4,
+            "BatchNumbers": [
+                {
+                    "Quantity": 4,
+                    "BatchNumber": "243132082"
+                }
+            ],
+            "StockTransferLinesBinAllocations": [
+                {
+                    "Quantity": 4,
+                    "BinAbsEntry": 196,
+                    "BinActionType": "batFromWarehouse",
+                    "BaseLineNumber": 1,
+                    "SerialAndBatchNumbersBaseLine": 0
+                },
+                {
+                    "Quantity": 4,
+                    "BinAbsEntry": 382,
+                    "BinActionType": "batToWarehouse",
+                    "BaseLineNumber": 1,
+                    "SerialAndBatchNumbersBaseLine": 0
+                }
+            ]
+        },
+        {
+            "LineNum": 2,
+            "ItemCode": "7594002621989",
+            "Quantity": 8,
+            "BatchNumbers": [
+                {
+                    "Quantity": 8,
+                    "BatchNumber": "8196"
+                }
+            ],
+            "StockTransferLinesBinAllocations": [
+                {
+                    "Quantity": 8,
+                    "BinAbsEntry": 196,
+                    "BinActionType": "batFromWarehouse",
+                    "BaseLineNumber": 2,
+                    "SerialAndBatchNumbersBaseLine": 0
+                },
+                {
+                    "Quantity": 8,
+                    "BinAbsEntry": 382,
+                    "BinActionType": "batToWarehouse",
+                    "BaseLineNumber": 2,
+                    "SerialAndBatchNumbersBaseLine": 0
+                }
+            ]
+        },
+        {
+            "LineNum": 3,
+            "ItemCode": "7702057710620",
+            "Quantity": 90,
+            "BatchNumbers": [
+                {
+                    "Quantity": 90,
+                    "BatchNumber": "3D1435"
+                }
+            ],
+            "StockTransferLinesBinAllocations": [
+                {
+                    "Quantity": 90,
+                    "BinAbsEntry": 196,
+                    "BinActionType": "batFromWarehouse",
+                    "BaseLineNumber": 3,
+                    "SerialAndBatchNumbersBaseLine": 0
+                },
+                {
+                    "Quantity": 90,
+                    "BinAbsEntry": 382,
+                    "BinActionType": "batToWarehouse",
+                    "BaseLineNumber": 3,
+                    "SerialAndBatchNumbersBaseLine": 0
+                }
+            ]
+        },
+        {
+            "LineNum": 4,
+            "ItemCode": "7702057715342",
+            "Quantity": 1,
+            "BatchNumbers": [
+                {
+                    "Quantity": 1,
+                    "BatchNumber": "4E1636"
+                }
+            ],
+            "StockTransferLinesBinAllocations": [
+                {
+                    "Quantity": 1,
+                    "BinAbsEntry": 196,
+                    "BinActionType": "batFromWarehouse",
+                    "BaseLineNumber": 4,
+                    "SerialAndBatchNumbersBaseLine": 0
+                },
+                {
+                    "Quantity": 1,
+                    "BinAbsEntry": 382,
+                    "BinActionType": "batToWarehouse",
+                    "BaseLineNumber": 4,
+                    "SerialAndBatchNumbersBaseLine": 0
+                }
+            ]
+        },
+        {
+            "LineNum": 5,
+            "ItemCode": "7702184011966",
+            "Quantity": 210,
+            "BatchNumbers": [
+                {
+                    "Quantity": 210,
+                    "BatchNumber": "E030412"
+                }
+            ],
+            "StockTransferLinesBinAllocations": [
+                {
+                    "Quantity": 210,
+                    "BinAbsEntry": 196,
+                    "BinActionType": "batFromWarehouse",
+                    "BaseLineNumber": 5,
+                    "SerialAndBatchNumbersBaseLine": 0
+                },
+                {
+                    "Quantity": 210,
+                    "BinAbsEntry": 382,
+                    "BinActionType": "batToWarehouse",
+                    "BaseLineNumber": 5,
+                    "SerialAndBatchNumbersBaseLine": 0
+                }
+            ]
+        },
+        {
+            "LineNum": 6,
+            "ItemCode": "7702184030141",
+            "Quantity": 2,
+            "BatchNumbers": [
+                {
+                    "Quantity": 2,
+                    "BatchNumber": "E070077"
+                }
+            ],
+            "StockTransferLinesBinAllocations": [
+                {
+                    "Quantity": 2,
+                    "BinAbsEntry": 196,
+                    "BinActionType": "batFromWarehouse",
+                    "BaseLineNumber": 6,
+                    "SerialAndBatchNumbersBaseLine": 0
+                },
+                {
+                    "Quantity": 2,
+                    "BinAbsEntry": 382,
+                    "BinActionType": "batToWarehouse",
+                    "BaseLineNumber": 6,
+                    "SerialAndBatchNumbersBaseLine": 0
+                }
+            ]
+        },
+        {
+            "LineNum": 7,
+            "ItemCode": "7702184459751",
+            "Quantity": 280,
+            "BatchNumbers": [
+                {
+                    "Quantity": 280,
+                    "BatchNumber": "E060266"
+                }
+            ],
+            "StockTransferLinesBinAllocations": [
+                {
+                    "Quantity": 280,
+                    "BinAbsEntry": 196,
+                    "BinActionType": "batFromWarehouse",
+                    "BaseLineNumber": 7,
+                    "SerialAndBatchNumbersBaseLine": 0
+                },
+                {
+                    "Quantity": 280,
+                    "BinAbsEntry": 382,
+                    "BinActionType": "batToWarehouse",
+                    "BaseLineNumber": 7,
+                    "SerialAndBatchNumbersBaseLine": 0
+                }
+            ]
+        },
+        {
+            "LineNum": 8,
+            "ItemCode": "7702184693353",
+            "Quantity": 430,
+            "BatchNumbers": [
+                {
+                    "Quantity": 430,
+                    "BatchNumber": "E050824"
+                }
+            ],
+            "StockTransferLinesBinAllocations": [
+                {
+                    "Quantity": 430,
+                    "BinAbsEntry": 196,
+                    "BinActionType": "batFromWarehouse",
+                    "BaseLineNumber": 8,
+                    "SerialAndBatchNumbersBaseLine": 0
+                },
+                {
+                    "Quantity": 430,
+                    "BinAbsEntry": 382,
+                    "BinActionType": "batToWarehouse",
+                    "BaseLineNumber": 8,
+                    "SerialAndBatchNumbersBaseLine": 0
+                }
+            ]
+        },
+        {
+            "LineNum": 9,
+            "ItemCode": "7703038065944",
+            "Quantity": 124,
+            "BatchNumbers": [
+                {
+                    "Quantity": 124,
+                    "BatchNumber": "89802"
+                }
+            ],
+            "StockTransferLinesBinAllocations": [
+                {
+                    "Quantity": 124,
+                    "BinAbsEntry": 196,
+                    "BinActionType": "batFromWarehouse",
+                    "BaseLineNumber": 9,
+                    "SerialAndBatchNumbersBaseLine": 0
+                },
+                {
+                    "Quantity": 124,
+                    "BinAbsEntry": 382,
+                    "BinActionType": "batToWarehouse",
+                    "BaseLineNumber": 9,
+                    "SerialAndBatchNumbersBaseLine": 0
+                }
+            ]
+        },
+        {
+            "LineNum": 10,
+            "ItemCode": "7703038065982",
+            "Quantity": 120,
+            "BatchNumbers": [
+                {
+                    "Quantity": 120,
+                    "BatchNumber": "92828"
+                }
+            ],
+            "StockTransferLinesBinAllocations": [
+                {
+                    "Quantity": 120,
+                    "BinAbsEntry": 196,
+                    "BinActionType": "batFromWarehouse",
+                    "BaseLineNumber": 10,
+                    "SerialAndBatchNumbersBaseLine": 0
+                },
+                {
+                    "Quantity": 120,
+                    "BinAbsEntry": 382,
+                    "BinActionType": "batToWarehouse",
+                    "BaseLineNumber": 10,
+                    "SerialAndBatchNumbersBaseLine": 0
+                }
+            ]
+        },
+        {
+            "LineNum": 11,
+            "ItemCode": "7703153000622",
+            "Quantity": 20,
+            "BatchNumbers": [
+                {
+                    "Quantity": 20,
+                    "BatchNumber": "1507770"
+                }
+            ],
+            "StockTransferLinesBinAllocations": [
+                {
+                    "Quantity": 20,
+                    "BinAbsEntry": 196,
+                    "BinActionType": "batFromWarehouse",
+                    "BaseLineNumber": 11,
+                    "SerialAndBatchNumbersBaseLine": 0
+                },
+                {
+                    "Quantity": 20,
+                    "BinAbsEntry": 382,
+                    "BinActionType": "batToWarehouse",
+                    "BaseLineNumber": 11,
+                    "SerialAndBatchNumbersBaseLine": 0
+                }
+            ]
+        },
+        {
+            "LineNum": 12,
+            "ItemCode": "7703153032890",
+            "Quantity": 10,
+            "BatchNumbers": [
+                {
+                    "Quantity": 10,
+                    "BatchNumber": "1489416"
+                }
+            ],
+            "StockTransferLinesBinAllocations": [
+                {
+                    "Quantity": 10,
+                    "BinAbsEntry": 196,
+                    "BinActionType": "batFromWarehouse",
+                    "BaseLineNumber": 12,
+                    "SerialAndBatchNumbersBaseLine": 0
+                },
+                {
+                    "Quantity": 10,
+                    "BinAbsEntry": 382,
+                    "BinActionType": "batToWarehouse",
+                    "BaseLineNumber": 12,
+                    "SerialAndBatchNumbersBaseLine": 0
+                }
+            ]
+        },
+        {
+            "LineNum": 13,
+            "ItemCode": "7703763999064",
+            "Quantity": 47,
+            "BatchNumbers": [
+                {
+                    "Quantity": 47,
+                    "BatchNumber": "3311704"
+                }
+            ],
+            "StockTransferLinesBinAllocations": [
+                {
+                    "Quantity": 47,
+                    "BinAbsEntry": 196,
+                    "BinActionType": "batFromWarehouse",
+                    "BaseLineNumber": 13,
+                    "SerialAndBatchNumbersBaseLine": 0
+                },
+                {
+                    "Quantity": 47,
+                    "BinAbsEntry": 382,
+                    "BinActionType": "batToWarehouse",
+                    "BaseLineNumber": 13,
+                    "SerialAndBatchNumbersBaseLine": 0
+                }
+            ]
+        },
+        {
+            "LineNum": 14,
+            "ItemCode": "7706127005197",
+            "Quantity": 10,
+            "BatchNumbers": [
+                {
+                    "Quantity": 10,
+                    "BatchNumber": "905864"
+                }
+            ],
+            "StockTransferLinesBinAllocations": [
+                {
+                    "Quantity": 10,
+                    "BinAbsEntry": 196,
+                    "BinActionType": "batFromWarehouse",
+                    "BaseLineNumber": 14,
+                    "SerialAndBatchNumbersBaseLine": 0
+                },
+                {
+                    "Quantity": 10,
+                    "BinAbsEntry": 382,
+                    "BinActionType": "batToWarehouse",
+                    "BaseLineNumber": 14,
+                    "SerialAndBatchNumbersBaseLine": 0
+                }
+            ]
+        },
+        {
+            "LineNum": 15,
+            "ItemCode": "7707019396195",
+            "Quantity": 6,
+            "BatchNumbers": [
+                {
+                    "Quantity": 6,
+                    "BatchNumber": "108123"
+                }
+            ],
+            "StockTransferLinesBinAllocations": [
+                {
+                    "Quantity": 6,
+                    "BinAbsEntry": 196,
+                    "BinActionType": "batFromWarehouse",
+                    "BaseLineNumber": 15,
+                    "SerialAndBatchNumbersBaseLine": 0
+                },
+                {
+                    "Quantity": 6,
+                    "BinAbsEntry": 382,
+                    "BinActionType": "batToWarehouse",
+                    "BaseLineNumber": 15,
+                    "SerialAndBatchNumbersBaseLine": 0
+                }
+            ]
+        },
+        {
+            "LineNum": 17,
+            "ItemCode": "7707172689462",
+            "Quantity": 6,
+            "BatchNumbers": [
+                {
+                    "Quantity": 3,
+                    "BatchNumber": "HE2L"
+                },
+                {
+                    "Quantity": 3,
+                    "BatchNumber": "YC6V"
+                }
+            ],
+            "StockTransferLinesBinAllocations": [
+                {
+                    "Quantity": 6,
+                    "BinAbsEntry": 196,
+                    "BinActionType": "batFromWarehouse",
+                    "BaseLineNumber": 17,
+                    "SerialAndBatchNumbersBaseLine": 0
+                },
+                {
+                    "Quantity": 6,
+                    "BinAbsEntry": 382,
+                    "BinActionType": "batToWarehouse",
+                    "BaseLineNumber": 17,
+                    "SerialAndBatchNumbersBaseLine": 0
+                }
+            ]
+        },
+        {
+            "LineNum": 18,
+            "ItemCode": "7707177973115",
+            "Quantity": 85,
+            "BatchNumbers": [
+                {
+                    "Quantity": 85,
+                    "BatchNumber": "113A27"
+                }
+            ],
+            "StockTransferLinesBinAllocations": [
+                {
+                    "Quantity": 85,
+                    "BinAbsEntry": 196,
+                    "BinActionType": "batFromWarehouse",
+                    "BaseLineNumber": 18,
+                    "SerialAndBatchNumbersBaseLine": 0
+                },
+                {
+                    "Quantity": 85,
+                    "BinAbsEntry": 382,
+                    "BinActionType": "batToWarehouse",
+                    "BaseLineNumber": 18,
+                    "SerialAndBatchNumbersBaseLine": 0
+                }
+            ]
+        },
+        {
+            "LineNum": 19,
+            "ItemCode": "7707193642309",
+            "Quantity": 16,
+            "BatchNumbers": [
+                {
+                    "Quantity": 16,
+                    "BatchNumber": "0122"
+                }
+            ],
+            "StockTransferLinesBinAllocations": [
+                {
+                    "Quantity": 16,
+                    "BinAbsEntry": 196,
+                    "BinActionType": "batFromWarehouse",
+                    "BaseLineNumber": 19,
+                    "SerialAndBatchNumbersBaseLine": 0
+                },
+                {
+                    "Quantity": 16,
+                    "BinAbsEntry": 382,
+                    "BinActionType": "batToWarehouse",
+                    "BaseLineNumber": 19,
+                    "SerialAndBatchNumbersBaseLine": 0
+                }
+            ]
+        },
+        {
+            "LineNum": 20,
+            "ItemCode": "7707288823675",
+            "Quantity": 40,
+            "BatchNumbers": [
+                {
+                    "Quantity": 40,
+                    "BatchNumber": "4A603"
+                }
+            ],
+            "StockTransferLinesBinAllocations": [
+                {
+                    "Quantity": 40,
+                    "BinAbsEntry": 196,
+                    "BinActionType": "batFromWarehouse",
+                    "BaseLineNumber": 20,
+                    "SerialAndBatchNumbersBaseLine": 0
+                },
+                {
+                    "Quantity": 40,
+                    "BinAbsEntry": 382,
+                    "BinActionType": "batToWarehouse",
+                    "BaseLineNumber": 20,
+                    "SerialAndBatchNumbersBaseLine": 0
+                }
+            ]
+        }
+    ]
 
-    pprint(re_make_stock_transfer_lines_traslados(dl))
+    pprint(re_make_stock_transfer_lines_traslados(dl_test))
