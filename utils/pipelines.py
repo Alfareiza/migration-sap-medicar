@@ -31,6 +31,7 @@ from utils.mail import EmailModule
 from utils.resources import set_filename, format_number as fn, login_check, build_new_documentlines, mix_documentlines, \
     re_make_stock_transfer_lines_traslados
 from utils.sap.manager import SAPData
+from tenacity import retry, stop_after_attempt, wait_random, retry_if_exception_type
 
 
 class Validate:
@@ -81,8 +82,8 @@ class Validate:
                 ', '.join(diff)
             ))
 
-    @staticmethod
-    def validate_login(sap):
+    @retry(stop=stop_after_attempt(3), wait=wait_random(min=5, max=15), retry=retry_if_exception_type(LoginNotSucceed))
+    def validate_login(self, sap):
         """ Valida que se pueda hacer login """
         login = login_check(sap)
         if not login:
