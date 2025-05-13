@@ -156,7 +156,7 @@ class Csv2Dict:
                 return "EVPBSCON"
             case "EVENTO PBS SUBSIDIADO":
                 return "EVPBSSUB"
-            case "MAGISTERIO MEDIFARMA EVENTO" | "MAGISTERIO RAMEDICAS CAPITA":
+            case "MAGISTERIO MEDIFARMA EVENTO" | "MAGISTERIO RAMEDICAS CAPITA" | "MAGISTERIO FARMAT EVENTO":
                 return "MAGIS"
             case "":
                 return ""
@@ -185,7 +185,7 @@ class Csv2Dict:
                 return "7165950203"
             case "EVENTO NO PBS CONTRIBUTIVO":
                 return "7165950204"
-            case "MAGISTERIO MEDIFARMA EVENTO" | "MAGISTERIO RAMEDICAS CAPITA":
+            case "MAGISTERIO MEDIFARMA EVENTO" | "MAGISTERIO RAMEDICAS CAPITA" | "MAGISTERIO FARMAT EVENTO":
                 return "7165950401"
             case "EVENTO PBS SUBSIDIADO":
                 return "7165950201"
