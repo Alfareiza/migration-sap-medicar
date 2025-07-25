@@ -175,11 +175,11 @@ class Csv2Dict:
         """
         # match row.get('SubPlan', '').upper():
         match row.get(column_name, '').upper().strip():
-            case "CAPITA" | "CAPITA SUBSIDIADO" | "CAPITA NUEVA EPS DISFARMA" | "CAPITA COMPLEMENTARIA SUBSIDIADO":
+            case "CAPITA" | "CAPITA SUBSIDIADO" | "CAPITA NUEVA EPS DISFARMA" | "CAPITA COMPLEMENTARIA SUBSIDIADO" | "CAPITA BASICA SUBSIDIADO":
                 return "7165950102"
             case "CAPITA CONTRIBUTIVO" | "CAPITA COMPLEMENTARIA CONTRIBUTIVO":
                 return "7165950101"
-            case "EVENTO PBS CONTRIBUTIVO":
+            case "EVENTO PBS CONTRIBUTIVO" | "CAPITA BASICA CONTRIBUTIVO":
                 return "7165950202"
             case "EVENTO NO PBS SUBSIDIADO":
                 return "7165950203"
