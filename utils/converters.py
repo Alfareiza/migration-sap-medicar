@@ -146,13 +146,11 @@ class Csv2Dict:
                 return "CAPSUB01"
             case "CAPITA CONTRIBUTIVO" | "CAPITA COMPLEMENTARIA CONTRIBUTIVO" | "CAPITA BASICA CONTRIBUTIVO":
                 return "CAPCON01"
-            case "EVENTO PBS CONTRIBUTIVO":
+            case "EVENTO NO PBS CONTRIBUTIVO" | "EVENTO PBS CONTRIBUTIVO" | "EVENTO CONTRIBUTIVO" | "EVENTO PBS CONTRIBUTIVO SIN AUTORIZACION":
                 return "EVPBSCON"
             case "EVENTO NO PBS SUBSIDIADO":
                 return "EVNOPBSS"
-            case "EVENTO NO PBS CONTRIBUTIVO":
-                return "EVPBSCON"
-            case "EVENTO PBS SUBSIDIADO":
+            case "EVENTO PBS SUBSIDIADO" | "EVENTO SUBSIDIADO" | "EVENTO PBS SUBSIDIADO SIN AUTORIZACION":
                 return "EVPBSSUB"
             case "MAGISTERIO MEDIFARMA EVENTO" | "MAGISTERIO RAMEDICAS CAPITA" | "MAGISTERIO FARMAT EVENTO":
                 return "MAGIS"
@@ -177,7 +175,7 @@ class Csv2Dict:
                 return "7165950102"
             case "CAPITA CONTRIBUTIVO" | "CAPITA COMPLEMENTARIA CONTRIBUTIVO":
                 return "7165950101"
-            case "EVENTO PBS CONTRIBUTIVO" | "CAPITA BASICA CONTRIBUTIVO":
+            case "EVENTO PBS CONTRIBUTIVO" | "CAPITA BASICA CONTRIBUTIVO" | "EVENTO SUBSIDIADO" | "EVENTO PBS SUBSIDIADO SIN AUTORIZACION":
                 return "7165950202"
             case "EVENTO NO PBS SUBSIDIADO":
                 return "7165950203"
@@ -185,7 +183,7 @@ class Csv2Dict:
                 return "7165950204"
             case "MAGISTERIO MEDIFARMA EVENTO" | "MAGISTERIO RAMEDICAS CAPITA" | "MAGISTERIO FARMAT EVENTO":
                 return "7165950401"
-            case "EVENTO PBS SUBSIDIADO":
+            case "EVENTO PBS SUBSIDIADO" | "EVENTO CONTRIBUTIVO" | "EVENTO PBS CONTRIBUTIVO SIN AUTORIZACION":
                 return "7165950201"
             case "AJUSTE POR FALTANTE":  # Estaba FALTANTES
                 return "7165950301"
