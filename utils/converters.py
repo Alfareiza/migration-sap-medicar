@@ -260,7 +260,7 @@ class Csv2Dict:
         else:
             return f"{anho}{mes}{dia}"
 
-    def transform_date(self, row: dict, column_name: str, force_exception = True) -> str:
+    def transform_date(self, row: dict, column_name: str, force_exception=True) -> str:
         """ Transforma la fecha del formato "2022-12-31 18:36:00" a "20221231" """
         try:
             dt = row[column_name]
@@ -347,7 +347,11 @@ class Csv2Dict:
         Cuando es evento, se intenta convertir a int
         Sino, retorna un string vacío.
         """
-        if self.single_serie == self.series.get('EVENTO'):
+        is_evento = self.single_serie == self.series.get('EVENTO')
+        subplan = row.get('SubPlan', '').upper().strip()
+        is_nro_autorizacion_obligatorio = subplan not in ("EVENTO PBS CONTRIBUTIVO SIN AUTORIZACION",
+                                                          "EVENTO PBS SUBSIDIADO SIN AUTORIZACION")
+        if is_evento or is_nro_autorizacion_obligatorio:
             return self.make_int(row, "NroAutorizacion")
         return ''
 
@@ -918,7 +922,8 @@ class Csv2Dict:
                     self.data[key]['json']["DocumentLines"][idx]['Quantity'] += article['Quantity']
                     self.data[key]['json']["DocumentLines"][idx]['BatchNumbers'].append(article['BatchNumbers'][0])
                     if self.name == 'compras':
-                        self.data[key]['json']["DocumentLines"][idx]['UnitPrice'] *= self.data[key]['json']["DocumentLines"][idx]['Quantity']
+                        self.data[key]['json']["DocumentLines"][idx]['UnitPrice'] *= \
+                        self.data[key]['json']["DocumentLines"][idx]['Quantity']
             case settings.TRASLADOS_NAME:
                 lst_item_codes = [code['ItemCode'] for code in self.data[key]['json']["StockTransferLines"]]
                 try:
@@ -954,7 +959,7 @@ class Csv2Dict:
                     self.data[key]['json']["DocumentLines"][idx]['Quantity'] += article['Quantity']
                 finally:
                     self.data[key]['json']["WithholdingTaxDataCollection"][0]['U_HBT_Retencion'] += (article['Quantity']
-                                                                                                 * article['Price'])
+                                                                                                     * article['Price'])
 
     def process_module(self, csv_reader):
         for i, row in enumerate(csv_reader, 1):
