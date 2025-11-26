@@ -146,13 +146,11 @@ class Csv2Dict:
                 return "CAPSUB01"
             case "CAPITA CONTRIBUTIVO" | "CAPITA COMPLEMENTARIA CONTRIBUTIVO" | "CAPITA BASICA CONTRIBUTIVO":
                 return "CAPCON01"
-            case "EVENTO PBS CONTRIBUTIVO":
+            case "EVENTO NO PBS CONTRIBUTIVO" | "EVENTO PBS CONTRIBUTIVO" | "EVENTO CONTRIBUTIVO" | "EVENTO PBS CONTRIBUTIVO SIN AUTORIZACION":
                 return "EVPBSCON"
             case "EVENTO NO PBS SUBSIDIADO":
                 return "EVNOPBSS"
-            case "EVENTO NO PBS CONTRIBUTIVO":
-                return "EVPBSCON"
-            case "EVENTO PBS SUBSIDIADO":
+            case "EVENTO PBS SUBSIDIADO" | "EVENTO SUBSIDIADO" | "EVENTO PBS SUBSIDIADO SIN AUTORIZACION":
                 return "EVPBSSUB"
             case "MAGISTERIO MEDIFARMA EVENTO" | "MAGISTERIO RAMEDICAS CAPITA" | "MAGISTERIO FARMAT EVENTO":
                 return "MAGIS"
@@ -177,7 +175,7 @@ class Csv2Dict:
                 return "7165950102"
             case "CAPITA CONTRIBUTIVO" | "CAPITA COMPLEMENTARIA CONTRIBUTIVO":
                 return "7165950101"
-            case "EVENTO PBS CONTRIBUTIVO" | "CAPITA BASICA CONTRIBUTIVO":
+            case "EVENTO PBS CONTRIBUTIVO" | "CAPITA BASICA CONTRIBUTIVO" | "EVENTO SUBSIDIADO" | "EVENTO PBS SUBSIDIADO SIN AUTORIZACION":
                 return "7165950202"
             case "EVENTO NO PBS SUBSIDIADO":
                 return "7165950203"
@@ -185,7 +183,7 @@ class Csv2Dict:
                 return "7165950204"
             case "MAGISTERIO MEDIFARMA EVENTO" | "MAGISTERIO RAMEDICAS CAPITA" | "MAGISTERIO FARMAT EVENTO":
                 return "7165950401"
-            case "EVENTO PBS SUBSIDIADO":
+            case "EVENTO PBS SUBSIDIADO" | "EVENTO CONTRIBUTIVO" | "EVENTO PBS CONTRIBUTIVO SIN AUTORIZACION":
                 return "7165950201"
             case "AJUSTE POR FALTANTE":  # Estaba FALTANTES
                 return "7165950301"
@@ -349,11 +347,10 @@ class Csv2Dict:
         """
         is_evento = self.single_serie == self.series.get('EVENTO')
         subplan = row.get('SubPlan', '').upper().strip()
-        is_nro_autorizacion_obligatorio = subplan not in ("EVENTO PBS CONTRIBUTIVO SIN AUTORIZACION",
-                                                          "EVENTO PBS SUBSIDIADO SIN AUTORIZACION")
-        if is_evento or is_nro_autorizacion_obligatorio:
-            return self.make_int(row, "NroAutorizacion")
-        return ''
+        if subplan in ("EVENTO PBS CONTRIBUTIVO SIN AUTORIZACION",
+                       "EVENTO PBS SUBSIDIADO SIN AUTORIZACION"):
+            return ''
+        return self.make_int(row, "NroAutorizacion") if is_evento else ''
 
     def get_plu(self, row, column_name='Plu'):
         item_code = row.get(column_name, '')
@@ -923,7 +920,7 @@ class Csv2Dict:
                     self.data[key]['json']["DocumentLines"][idx]['BatchNumbers'].append(article['BatchNumbers'][0])
                     if self.name == 'compras':
                         self.data[key]['json']["DocumentLines"][idx]['UnitPrice'] *= \
-                        self.data[key]['json']["DocumentLines"][idx]['Quantity']
+                            self.data[key]['json']["DocumentLines"][idx]['Quantity']
             case settings.TRASLADOS_NAME:
                 lst_item_codes = [code['ItemCode'] for code in self.data[key]['json']["StockTransferLines"]]
                 try:
