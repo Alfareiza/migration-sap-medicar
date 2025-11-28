@@ -118,7 +118,7 @@ class Csv2Dict:
         self.update_status_necessary_columns(row, row[self.pk])
 
     def get_series(self, row):
-        """Determina el series a partir del SubPlan o No."""
+        """Determina el series a partir del SubPlan o No y crea la variable single_serie."""
         # TODO En el caso de facturación viene 'Capita complementaria Subsidiado '
         #  en la columna de subplan y por ende entra en el primer if y quiebra el
         #  código porque para facturación 'CAPITA' no existe en el dict self.series
@@ -857,7 +857,7 @@ class Csv2Dict:
                 ], )
             case settings.NOTAS_CREDITO_NAME:
                 base_dct.update(
-                    Series=self.series,
+                    Series=self.get_series(row),
                     DocDate=self.transform_date(row, "FechaFactura"),
                     TaxDate=self.transform_date(row, "FechaFactura"),
                     NumAtCard=row["Factura"],

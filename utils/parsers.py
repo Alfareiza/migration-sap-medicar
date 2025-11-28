@@ -108,7 +108,7 @@ class Module:
             case settings.NOTAS_CREDITO_NAME:
                 self.url = f'{self.BASE_URL}/CreditNotes'
                 self.pk = 'NroSSC'
-                self.series = 91
+                self.series = {'EVENTO': 91}
             case settings.PAGOS_RECIBIDOS_NAME:
                 self.url = f'{self.BASE_URL}/IncomingPayments'
                 self.pk = 'NIT'  # Preguntar a Elias cual es el pk
