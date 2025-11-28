@@ -866,7 +866,7 @@ class Csv2Dict:
                     U_LF_NivelAfiliado=self.make_int(row, "CategoriaActual"),
                     U_HBT_Tercero=self.get_codigo_tercero(row),
                     U_LF_NombreAfiliado=self.get_nombre_afiliado(row),
-                    U_LF_Autorizacion=self.make_int(row, "NroAutorizacion"),
+                    U_LF_Autorizacion=self.get_num_aut(row),
                     Comments=load_comments(row, 'UsuarioDispensa'),
                     U_LF_Mipres=row.get("MiPres", ''),
                     DocumentLines=[self.build_document_lines(row)],
