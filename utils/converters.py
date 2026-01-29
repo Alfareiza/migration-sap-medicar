@@ -258,11 +258,13 @@ class Csv2Dict:
         else:
             return f"{anho}{mes}{dia}"
 
-    def transform_date(self, row: dict, column_name: str, force_exception=True) -> str:
+    def transform_date(self, row: dict, column_name: str, force_exception=True, add_time = False) -> str:
         """ Transforma la fecha del formato "2022-12-31 18:36:00" a "20221231" """
         try:
             dt = row[column_name]
-            anho, mes, dia = dt.split(' ')[0].split('-')
+            fecha, momento = dt.split(' ')
+            anho, mes, dia = fecha.split('-')
+            hora, minuto, _ = momento.split(':')
         except Exception:
             if force_exception:
                 log.error(f"{self.pk} {row[f'{self.pk}']}. Fecha '{dt}' no pudo ser transformada. "
@@ -272,7 +274,7 @@ class Csv2Dict:
             else:
                 ...
         else:
-            return f"{anho}{mes}{dia}"
+            return f"{anho}{mes}{dia}{hora}{minuto}"  if add_time else f"{anho}{mes}{dia}"
 
     def generate_idssc(self, row: dict, doc_date: str) -> str:
         """
@@ -780,7 +782,7 @@ class Csv2Dict:
             case settings.DISPENSACION_NAME:  # 4 y 5 [Implementado]
                 base_dct.update(Series=self.get_series(row))
                 if base_dct['Series'] == 89:  # 4
-                    base_dct.update(DocDate=self.transform_date(row, "FechaDispensacion"))
+                    base_dct.update(DocDate=self.transform_date(row, "FechaDispensacion", add_time=True))
                     base_dct.update(
                         U_LF_IDSSC=self.generate_idssc(row, base_dct.get('DocDate')),
                         TaxDate=self.transform_date(row, "FechaDispensacion"),
@@ -807,7 +809,7 @@ class Csv2Dict:
                     )
                 else:
                     # Si no fue posible definir el Series por algun motivo.
-                    base_dct.update(DocDate=self.transform_date(row, "FechaDispensacion"))
+                    base_dct.update(DocDate=self.transform_date(row, "FechaDispensacion", add_time=True))
                     base_dct.update(
                         U_LF_IDSSC=self.generate_idssc(row, base_dct.get('DocDate')),
                         U_HBT_Tercero=self.get_codigo_tercero(row),
