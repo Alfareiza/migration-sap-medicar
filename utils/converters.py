@@ -795,7 +795,7 @@ class Csv2Dict:
                         DocumentLines=[self.build_document_lines(row)],
                     )
                 elif base_dct['Series'] == 11:  # 5
-                    base_dct.update(DocDate=self.transform_date(row, "FechaDispensacion"))
+                    base_dct.update(DocDate=self.transform_date(row, "FechaDispensacion", add_time=True))
                     base_dct.update(
                         U_LF_IDSSC=self.generate_idssc(row, base_dct.get('DocDate')),
                         TaxDate=self.transform_date(row, "FechaDispensacion"),
