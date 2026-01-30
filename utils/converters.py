@@ -270,7 +270,7 @@ class Csv2Dict:
                 log.error(f"{self.pk} {row[f'{self.pk}']}. Fecha '{dt}' no pudo ser transformada. "
                           f'Se esperaba el formato "2022-12-31 18:36:00" y se recibió {dt}')
                 self.reg_error(row, f'[CSV] Formato inesperado en {column_name} '
-                                    f'se espera este formato -> 2022-12-31 18:36:00')
+                                    f'se espera este formato -> 2022-12-31 18:36:00 y se recibió {dt}')
             else:
                 ...
         else:
@@ -823,8 +823,8 @@ class Csv2Dict:
             case settings.DISPENSACIONES_ANULADAS_NAME:  # 8.2
                 base_dct.update(
                     Series=self.series,
-                    DocDate=self.transform_date(row, 'FechaAnulacion'),
-                    DocDueDate=self.transform_date(row, 'FechaAnulacion'),
+                    DocDate=self.transform_date(row, 'FechaAnulacion', force_exception=False),
+                    DocDueDate=self.transform_date(row, 'FechaAnulacion', force_exception=False),
                     U_LF_IdAfiliado=row.get("NroDocumentoAfiliado", ''),
                     U_LF_Usuario=row.get("UsuarioDispensa", ''),
                     U_HBT_Tercero=self.get_codigo_tercero(row),
