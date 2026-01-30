@@ -547,7 +547,7 @@ class Csv2Dict:
                         {
                             "BatchNumber": row.get("Lote", ''),
                             "Quantity": self.make_int(row, 'Cantidad'),
-                            "ExpiryDate": self.transform_date(row, 'FechaVencimiento')
+                            "ExpiryDate": self.transform_date(row, 'FechaVencimiento',  force_exception=False)
                         }
                     ],
                 )
@@ -589,7 +589,7 @@ class Csv2Dict:
                         {
                             "BatchNumber": row["Lote"],
                             "Quantity": self.make_int(row, 'Cantidad'),
-                            "ExpiryDate": self.transform_date(row, 'FechaVencimiento')
+                            "ExpiryDate": self.transform_date(row, 'FechaVencimiento', force_exception=False)
                         }
                     ]
                 )
@@ -650,7 +650,7 @@ class Csv2Dict:
                         {
                             "BatchNumber": row["Lote"],
                             "Quantity": self.make_int(row, 'Cantidad'),
-                            "ExpiryDate": self.transform_date(row, 'FechaVencimiento')
+                            "ExpiryDate": self.transform_date(row, 'FechaVencimiento', force_exception=False)
                         }
                     ]
                 )
@@ -777,7 +777,7 @@ class Csv2Dict:
                     base_dct.pop(key, None)
                 base_dct.update(
                     Series=self.get_abs_entry_from_lote(row),
-                    ExpirationDate=self.transform_date(row, 'FechaVencimiento')
+                    ExpirationDate=self.transform_date(row, 'FechaVencimiento',  force_exception=False)
                 )
             case settings.DISPENSACION_NAME:  # 4 y 5 [Implementado]
                 base_dct.update(Series=self.get_series(row))
