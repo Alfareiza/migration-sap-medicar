@@ -716,7 +716,7 @@ class Csv2Dict:
                 base_dct.update(
                     U_LF_NroDocumento=f"Comp{row[self.pk]}",
                     Series=self.series,
-                    DocDate=self.transform_date(row, 'FechaCompra'),
+                    DocDate=self.transform_date(row, 'FechaCompra', force_exception=False),
                     NumAtCard=row["Factura"],
                     CardCode=self.get_nit_compras(row),
                     # TODO de donde se obtiene Prefijo PN+Nit del cliente (PR90056320) debe estar creado en sap?
