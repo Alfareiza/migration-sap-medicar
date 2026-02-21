@@ -264,21 +264,33 @@ class Csv2Dict:
         try:
             fecha, momento = dt.split(' ')
         except ValueError:
-            fecha = dt.replace('-', '')
+            fecha = dt
             momento = ''
         try:
             anho, mes, dia = fecha.split('-')
-            hora, minuto, _ = momento.split(':')
-        except Exception:
+        except ValueError:
             if force_exception:
                 log.error(f"{self.pk} {row[f'{self.pk}']}. Fecha '{dt}' no pudo ser transformada. "
-                          f'Se esperaba el formato "2022-12-31 18:36:00" y se recibió {dt}')
+                          f'Se esperaba el formato "2022-12-31" y se recibió {dt}')
                 self.reg_error(row, f'[CSV] Formato inesperado en {column_name} '
-                                    f'se espera este formato -> 2022-12-31 18:36:00 y se recibió {dt}')
+                                    f'se espera este formato -> 2022-12-31 y se recibió {dt}')
             else:
                 ...
         else:
-            return f"{anho}{mes}{dia}{hora}{minuto}"  if add_time else f"{anho}{mes}{dia}"
+            if add_time:
+                try:
+                    hora, minuto, _ = momento.split(':')
+                    return f"{anho}{mes}{dia}{hora}{minuto}"
+                except ValueError:
+                    if force_exception:
+                        log.error(f"{self.pk} {row[f'{self.pk}']}. Fecha '{dt}' no pudo ser transformada. "
+                                  f'Se esperaba el formato "2022-12-31 18:36:00" y se recibió {dt}')
+                        self.reg_error(row, f'[CSV] Formato inesperado en {column_name} '
+                                            f'se espera este formato -> 2022-12-31 18:36:00 y se recibió {dt}')
+                    else:
+                        ...
+            else:
+                return f"{anho}{mes}{dia}"
 
     def generate_idssc(self, row: dict, doc_date: str) -> str:
         """
