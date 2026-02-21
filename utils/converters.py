@@ -272,7 +272,7 @@ class Csv2Dict:
                 self.reg_error(row, f'[CSV] Formato inesperado en {column_name} '
                                     f'se espera este formato -> 2022-12-31 18:36:00 y se recibió {dt}')
             else:
-                ...
+                return f"{anho}{mes}{dia}"
         else:
             return f"{anho}{mes}{dia}{hora}{minuto}"  if add_time else f"{anho}{mes}{dia}"
 
