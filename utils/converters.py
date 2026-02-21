@@ -258,11 +258,15 @@ class Csv2Dict:
         else:
             return f"{anho}{mes}{dia}"
 
-    def transform_date(self, row: dict, column_name: str, force_exception=True, add_time = False) -> str:
-        """ Transforma la fecha del formato "2022-12-31 18:36:00" a "20221231" """
+    def transform_date(self, row: dict, column_name: str, force_exception = True, add_time = False) -> str | None:
+        """Transforma la fecha del formato "2022-12-31 18:36:00" a '20221231'."""
+        dt = row[column_name]
         try:
-            dt = row[column_name]
             fecha, momento = dt.split(' ')
+        except ValueError:
+            fecha = dt.replace('-', '')
+            momento = ''
+        try:
             anho, mes, dia = fecha.split('-')
             hora, minuto, _ = momento.split(':')
         except Exception:
@@ -272,7 +276,7 @@ class Csv2Dict:
                 self.reg_error(row, f'[CSV] Formato inesperado en {column_name} '
                                     f'se espera este formato -> 2022-12-31 18:36:00 y se recibió {dt}')
             else:
-                return f"{anho}{mes}{dia}"
+                ...
         else:
             return f"{anho}{mes}{dia}{hora}{minuto}"  if add_time else f"{anho}{mes}{dia}"
 
