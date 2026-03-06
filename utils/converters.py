@@ -1018,7 +1018,7 @@ class Csv2Dict:
         """ Actualiza el campo de status en el resto de lineas del mismo
         documento caso esten vacías. """
         if key in self.errs:
-            if not row['Status']:
+            if not row['Status'] and not self.data[key]['csv'][-1]['Status']:
                 self.data[key]['csv'][-1]['Status'] = self.data[key]['csv'][-2]['Status']
             else:
                 for r in self.data[row[self.pk]]['csv']:
