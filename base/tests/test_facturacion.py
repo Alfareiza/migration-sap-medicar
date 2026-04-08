@@ -2,6 +2,7 @@ import unittest
 
 from base.tests.conf_test import facturacion_file, make_instance
 from base.tests.base_tests import DocumentLinesTestsMixin, CustomTestsMixin, TestsBaseAdvanced
+from core import settings
 from utils.interactor_db import del_registro_migracion
 
 
@@ -19,8 +20,9 @@ class TestFacturacion(DocumentLinesTestsMixin, CustomTestsMixin, unittest.TestCa
     def tearDownClass(cls):
         del_registro_migracion(cls.module.migracion_id)
 
-    def is_391(self, document):
-        return document.get('WarehouseCode', '') == '391'
+    def is_bodega_tercerizada(self, document) -> bool:
+        """Determina si el WarehouseCode del documento se trata de una bodega tercerizada."""
+        return document.get('WarehouseCode', '') in settings.BODEGAS_TERCERIZADAS
 
     def test_structrure(self):
         """Valida que vengan exactamente los keys esperados"""
@@ -88,7 +90,7 @@ class TestFacturacion(DocumentLinesTestsMixin, CustomTestsMixin, unittest.TestCa
         for _, v in self.result.data.items():
             for document in v['json']['DocumentLines']:
                 with self.subTest(i=document):
-                    if self.is_391(document):
+                    if self.is_bodega_tercerizada(document):
                         self.assertEqual(
                             sorted(list(document.keys())),
                             sorted(["ItemCode", "ItemDescription", "WarehouseCode",
@@ -112,17 +114,17 @@ class TestFacturacion(DocumentLinesTestsMixin, CustomTestsMixin, unittest.TestCa
                     self.assertIsInstance(document['ItemCode'], str)
                     self.assertIsInstance(document['Quantity'], int)
                     self.assertIsInstance(document['Price'], float)
-                    if not self.is_391(document) and document.get('BaseType'):
+                    if not self.is_bodega_tercerizada(document) and document.get('BaseType'):
                         self.assertIsInstance(document['BaseType'], str)
-                    if not self.is_391(document) and document.get('BaseEntry'):
+                    if not self.is_bodega_tercerizada(document) and document.get('BaseEntry'):
                         self.assertIsInstance(document['BaseEntry'], str)
-                    if not self.is_391(document) and document['BaseLine']:
+                    if not self.is_bodega_tercerizada(document) and document['BaseLine']:
                         self.assertIsInstance(document['BaseLine'], int)
                     self.assertIsInstance(document['WarehouseCode'], str)
                     self.assertIsInstance(document['CostingCode'], str)
                     self.assertIsInstance(document['CostingCode2'], str)
                     self.assertIsInstance(document['CostingCode3'], str)
-                    if self.is_391(document):
+                    if self.is_bodega_tercerizada(document):
                         self.assertIsInstance(document['ItemDescription'], str)
 
     def test_structure_withholding_tax_data_collection(self):

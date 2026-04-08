@@ -1,3 +1,5 @@
+from django.conf import settings
+
 from core.settings import logger as log
 from utils.decorators import login_required, once_in_interval
 from utils.resources import format_number, has_ceco
@@ -25,6 +27,7 @@ class SAPConnect(SAP):
 
     def select_method(self):
         return self.post if self.info.name != 'ajustes_vencimiento_lote' else self.patch
+
     # Deprecado Enero/2024
     # @logtime('MASSIVE POSTS')
     # def register(self, method):
@@ -58,7 +61,8 @@ class SAPConnect(SAP):
 
     def request_and_update(self, method, key, item, url):
         """Hace petición a API y actualiza resultado en BD """
-        if has_ceco(self.info.name, item, '391'):
+        avoid_request_to_api = any(has_ceco(self.info.name, item, ceco) for ceco in settings.BODEGAS_TERCERIZADAS)
+        if avoid_request_to_api:
             msg = 'DocEntry: No aplica'
             res = f"({key}): {msg}"
             self.update_status_csv_column(key, msg)

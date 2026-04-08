@@ -4,6 +4,7 @@ from unittest import TestCase
 
 from base.models import PayloadMigracion
 from base.tests.conf_test import make_instance, ProcessFakeSAP
+from core import settings
 from utils.converters import Csv2Dict
 from utils.interactor_db import DBHandler, del_registro_migracion
 from utils.parsers import Parser
@@ -99,14 +100,16 @@ class DocumentLinesTestsMixin:
     """Clase a ser heredada en la suíte de tests. Por aquellos escenarios que usen DocumentLines"""
 
     def test_consistency_in_document_lines(self):
-        """ Valida que tenga tantos dicts en DocumentLines como lineas reconocidas del archivo."""
+        """Valida que tenga tantos dicts en DocumentLines como lineas reconocidas del archivo."""
         for k, v in self.result.data.items():
             with self.subTest(i=v):
                 if self.MODULE_NAME != 'facturacion':
                     qty_articles = sum(len(art['BatchNumbers']) for art in v['json']['DocumentLines'])
                     self.assertEqual(qty_articles, len(v['csv']))
                 else:
-                    self.assertEqual(len(v['json']['DocumentLines']), len(v['csv']))
+                    qty_in_json = sum([line['Quantity'] for line in v['json']['DocumentLines']])
+                    qty_in_csv = sum([float(line['CantidadDispensada']) for line in v['csv']])
+                    self.assertEqual(qty_in_json, qty_in_csv)
 
     def test_consistency_in_batch_numbers(self):
         """ Valida que la cantidad que aparece en el DocumentLines sea igual a
@@ -159,6 +162,19 @@ class DocumentLinesTestsMixin:
                             f"The unit price for the plu is {price_of_article} and the quantity is {quantities_in_csv}.\n "
                             f"{price_of_article} * {quantities_in_csv} is {expected}."
                         )
+
+    def test_iva_code(self):
+        """Valida que los articulos que hacen parte de bodegas tercerizadas, tengan el item code correcto."""
+        for k, v in self.result.data.items():
+            for art in v['json']['DocumentLines']:
+                if self.MODULE_NAME == 'facturacion' and art['ItemCode'] in settings.IVA_CODES.values():
+                    with self.subTest(i=art):
+                        for line in v['csv']:  # Busca linea de csv correspondiente a articulo
+                            if line['Articulo'] in art['ItemDescription']:
+                                if line['IVA'] == "19.0":
+                                    self.assertEqual(art['ItemCode'], "GRAVADOS19")
+                                if line['IVA'] == "0.0":
+                                    self.assertEqual(art['ItemCode'], "NOGRAVADOS")
 
 
 class CustomTestsMixin:

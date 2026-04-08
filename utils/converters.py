@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Iterable
+from typing import Iterable, Literal
 
 from django.conf import settings
 
@@ -377,19 +377,16 @@ class Csv2Dict:
         log.error(f"{self.pk} {row[f'{self.pk}']}. Plu no reconocido : {item_code!r}")
         self.reg_error(row, f"[CSV] Plu no reconocido: {item_code!r}")
 
-    def get_iva_code(self, row):
-        """Busca el IVA en Columna y devuelve el código correspondiente"""
-        iva_code = row.get('IVA', '')
+    def get_iva_code(self, row) -> Literal["NOGRAVADOS", "GRAVADOS19"]:
+        """Busca el IVA en Columna y devuelve el código correspondiente."""
+        iva_value = row.get('IVA', '')
 
-        match iva_code:
-            case '0.0':
-                return 'NOGRAVADOS'
-            case '19.0':
-                return 'GRAVADOS19'
-            case _:
-                txt = f"Detectado IVA inválido {iva_code!r}"
-                log.error(f"{self.pk} {row[f'{self.pk}']}. {txt}")
-                self.reg_error(row, txt)
+        if iva_code := settings.IVA_CODES.get(iva_value):
+            return iva_code
+
+        txt = f"Detectado IVA inválido {iva_code!r}"
+        log.error(f"{self.pk} {row[f'{self.pk}']}. {txt}")
+        self.reg_error(row, txt)
 
     def pending_to_implement(self, row, msg):
         txt = f"[CSV] {msg}. {row[self.pk]!r}"
@@ -677,7 +674,7 @@ class Csv2Dict:
                     CostingCode=self.get_costing_code(row),
                     CostingCode3=self.get_contrato(row),
                 )
-                if document_lines.get('WarehouseCode') == '391':
+                if document_lines.get('WarehouseCode') in settings.BODEGAS_TERCERIZADAS:
                     # self.pending_to_implement(row, 'No se ha implementado facturación cuando CECO es 391')
                     document_lines.update(
                         ItemDescription=f"{row.get('Plu', '')} {row['Articulo']}".strip(),
@@ -963,11 +960,11 @@ class Csv2Dict:
                     self.data[key]['json']["StockTransferLines"][idx]['StockTransferLinesBinAllocations'][1][
                         'BaseLineNumber'] = self.data[key]['json']["StockTransferLines"][idx]['LineNum']
             case settings.FACTURACION_NAME:
-                lst_item_codes = [code['ItemCode'] for code in self.data[key]['json']["DocumentLines"]]
+                lst_item_codes = [code['ItemCode'] for code in self.data[key]['json']["DocumentLines"] if code['ItemCode'] not in settings.IVA_CODES.values()]
                 try:
                     idx = lst_item_codes.index(article['ItemCode'])
                 except ValueError:
-                    if article['WarehouseCode'] != '391':
+                    if article['WarehouseCode'] not in settings.BODEGAS_TERCERIZADAS:
                         article['BaseLine'] = self.data[key]['json']["DocumentLines"][-1]['BaseLine'] + 1
                     self.data[key]['json']["DocumentLines"].append(article)
                 else:

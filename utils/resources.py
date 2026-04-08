@@ -125,6 +125,7 @@ def get_fibonacci_sequence(n: int, starting_number: int = 0) -> List[int]:
 
 
 def has_ceco(name, item, ceco='391'):
+    """Verifica que el item tenga el ceco dentro de su cuerpo para todos los escenarios excepto para Facturación."""
     modules_to_check = settings.MODULES_USE_DOCUMENTLINES.copy()
     modules_to_check.remove(settings.FACTURACION_NAME)
     if name in modules_to_check:
