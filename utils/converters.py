@@ -366,7 +366,8 @@ class Csv2Dict:
         is_evento = self.single_serie == self.series.get('EVENTO')
         subplan = row.get('SubPlan', '').upper().strip()
         if subplan in ("EVENTO PBS CONTRIBUTIVO SIN AUTORIZACION",
-                       "EVENTO PBS SUBSIDIADO SIN AUTORIZACION"):
+                       "EVENTO PBS SUBSIDIADO SIN AUTORIZACION",
+                       "EVENTO CONTRIBUTIVA", "EVENTO SUBSIDIADA"):
             return ''
         return self.make_int(row, "NroAutorizacion") if is_evento else ''
 
