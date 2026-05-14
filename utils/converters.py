@@ -835,8 +835,10 @@ class Csv2Dict:
                         DocumentLines=[self.build_document_lines(row)],
                     )
             case settings.DISPENSACIONES_ANULADAS_NAME:  # 8.2
+                doc_date = self.transform_date(row, "FechaAnulacion", add_time=True)
                 base_dct.update(
                     Series=self.series,
+                    U_LF_IDSSC=self.generate_idssc(row, doc_date),
                     DocDate=self.transform_date(row, 'FechaAnulacion', force_exception=False),
                     DocDueDate=self.transform_date(row, 'FechaAnulacion', force_exception=False),
                     U_LF_IdAfiliado=row.get("NroDocumentoAfiliado", ''),
