@@ -805,6 +805,7 @@ class Csv2Dict:
                         U_LF_NombreAfiliado=self.get_nombre_afiliado(row),
                         U_LF_NivelAfiliado=self.make_int(row, "Categoria"),
                         U_LF_Autorizacion=self.get_num_aut(row),
+                        U_LF_TipoDocumento=row.get("TipodeIdentidad", ''),
                         JournalMemo="Escenario dispensación medicar",
                         DocumentLines=[self.build_document_lines(row)],
                     )
@@ -819,6 +820,7 @@ class Csv2Dict:
                         U_LF_NombreAfiliado=self.get_nombre_afiliado(row),
                         U_LF_NivelAfiliado=self.make_int(row, "Categoria"),
                         U_LF_Autorizacion=self.get_num_aut(row),
+                        U_LF_TipoDocumento=row.get("TipodeIdentidad", ''),
                         DocumentLines=[self.build_document_lines(row)],
                     )
                 else:
@@ -847,6 +849,7 @@ class Csv2Dict:
                     U_LF_Plan=self.get_plan(row),
                     U_LF_NombreAfiliado=self.get_nombre_afiliado(row),
                     U_LF_NivelAfiliado=self.make_int(row, "CategoriaActual"),
+                    U_LF_TipoDocumento=row.get("TipodeIdentidad", ''),
                     U_LF_Autorizacion=self.make_int(row, 'NroAutorizacion') if row["NroAutorizacion"] != '' else '',
                     DocumentLines=[self.build_document_lines(row)],
                 )

@@ -166,7 +166,7 @@ PAGOS_RECIBIDOS_NAME = 'pagos_recibidos'
 
 # HEADERS CSV
 DISPENSACION_HEADER = {
-    'FechaDispensacion', 'SubPlan', 'NIT', 'Plan', 'NroDocumento',
+    'FechaDispensacion', 'SubPlan', 'NIT', 'Plan', 'TipodeIdentidad', 'NroDocumento',
     'Beneficiario', 'NroSSC', 'Categoria', 'NroAutorizacion',
     'Mipres', 'UsuarioDispensa', 'Plu', 'CECO', 'Lote', 'CantidadDispensada',
     # 'Vlr.Unitario Margen'
