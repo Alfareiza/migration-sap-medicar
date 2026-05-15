@@ -287,9 +287,10 @@ class SAPData(SAP):
         log.info('Cargando todos los dispensados.')
         if dispensados := self.get_all(self.DISPENSADO):
             for dispensado in dispensados:
-                if dispensado['U_LF_Formula'] not in self.dispensados:
-                    self.dispensados[dispensado['U_LF_Formula']] = {}
-                self.dispensados[dispensado['U_LF_Formula']] = dispensado
+                pkdisp = f"{dispensado['U_LF_Formula']}{dispensado['CardCode'][2:]}"
+                if pkdisp not in self.dispensados:
+                    self.dispensados[pkdisp] = {}
+                self.dispensados[pkdisp] = dispensado
         else:
             log.warning(f'No se encontraron dispensaciones en {self.DISPENSADO}.')
         # log.info('Proceso de cargar sucursales finalizado.')
@@ -343,16 +344,13 @@ class SAPData(SAP):
         else:
             return []
 
-    def get_docentry_factura(self, ssc: str) -> str:
-        """
-        A partir de un número de ssc, consigue el DocEntry,
-        caso contrario retorna un ''
-        """
-        if res := self.dispensados.get(ssc):
+    def get_docentry_factura(self, ssc: str, nit: str) -> str:
+        """A partir de un número de ssc y cardcode, consigue el DocEntry, caso contrario retorna un ''."""
+        if res := self.dispensados.get(f"{ssc}{nit}"):
             return str(res['DocEntry'])
         elif not self.dispensados and not self.dispensados_loaded:
             self.load_dispensados()
-            return self.get_docentry_factura(ssc)
+            return self.get_docentry_factura(ssc, nit)
         else:
             return ''
 

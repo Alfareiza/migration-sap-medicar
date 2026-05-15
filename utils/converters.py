@@ -397,11 +397,11 @@ class Csv2Dict:
     def get_doc_entry_factura(self, row) -> str:
         """Busca el doc entry de la factura correspondiente."""
         try:
-            dentry = self.sap.get_docentry_factura(row[self.pk])
+            dentry = self.sap.get_docentry_factura(row[self.pk], row['NIT'])
             if not dentry:
                 raise Exception()
         except Exception:
-            txt = f"[CSV] No se encontró dispensación para SSC {row[self.pk]!r}"
+            txt = f"[CSV] No se encontró dispensación para SSC {row[self.pk]!r} con NIT {row.get('NIT', '')!r}"
             log.error(f"{self.pk} {row[f'{self.pk}']}. {txt}")
             self.reg_error(row, txt)
         else:
