@@ -27,7 +27,7 @@ class SAP:
         res = {"ERROR": ""}
         try:
             response = requests.request(method, url, headers=headers,
-                                        data=json.dumps(payload),
+                                        data=json.dumps(payload), verify=False,
                                         timeout=1_800)
             response.raise_for_status()
         except Timeout:
